@@ -216,8 +216,8 @@ class Player(pygame.sprite.Sprite):
                 self.active_light_max_radius = radius
                 self.active_light_max_duration = duration
                 self.light_radius = radius
-                # TODO: Move turn-buffer literal (+1) into a named gameplay constant.
-                self.light_turns_left = duration + 1 # fix off by one error
+                # Add one turn buffer so effects include the activation turn.
+                self.light_turns_left = duration + GameSettings.STATUS_EFFECT_TURN_BUFFER
                 
                 if self.inventory.get("MAGIC MAP", 0) > 0:
                     self.game.map_memory.remember_visible_map_info()
@@ -240,8 +240,7 @@ class Player(pygame.sprite.Sprite):
         elif action == 'repellent':
             if self.inventory.get('MONSTER REPELLENT', 0) > 0:
                 self.inventory['MONSTER REPELLENT'] -= 1
-                # TODO: Move repellent turn-buffer literal (+1) into a named gameplay constant.
-                self.repellent_turns = MonsterSettings.REPELLENT_DURATION + 1
+                self.repellent_turns = MonsterSettings.REPELLENT_DURATION + GameSettings.STATUS_EFFECT_TURN_BUFFER
                 self.game.log_message("YOU SPRAY THE REPELLENT.")
                 self.game.audio.play_repellent_sound(self.inventory['MONSTER REPELLENT'])
                 self.game.advance_turn()
@@ -259,8 +258,7 @@ class Player(pygame.sprite.Sprite):
             elif has_cloak and self.invisibility_cooldown_turns > 0:
                 self.game.log_message("THE INVISIBILITY CLOAK NEEDS TIME TO RECHARGE.")
             elif has_cloak:
-                # TODO: Move invisibility turn-buffer literal (+1) into a named gameplay constant.
-                self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + 1
+                self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + GameSettings.STATUS_EFFECT_TURN_BUFFER
                 self.invisibility_from_cloak = True
                 self.game.log_message("YOU WRAP YOURSELF IN THE INVISIBILITY CLOAK.")
                 self.game.audio.play_vanish_sound()
@@ -270,8 +268,7 @@ class Player(pygame.sprite.Sprite):
                 if self.inventory['INVISIBILITY SCROLL'] <= 0:
                     self.inventory.pop('INVISIBILITY SCROLL', None)
 
-                # TODO: Move invisibility turn-buffer literal (+1) into a named gameplay constant.
-                self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + 1
+                self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + GameSettings.STATUS_EFFECT_TURN_BUFFER
                 self.invisibility_from_cloak = False
                 self.game.log_message("YOU READ THE INVISIBILITY SCROLL.")
                 self.game.audio.play_vanish_sound()
@@ -377,20 +374,18 @@ class Player(pygame.sprite.Sprite):
         key_grid_pos = self.dungeon.key_grid_pos
         distance = self.dungeon.manhattan_distance(player_grid_pos, key_grid_pos)
 
-        # TODO: Move detector distance thresholds (1, 3, 5, 7) into settings constants.
-
-        if distance == 0:
+        if distance == ItemSettings.DETECTOR_DISTANCE_FOUND:
             self.game.log_message("THE KEY DETECTOR IS GOING WILD!")
             self.game.audio.play_found_detector_sound()
-        elif distance == 1:
+        elif distance == ItemSettings.DETECTOR_DISTANCE_HOT:
             self.game.log_message("THE KEY DETECTOR BEEPS RAPIDLY!")
             self.game.audio.play_hot_detector_sound()
-        elif distance <= 3:
+        elif distance <= ItemSettings.DETECTOR_DISTANCE_STEADY:
             self.game.log_message("THE KEY DETECTOR GIVES A STEADY PULSE...")
             self.game.audio.play_warm_detector_sound()
-        elif distance <= 5:
+        elif distance <= ItemSettings.DETECTOR_DISTANCE_SLOW:
             self.game.log_message("THE KEY DETECTOR BEEPS SLOWLY...")
-        elif distance <= 7:
+        elif distance <= ItemSettings.DETECTOR_DISTANCE_FAINT:
             self.game.log_message("A FAINT BEEP COMES FROM THE DETECTOR.")
         else:
             # Dead silent only when very far away.
@@ -406,16 +401,15 @@ class Player(pygame.sprite.Sprite):
 
     def _get_pulse_ratio(self) -> float:
         """Return a 0..1 triangle wave used by status-effect pulses."""
-        # TODO: Replace pulse-shape literal (15) with a named animation constant.
         # Generate a symmetric 0..1 pulse over one flash cycle.
-        distance_from_center = abs(self.flash_frame - 15)
-        return 1.0 - (distance_from_center / 15)
+        half_cycle = PlayerSettings.FLASH_HALF_CYCLE
+        distance_from_center = abs(self.flash_frame - half_cycle)
+        return 1.0 - (distance_from_center / half_cycle)
 
     def get_action_window_border_style(self) -> tuple[str, int]:
         """Return (RGB color, alpha) for the animated action-window border."""
         if self.is_invisible():
-            # TODO: Move border alpha thresholds (95, 255, 15) into UI/animation constants.
-            border_alpha = 95 if self.flash_frame < 15 else 255
+            border_alpha = 95 if self.flash_frame < PlayerSettings.FLASH_HALF_CYCLE else 255
             border_color = ColorSettings.BORDER_REPELLED if self.is_repelled() else ColorSettings.BORDER_DEFAULT
             return border_color, border_alpha
 
@@ -433,8 +427,7 @@ class Player(pygame.sprite.Sprite):
         is_repelled = self.is_repelled()
 
         if is_invisible or is_repelled:
-            # TODO: Move flash animation cycle length literal (30) into animation constants.
-            self.flash_frame = (self.flash_frame + 1) % 30
+            self.flash_frame = (self.flash_frame + 1) % PlayerSettings.FLASH_CYCLE_FRAMES
         else:
             self.flash_frame = 0
 
@@ -450,8 +443,7 @@ class Player(pygame.sprite.Sprite):
             self.image.blit(tint_surface, (0, 0))
 
         if is_invisible:
-            # TODO: Move invisibility alpha thresholds (95, 255, 15) into UI/animation constants.
-            alpha = 95 if self.flash_frame < 15 else 255
+            alpha = 95 if self.flash_frame < PlayerSettings.FLASH_HALF_CYCLE else 255
             self.image.set_alpha(alpha)
         else:
             self.image.set_alpha(255)
@@ -732,6 +724,13 @@ class NPC(pygame.sprite.Sprite):
     """A stationary NPC that gives the player a random item when approached."""
 
     def __init__(self, game, position: tuple[int, int], groups) -> None:
+        """Initialize NPC sprite visuals and fade-out state.
+
+        Args:
+            game: Active game manager instance.
+            position (tuple[int, int]): Starting screen position.
+            groups: Sprite groups this NPC belongs to.
+        """
         super().__init__(groups)
         self.game = game
 
@@ -767,6 +766,7 @@ class NPC(pygame.sprite.Sprite):
                 self.kill()
 
     def update(self) -> None:
+        """No-op update hook kept for sprite-group compatibility."""
         pass
 
 

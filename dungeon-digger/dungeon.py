@@ -143,16 +143,6 @@ class DungeonMaster:
                     positions.append((col, row))
 
         return positions
-
-
-    def get_random_walkable_position(self) -> tuple[int, int]:
-        """Return one random walkable grid position.
-
-        Returns:
-            tuple[int, int]: Random walkable (col, row) coordinate.
-        """
-        return random.choice(self.get_walkable_positions())
-
     def draw_random_position(self, available_positions: list[tuple[int, int]]) -> tuple[int, int]:
         """Draw and remove one random position from the available pool."""
         selected = random.choice(available_positions)

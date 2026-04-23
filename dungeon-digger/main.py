@@ -1,6 +1,5 @@
 import pygame
 import sys
-import os
 
 from settings import *
 from audio import AudioManager
@@ -11,6 +10,7 @@ from mapmemory import MapMemory
 from render import RenderManager
 from crt import CRT
 from tilemaps import DUNGEON_ORDER
+from managers import ScoreLeaderboardManager, BetweenLevelManager
 
 class GameManager:
     """Coordinate game state, flow, rendering phases, and input orchestration."""
@@ -35,11 +35,13 @@ class GameManager:
         self.dungeon = DungeonMaster(self.scaled_dirt_tiles)
         self.all_sprites = pygame.sprite.Group()
         self.audio = AudioManager()
+        self.score_manager = ScoreLeaderboardManager(self)
+        self.between_level_manager = BetweenLevelManager(self)
         self.game_active = False
         self.game_result = None
         self.score = 0
-        self.high_score = self.load_high_score()
-        self.leaderboard = self.load_leaderboard()
+        self.high_score = self.score_manager.load_high_score()
+        self.leaderboard = self.score_manager.load_leaderboard()
         self.level_order = list(DUNGEON_ORDER)
         self.current_level_index = 0
         self.pending_level_index = 0
@@ -56,36 +58,7 @@ class GameManager:
         self.pending_leaderboard_score = 0
         self.initials_entry = "AAA"
         self.initials_index = 0
-        
-        # -------- Between-level: treasure conversion --------
-        # TODO: Move conversion timing defaults (2000, 520, 450, 650) to GameSettings constants.
-        self.in_treasure_conversion = False
-        self.treasure_conversion_data = {}  # Stores treasures found in current level for conversion
-        self.conversion_display_start_time = 0
-        self.conversion_display_delay_ms = 2000  # Delay before showing "PRESS START TO CONTINUE" after total appears
-        self.conversion_line_reveal_interval_ms = 520
-        self.conversion_total_reveal_delay_ms = 450
-        self.conversion_prompt_fade_ms = 650
-
-        # -------- Between-level: door unlock pacing --------
-        # TODO: Move unlock pacing default (450) to GameSettings constants.
-        self.pending_treasure_conversion = False
-        self.treasure_conversion_pending_since = 0
-        self.treasure_conversion_post_message_delay_ms = 450
-
-        # -------- Between-level: shop state --------
-        # TODO: Move shop timing default (200) and limited stock defaults (3/1) into ItemSettings/GameSettings.
-        self.in_shop_phase = False
-        self.shop_selected_index = 0
-        self.shop_display_start_time = 0
-        self.shop_display_delay_ms = 200
-        self.shop_stock: dict[str, int | None] = {}
-        self.shop_limited_stock_template = {
-            'LANTERN': 3,
-            'INVISIBILITY CLOAK': 1,
-            'MAP': 1,
-            'KEY DETECTOR': 1,
-        }
+        self.between_level_manager.initialize_state()
         
         self.fog_surface = pygame.Surface((UISettings.ACTION_WINDOW_WIDTH, UISettings.ACTION_WINDOW_HEIGHT), pygame.SRCALPHA)
 
@@ -104,13 +77,7 @@ class GameManager:
         self.load_level()
         self.audio.stop_music()
 
-        # TODO: Refactor inventory/shop/leaderboard lifecycle concerns into dedicated manager classes.
-        # TODO: Planned extractions when refactoring GameManager:
-        # - ProgressionManager: level flow, door unlock, and transition timing.
-        # - ScoreLeaderboardManager: score/high-score/leaderboard persistence.
-        # - ShopManager: stock, purchase, and between-level shop UI/input state.
-        # - InputRouter: map keyboard/controller events to gameplay/shop/ui intents.
-        # - GameLoopController: split run() into process_events(), update_state(), render_frame().
+        # TODO: Continue splitting run() into process_events(), update_state(), and render_frame().
 
     def reset_game(self):
         """
@@ -140,7 +107,7 @@ class GameManager:
 
     def quit_combo_pressed(self) -> bool:
         """Return True if START + SELECT + L1 + R1 are held on any controller."""
-        required_buttons = (7, 6, 4, 5)
+        required_buttons = InputSettings.JOY_BUTTON_QUIT_COMBO
         for joystick in self.connected_joysticks:
             if all(joystick.get_button(button) for button in required_buttons):
                 return True
@@ -188,7 +155,7 @@ class GameManager:
         Returns:
             str: Filesystem path for the high-score file.
         """
-        return os.path.join(os.path.dirname(__file__), GameSettings.HIGH_SCORE_FILE)
+        return self.score_manager.get_high_score_path()
 
     def get_leaderboard_path(self) -> str:
         """Return the absolute path to the leaderboard data file.
@@ -196,29 +163,15 @@ class GameManager:
         Returns:
             str: Filesystem path for the leaderboard file.
         """
-        return os.path.join(os.path.dirname(__file__), GameSettings.LEADERBOARD_FILE)
+        return self.score_manager.get_leaderboard_path()
 
     def load_high_score(self) -> int:
         """Load the saved high score from disk if it exists."""
-        high_score_path = self.get_high_score_path()
-        if not os.path.exists(high_score_path):
-            return 0
-
-        try:
-            with open(high_score_path, 'r', encoding='utf-8') as score_file:
-                return int(score_file.read().strip() or 0)
-        except (OSError, ValueError):
-            return 0
+        return self.score_manager.load_high_score()
 
     def save_high_score(self) -> None:
         """Persist the best score reached so far to disk."""
-        self.high_score = max(self.high_score, self.score)
-
-        try:
-            with open(self.get_high_score_path(), 'w', encoding='utf-8') as score_file:
-                score_file.write(str(self.high_score))
-        except OSError:
-            pass
+        self.score_manager.save_high_score()
 
     def _sanitize_initials(self, initials: str) -> str:
         """Normalize initials to exactly three uppercase alphabetic characters.
@@ -229,78 +182,23 @@ class GameManager:
         Returns:
             str: Sanitized three-character initials string.
         """
-        letters = ''.join(char for char in initials.upper() if char.isalpha())
-        return (letters[:3]).ljust(3, 'A')
+        return self.score_manager.sanitize_initials(initials)
 
     def load_leaderboard(self) -> list[tuple[str, int]]:
         """Load top scores from disk in descending order."""
-        leaderboard_path = self.get_leaderboard_path()
-        if not os.path.exists(leaderboard_path):
-            return []
-
-        entries: list[tuple[str, int]] = []
-        try:
-            with open(leaderboard_path, 'r', encoding='utf-8') as board_file:
-                for raw_line in board_file:
-                    line = raw_line.strip()
-                    if not line:
-                        continue
-
-                    if ',' not in line:
-                        continue
-
-                    initials, score_text = line.split(',', 1)
-                    try:
-                        score = int(score_text.strip())
-                    except ValueError:
-                        continue
-
-                    if score < 0:
-                        continue
-
-                    entries.append((self._sanitize_initials(initials), score))
-        except OSError:
-            return []
-
-        entries.sort(key=lambda entry: entry[1], reverse=True)
-        return entries[:GameSettings.LEADERBOARD_LIMIT]
+        return self.score_manager.load_leaderboard()
 
     def save_leaderboard(self) -> None:
         """Persist leaderboard entries to disk."""
-        try:
-            with open(self.get_leaderboard_path(), 'w', encoding='utf-8') as board_file:
-                for initials, score in self.leaderboard:
-                    board_file.write(f"{initials},{score}\n")
-        except OSError:
-            pass
+        self.score_manager.save_leaderboard()
 
     def is_top_ten_score(self, score: int) -> bool:
         """Return True when score qualifies for leaderboard entry."""
-        if score <= 0:
-            return False
-
-        if len(self.leaderboard) < GameSettings.LEADERBOARD_LIMIT:
-            return True
-
-        return score >= self.leaderboard[-1][1]
+        return self.score_manager.is_top_ten_score(score)
 
     def add_leaderboard_entry(self, initials: str, score: int) -> None:
         """Insert and persist one top-score entry."""
-        clean_initials = self._sanitize_initials(initials)
-        existing_index = next(
-            (i for i, (name, _) in enumerate(self.leaderboard) if name == clean_initials),
-            None
-        )
-        if existing_index is not None:
-            if score <= self.leaderboard[existing_index][1]:
-                return
-            self.leaderboard[existing_index] = (clean_initials, score)
-        else:
-            self.leaderboard.append((clean_initials, score))
-        self.leaderboard.sort(key=lambda entry: entry[1], reverse=True)
-        self.leaderboard = self.leaderboard[:GameSettings.LEADERBOARD_LIMIT]
-        self.high_score = max(self.high_score, self.leaderboard[0][1] if self.leaderboard else 0)
-        self.save_leaderboard()
+        self.score_manager.add_leaderboard_entry(initials, score)
 
     def start_gameplay_from_title(self) -> None:
         """Leave title screen and begin active gameplay."""
@@ -310,96 +208,23 @@ class GameManager:
 
     def can_continue_from_game_over(self) -> bool:
         """Return True when the post-loss continue prompt is currently visible."""
-        if self.ui_state != 'game_over':
-            return False
-
-        if self.game_result != 'loss':
-            return True
-
-        return self.game_over_prompt_start_time > 0 and pygame.time.get_ticks() >= self.game_over_prompt_start_time
+        return self.score_manager.can_continue_from_game_over()
 
     def update_game_over_flow(self) -> None:
         """Wait until death text is done, then reveal the continue prompt."""
-        if self.ui_state != 'game_over' or self.game_result != 'loss':
-            return
-
-        if self.message_log.is_typing:
-            return
-
-        now = pygame.time.get_ticks()
-        if self.game_over_message_complete_time == 0:
-            self.game_over_message_complete_time = now
-            self.game_over_prompt_start_time = now + GameSettings.GAME_OVER_CONTINUE_DELAY_MS
+        self.score_manager.update_game_over_flow()
 
     def continue_from_game_over(self) -> None:
         """Advance to initials entry or directly to the leaderboard."""
-        if self.is_top_ten_score(self.pending_leaderboard_score):
-            self.ui_state = 'enter_initials'
-            self.initials_entry = "AAA"
-            self.initials_index = 0
-            return
-
-        self.ui_state = 'leaderboard'
+        self.score_manager.continue_from_game_over()
 
     def submit_initials_entry(self) -> None:
         """Commit initials for this run, then show leaderboard."""
-        self.add_leaderboard_entry(self.initials_entry, self.pending_leaderboard_score)
-        self.ui_state = 'leaderboard'
+        self.score_manager.submit_initials_entry()
 
     def handle_initials_event(self, event: pygame.event.Event) -> None:
         """Handle keyboard/controller input while entering leaderboard initials."""
-        if self.ui_state != 'enter_initials':
-            return
-
-        # --- D-pad (controller hat) ---
-        if event.type == pygame.JOYHATMOTION:
-            hat_x, hat_y = event.value
-
-            if hat_x == -1:
-                self.initials_index = max(0, self.initials_index - 1)
-            elif hat_x == 1:
-                self.initials_index = min(2, self.initials_index + 1)
-
-            if hat_y == 1:  # D-pad Up: next letter
-                chars = list(self.initials_entry)
-                current = chars[self.initials_index]
-                chars[self.initials_index] = 'A' if current == 'Z' else chr(ord(current) + 1)
-                self.initials_entry = ''.join(chars)
-            elif hat_y == -1:  # D-pad Down: previous letter
-                chars = list(self.initials_entry)
-                current = chars[self.initials_index]
-                chars[self.initials_index] = 'Z' if current == 'A' else chr(ord(current) - 1)
-                self.initials_entry = ''.join(chars)
-            return
-
-        # --- Controller buttons ---
-        # Button 7 (Start) submit is handled by handle_start_press to avoid double-firing
-        # on the same frame that transitions game_over -> enter_initials.
-        if event.type == pygame.JOYBUTTONDOWN:
-            if event.button == 0:  # A button confirms
-                self.submit_initials_entry()
-            return
-
-        # --- Keyboard fallback ---
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                self.initials_index = max(0, self.initials_index - 1)
-                return
-            if event.key == pygame.K_RIGHT:
-                self.initials_index = min(2, self.initials_index + 1)
-                return
-            if event.key == pygame.K_UP:
-                chars = list(self.initials_entry)
-                current = chars[self.initials_index]
-                chars[self.initials_index] = 'A' if current == 'Z' else chr(ord(current) + 1)
-                self.initials_entry = ''.join(chars)
-                return
-            if event.key == pygame.K_DOWN:
-                chars = list(self.initials_entry)
-                current = chars[self.initials_index]
-                chars[self.initials_index] = 'Z' if current == 'A' else chr(ord(current) - 1)
-                self.initials_entry = ''.join(chars)
-                return
+        self.score_manager.handle_initials_event(event)
 
     def handle_start_press(self) -> None:
         """Handle Start/Enter based on top-level UI state."""
@@ -454,25 +279,11 @@ class GameManager:
 
     def start_level_transition(self) -> None:
         """Pause on a title card before loading the next dungeon."""
-        self.transition_label = f"LEVEL {self.current_level_number}"
-        self.transition_end_time = pygame.time.get_ticks() + GameSettings.LEVEL_TRANSITION_MS
-        self.pending_level_load = True
-        self.audio.stop_music()
+        self.between_level_manager.start_level_transition()
 
     def update_level_transition(self) -> None:
         """Load the pending dungeon once the transition card has finished."""
-        if not self.pending_level_load:
-            return
-
-        if pygame.time.get_ticks() < self.transition_end_time:
-            return
-
-        player_progress = self.capture_player_progress()
-        self.load_level(player_progress)
-        self.audio.play_random_bgm()
-        self.pending_level_load = False
-        self.transition_label = ""
-        self.transition_end_time = 0
+        self.between_level_manager.update_level_transition()
 
     def finish_game(self, result: str) -> None:
         """End the current run and persist the high score."""
@@ -487,289 +298,55 @@ class GameManager:
 
     def handle_door_unlock(self) -> None:
         """Advance to the next dungeon, or finish the run on the last door."""
-        self.message_success_border_until = pygame.time.get_ticks() + UISettings.DOOR_UNLOCK_BORDER_FLASH_MS
-
-        if self.current_level_index >= len(self.level_order) - 1:
-            self.log_message("CONGRATULATIONS! YOU CLEARED THE FINAL DUNGEON!")
-            self.finish_game("win")
-            return
-
-        self.pending_level_index = self.current_level_index + 1
-        self.audio.stop_music()
-        self.log_message(
-            "YOU UNLOCK THE DOOR AND ESCAPE THIS FLOOR",
-            type_speed=0.12,
-        )
-        # TODO: Promote message type speed literal (0.12) to a named setting.
-        self.pending_treasure_conversion = True
-        self.treasure_conversion_pending_since = pygame.time.get_ticks()
+        self.between_level_manager.handle_door_unlock()
 
     def update_door_unlock_sequence(self) -> None:
         """Delay treasure exchange until after unlock message has finished typing."""
-        if not self.pending_treasure_conversion:
-            return
-
-        if self.message_log.is_typing:
-            return
-
-        elapsed = pygame.time.get_ticks() - self.treasure_conversion_pending_since
-        if elapsed < self.treasure_conversion_post_message_delay_ms:
-            return
-
-        self.pending_treasure_conversion = False
-        self.remove_between_level_items()
-        self.start_treasure_conversion()
+        self.between_level_manager.update_door_unlock_sequence()
 
     def remove_between_level_items(self) -> None:
         """Remove inventory items that should never carry across dungeon boundaries."""
-        removed_any = False
-        for item_name in ItemSettings.LEVEL_SCOPED_ITEMS:
-            if self.player.inventory.get(item_name, 0) > 0:
-                removed_any = True
-            self.player.inventory.pop(item_name, None)
-            self.player.discovered_items.discard(item_name)
-
-        if removed_any:
-            self.log_message("KEYS, MAPS, AND DETECTORS DON'T CARRY BETWEEN LEVELS.")
+        self.between_level_manager.remove_between_level_items()
 
     def start_treasure_conversion(self) -> None:
         """Collect treasures from inventory and prepare for conversion display."""
-        # Build conversion entries from non-coin treasure inventory.
-        treasure_items = {}
-        for item, value in ItemSettings.TREASURE_SCORE_VALUES.items():
-            if item == 'GOLD COINS':
-                continue
-            if item in self.player.inventory and self.player.inventory[item] > 0:
-                treasure_items[item] = {
-                    'count': self.player.inventory[item],
-                    'value_each': value
-                }
-        
-        self.treasure_conversion_data = treasure_items
-        self.in_treasure_conversion = True
-        self.conversion_display_start_time = pygame.time.get_ticks()
-        self.log_message("YOUR TREASURE IS EXCHANGED FOR GOLD COINS.")
+        self.between_level_manager.start_treasure_conversion()
 
     def update_treasure_conversion(self) -> None:
         """Handle input and state updates during treasure conversion phase."""
-        if not self.in_treasure_conversion:
-            return
-        
-        # Gate input until conversion UI is fully displayed.
-        elapsed = pygame.time.get_ticks() - self.conversion_display_start_time
-        display_ready = elapsed >= self.conversion_display_delay_ms
-
-        # Accept Start/Enter confirmation.
-        keys = pygame.key.get_pressed()
-        button_pressed = keys[pygame.K_RETURN]
-        
-        # Mirror confirmation input on connected controllers.
-        # TODO: Replace controller button index literal (7 = Start) with named input constants.
-        for joystick in self.connected_joysticks:
-            if joystick.get_button(7):  # Start button
-                button_pressed = True
-                break
-
-        if display_ready and button_pressed:
-            self.complete_treasure_conversion()
+        self.between_level_manager.update_treasure_conversion()
 
     def complete_treasure_conversion(self) -> None:
         """Convert collected treasures to gold coins and proceed to the shop."""
-        # Compute conversion total.
-        total_gold = 0
-        for item, data in self.treasure_conversion_data.items():
-            gold_value = data['value_each'] * data['count']
-            total_gold += gold_value
-        
-        # Apply converted currency to inventory.
-        if total_gold > 0:
-            self.player.inventory['GOLD COINS'] = self.player.inventory.get('GOLD COINS', 0) + total_gold
-            self.player.discovered_items.add('GOLD COINS')
-        
-        # Clear converted treasure entries.
-        for item in self.treasure_conversion_data.keys():
-            self.player.inventory.pop(item, None)
-        
-        # Reset conversion state for next level.
-        self.in_treasure_conversion = False
-        self.treasure_conversion_data = {}
-
-        # Continue into the between-level shop.
-        self.start_shop_phase()
+        self.between_level_manager.complete_treasure_conversion()
 
     def start_shop_phase(self) -> None:
         """Open the between-level shop with refreshed stock."""
-        self.in_shop_phase = True
-        self.shop_selected_index = 0
-        self.shop_display_start_time = pygame.time.get_ticks()
-        self.shop_stock = {}
-
-        for item_name in ItemSettings.SHOP_PRICES:
-            if item_name in self.shop_limited_stock_template:
-                self.shop_stock[item_name] = self.shop_limited_stock_template[item_name]
-            else:
-                # Use None to represent unlimited stock.
-                self.shop_stock[item_name] = None
-
-        # Cloak is a permanent upgrade; once owned it can never be bought again.
-        if self.player.inventory.get('INVISIBILITY CLOAK', 0) > 0:
-            self.shop_stock['INVISIBILITY CLOAK'] = 0
-
-        self.log_message('"KHAJIIT HAS WARES, IF YOU HAVE COIN."')
+        self.between_level_manager.start_shop_phase()
 
     def get_shop_menu_options(self) -> list[str]:
         """Return shop items plus a continue option."""
-        options = []
-        for item_name in ItemSettings.SHOP_PRICES:
-            options.append(item_name)
-
-        options.append('CONTINUE')
-        return options
+        return self.between_level_manager.get_shop_menu_options()
 
     def move_shop_selection(self, delta: int) -> None:
         """Move the highlighted shop row up or down."""
-        options = self.get_shop_menu_options()
-        if not options:
-            self.shop_selected_index = 0
-            return
-
-        self.shop_selected_index = (self.shop_selected_index + delta) % len(options)
+        self.between_level_manager.move_shop_selection(delta)
 
     def _format_purchase_message(self, item_name: str, quantity: int) -> str:
         """Build purchase confirmation text with simple plural rules."""
-        if quantity == 1:
-            if item_name == 'MONSTER REPELLENT':
-                return 'YOU BOUGHT A CAN OF MONSTER REPELLENT.'
-            article = 'AN' if item_name[0] in 'AEIOU' else 'A'
-            return f'YOU BOUGHT {article} {item_name}.'
-
-        if item_name == 'MATCH':
-            plural_name = 'MATCHES'
-        elif item_name == 'TORCH':
-            plural_name = 'TORCHES'
-        elif item_name.endswith('Y'):
-            plural_name = item_name[:-1] + 'IES'
-        elif item_name.endswith('S'):
-            plural_name = item_name
-        else:
-            plural_name = item_name + 'S'
-
-        return f'YOU BOUGHT {quantity} {plural_name}.'
+        return self.between_level_manager.format_purchase_message(item_name, quantity)
 
     def buy_shop_item(self, item_name: str, quantity: int = 1) -> None:
         """Try to buy one shop item and immediately update inventory and gold."""
-        if item_name not in ItemSettings.SHOP_PRICES:
-            return
-
-        stock = self.shop_stock.get(item_name)
-        if stock is not None and stock <= 0:
-            self.log_message("THAT ITEM IS OUT OF STOCK.")
-            self.audio.play_boundary_sound()
-            return
-
-        purchase_quantity = quantity
-        if stock is not None:
-            purchase_quantity = min(purchase_quantity, stock)
-
-        if purchase_quantity <= 0:
-            return
-
-        unit_price = ItemSettings.SHOP_PRICES[item_name]
-        total_price = unit_price * purchase_quantity
-        current_gold = self.player.inventory.get('GOLD COINS', 0)
-
-        if current_gold < total_price:
-            self.log_message("YOU CAN'T AFFORD THAT.")
-            self.audio.play_boundary_sound()
-            return
-
-        self.player.inventory['GOLD COINS'] = current_gold - total_price
-        self.player.inventory[item_name] = self.player.inventory.get(item_name, 0) + purchase_quantity
-        self.player.discovered_items.add(item_name)
-        self.log_message(self._format_purchase_message(item_name, purchase_quantity))
-        self.audio.play_coin_sound()
-
-        # Cloak is an upgrade that replaces all scrolls.
-        if item_name == 'INVISIBILITY CLOAK':
-            self.player.inventory.pop('INVISIBILITY SCROLL', None)
-
-        if stock is not None:
-            self.shop_stock[item_name] = max(0, stock - purchase_quantity)
-
-        # Clamp selection in case the purchased item just sold out and disappeared.
-        options = self.get_shop_menu_options()
-        if options:
-            self.shop_selected_index = min(self.shop_selected_index, len(options) - 1)
-        else:
-            self.shop_selected_index = 0
+        self.between_level_manager.buy_shop_item(item_name, quantity)
 
     def complete_shop_phase(self) -> None:
         """Close the shop and begin loading the next level."""
-        self.in_shop_phase = False
-        self.current_level_index = self.pending_level_index
-        self.log_message(f"YOU LEAVE THE SHOP. DESCENDING TO LEVEL {self.current_level_number}...")
-        self.start_level_transition()
+        self.between_level_manager.complete_shop_phase()
 
     def handle_shop_event(self, event: pygame.event.Event) -> None:
         """Process keyboard/controller input for the between-level shop."""
-        if not self.in_shop_phase:
-            return
-
-        elapsed = pygame.time.get_ticks() - self.shop_display_start_time
-        if elapsed < self.shop_display_delay_ms:
-            return
-
-        options = self.get_shop_menu_options()
-        if not options:
-            return
-
-        if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_UP, pygame.K_w):
-                self.move_shop_selection(-1)
-                return
-
-            if event.key in (pygame.K_DOWN, pygame.K_s):
-                self.move_shop_selection(1)
-                return
-
-            if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z, pygame.K_x, pygame.K_5):
-                selected_option = options[self.shop_selected_index]
-                if selected_option == 'CONTINUE':
-                    self.complete_shop_phase()
-                else:
-                    # TODO: Replace bulk-purchase literal (5) with a named shop input constant.
-                    quantity = 5 if event.key in (pygame.K_x, pygame.K_5) else 1
-                    self.buy_shop_item(selected_option, quantity=quantity)
-                return
-
-        if event.type == pygame.JOYHATMOTION:
-            _, hat_y = event.value
-            if hat_y == 1:
-                self.move_shop_selection(-1)
-            elif hat_y == -1:
-                self.move_shop_selection(1)
-            return
-
-        if event.type == pygame.JOYBUTTONDOWN:
-            # Controller confirm mappings for shop interactions.
-            # TODO: Replace controller button index literals (7/0/2) with named input constants.
-            if event.button == 0:  # A button confirms selection.
-                selected_option = options[self.shop_selected_index]
-                if selected_option == 'CONTINUE':
-                    self.complete_shop_phase()
-                else:
-                    self.buy_shop_item(selected_option)
-                return
-
-            if event.button == 2:  # X button buys 5 at once.
-                selected_option = options[self.shop_selected_index]
-                if selected_option == 'CONTINUE':
-                    self.complete_shop_phase()
-                else:
-                    self.buy_shop_item(selected_option, quantity=5)
-                return
-
-        # TODO: Refactor shop event handling into smaller command handlers (navigate/select/bulk-buy/continue).
+        self.between_level_manager.handle_shop_event(event)
 
     # -------------------------
     # BOOT / SETUP
@@ -958,8 +535,9 @@ class GameManager:
             if self.player.invisibility_turns == 0:
                 self.log_message("THE INVISIBILITY WEARS OFF.")
                 if self.player.invisibility_from_cloak:
-                    # TODO: Move cooldown turn-buffer literal (+1) into a named gameplay constant.
-                    self.player.invisibility_cooldown_turns = ItemSettings.INVISIBILITY_CLOAK_COOLDOWN + 1
+                    self.player.invisibility_cooldown_turns = (
+                        ItemSettings.INVISIBILITY_CLOAK_COOLDOWN + GameSettings.STATUS_EFFECT_TURN_BUFFER
+                    )
                     self.player.invisibility_from_cloak = False
 
         # Handle Invisibility Cloak Cooldown
@@ -1035,8 +613,7 @@ class GameManager:
             item_name (str): Treasure item key used to look up score value.
             amount (int): Quantity of the item collected.
         """
-        value = ItemSettings.TREASURE_SCORE_VALUES.get(item_name, 0)
-        self.score += value * amount
+        self.score_manager.add_score(item_name, amount)
 
     # -------------------------
     # MAIN LOOP
@@ -1084,14 +661,13 @@ class GameManager:
                     if self.quit_combo_pressed():
                         self.close_game()
 
-                    # TODO: Replace controller button literals (6/7) with named constants.
-                    if event.button == 6:
+                    if event.button == InputSettings.JOY_BUTTON_FULLSCREEN:
                         pygame.display.toggle_fullscreen()
 
                     if self.is_in_shop_phase:
                         self.handle_shop_event(event)
 
-                    if event.button == 7:
+                    if event.button == InputSettings.JOY_BUTTON_START:
                         self.handle_start_press()
 
                     self.handle_initials_event(event)
@@ -1103,9 +679,8 @@ class GameManager:
                     self.handle_initials_event(event)
 
                 # Controller trigger mute toggle (edge-triggered).
-                # TODO: Replace axis literals (2, 4) and threshold literal (0.5) with named constants.
-                if event.type == pygame.JOYAXISMOTION and event.axis in (2, 4):
-                    trigger_pressed = event.value > 0.5
+                if event.type == pygame.JOYAXISMOTION and event.axis in (InputSettings.JOY_AXIS_L2, InputSettings.JOY_AXIS_R2):
+                    trigger_pressed = event.value > InputSettings.JOY_TRIGGER_THRESHOLD
                     if trigger_pressed and not self.l2_trigger_is_pressed:
                         is_muted = self.audio.toggle_mute(
                             resume_music=self.game_active and not self.is_transitioning

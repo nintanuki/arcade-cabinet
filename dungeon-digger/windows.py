@@ -139,8 +139,11 @@ class MessageLog:
 
     def add_message(self, text, type_speed=None):
         """
-        Adds a new message to the log and removes old ones if full.
-        Use a typewriter effect for the most recent message, while keeping previous messages static.
+        Queue a new active message and start its typewriter animation.
+
+        Args:
+            text (str): Message text to display.
+            type_speed (float | None): Optional characters-per-frame override.
         """
         # Persist the previous active message before starting a new one.
         if self.full_text:

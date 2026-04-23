@@ -155,6 +155,49 @@ class UISettings:
     LEVEL_Y = ScreenSettings.HEIGHT - 34
     DUNGEON_NAME_Y = LEVEL_Y + 15
 
+
+class RenderSettings:
+    """Constants for title, overlay, and between-screen render timing/layout."""
+
+    TITLE_CHASE_INITIAL_DELAY_MS = 60000
+    TITLE_CHASE_COOLDOWN_MS = 60000
+    TITLE_CHASE_DURATION_MS = 2400
+    TITLE_CHASE_SPRITE_OFFSET_Y = -96
+    TITLE_CHASE_SPRITE_SPACING = 42
+
+    ENDGAME_OVERLAY_ALPHA = 180
+    ENDGAME_PROMPT_OFFSET_Y = 42
+
+    TREASURE_OVERLAY_ALPHA = 200
+    TREASURE_START_X = 20
+    TREASURE_START_Y = 20
+    TREASURE_LINE_HEIGHT = 22
+    TREASURE_TITLE_GAP = 16
+    TREASURE_TOTAL_GAP = 5
+    TREASURE_PROMPT_BOTTOM_PADDING = 18
+
+    SHOP_OVERLAY_ALPHA = 210
+    SHOP_START_X = 20
+    SHOP_START_Y = 20
+    SHOP_LINE_HEIGHT = 22
+    SHOP_TITLE_GAP = 16
+    SHOP_GOLD_GAP = 6
+    SHOP_SELECTOR_OFFSET_X = 12
+
+    INITIALS_TITLE_Y = 160
+    INITIALS_INVITE_Y = 240
+    INITIALS_SCORE_Y = 268
+    INITIALS_CHARS_Y = 295
+    INITIALS_HELP_Y = 430
+
+    LEADERBOARD_TITLE_Y = 80
+    LEADERBOARD_START_Y = 140
+    LEADERBOARD_ROW_HEIGHT = 34
+    LEADERBOARD_RANK_X_OFFSET = -145
+    LEADERBOARD_SCORE_X_OFFSET = 60
+    LEADERBOARD_EMPTY_Y = 260
+    LEADERBOARD_PROMPT_Y_OFFSET = 60
+
 class GameSettings:
     """Global gameplay flow constants and persistence limits."""
 
@@ -164,6 +207,17 @@ class GameSettings:
     LEADERBOARD_LIMIT = 10
     GAME_OVER_CONTINUE_DELAY_MS = 650
     GAME_OVER_PROMPT_FADE_MS = 750
+    DOOR_UNLOCK_MESSAGE_TYPE_SPEED = 0.12
+
+    TREASURE_CONVERSION_DISPLAY_DELAY_MS = 2000
+    TREASURE_CONVERSION_LINE_REVEAL_INTERVAL_MS = 520
+    TREASURE_CONVERSION_TOTAL_REVEAL_DELAY_MS = 450
+    TREASURE_CONVERSION_PROMPT_FADE_MS = 650
+    TREASURE_CONVERSION_POST_MESSAGE_DELAY_MS = 450
+
+    SHOP_DISPLAY_DELAY_MS = 200
+    SHOP_BULK_PURCHASE_QUANTITY = 5
+    STATUS_EFFECT_TURN_BUFFER = 1
 
 class WindowSettings:
     """Message window behavior and text layout settings."""
@@ -183,6 +237,8 @@ class PlayerSettings:
     """Player-specific tuning values."""
 
     ANIMATION_SPEED = 1 # Pixels advanced per frame during sprite interpolation.
+    FLASH_CYCLE_FRAMES = 30
+    FLASH_HALF_CYCLE = FLASH_CYCLE_FRAMES // 2
 
 class MonsterSettings:
     """Monster behavior and movement tuning values."""
@@ -193,6 +249,19 @@ class MonsterSettings:
     MIN_PLAYER_DISTANCE = 5  # Minimum Manhattan distance between a monster and the player at spawn.
     REPELLENT_DURATION = 5 # Number of turns the repellent effect remains active.
     ANIMATION_SPEED = 1 # Pixels advanced per frame during sprite interpolation.
+
+class InputSettings:
+    """Controller button and axis mappings used by gameplay and menus."""
+
+    JOY_BUTTON_FULLSCREEN = 6
+    JOY_BUTTON_START = 7
+    JOY_BUTTON_CONFIRM = 0
+    JOY_BUTTON_BULK_PURCHASE = 2
+    JOY_BUTTON_QUIT_COMBO = (7, 6, 4, 5)
+
+    JOY_AXIS_L2 = 2
+    JOY_AXIS_R2 = 4
+    JOY_TRIGGER_THRESHOLD = 0.5
 
 class NPCSettings:
     """NPC spawn tuning values."""
@@ -241,6 +310,19 @@ class ItemSettings:
         'MAP': 5000,
         'INVISIBILITY CLOAK': 10000,
     }
+
+    SHOP_LIMITED_STOCK_TEMPLATE = {
+        'LANTERN': 3,
+        'INVISIBILITY CLOAK': 1,
+        'MAP': 1,
+        'KEY DETECTOR': 1,
+    }
+
+    DETECTOR_DISTANCE_FOUND = 0
+    DETECTOR_DISTANCE_HOT = 1
+    DETECTOR_DISTANCE_STEADY = 3
+    DETECTOR_DISTANCE_SLOW = 5
+    DETECTOR_DISTANCE_FAINT = 7
 
     # Digging probabilities (must be between 0.0 and 1.0)
     # The higher the number, the more common it is.
@@ -377,4 +459,4 @@ class DebugSettings:
     MUTE = False # Force mute all sound output during testing.
     NO_FOG = False # Disable fog rendering for visibility debugging.
     SPAWN_LOG = True # Print spawn/item placement summary during dungeon setup.
-    USE_TEST_INITIAL_INVENTORY = False # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.
+    USE_TEST_INITIAL_INVENTORY = True # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.
