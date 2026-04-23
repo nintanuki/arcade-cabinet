@@ -38,10 +38,14 @@ py star-hero/main.py
 ## Core Gameplay Rules
 
 - You start with 3 hearts.
-- Getting hit by enemy lasers or colliding with enemies costs hearts.
+- Taking damage first strips active weapon upgrades/powerups (when applicable) before removing a heart.
+- Getting hit by enemy lasers or colliding with enemies removes hearts when no protective/upgrade buffer is active.
 - Lose all hearts and the run ends.
 - Your score increases as you destroy enemies.
-- Difficulty ramps up over time.
+- Difficulty ramps up as score increases (faster spawns, faster enemy fire, faster background scroll).
+- Blue aliens can apply a confusion effect that temporarily reverses movement controls.
+- Bombs can be launched and detonated manually for area damage.
+- Shield and rainbow beam states provide temporary damage immunity.
 
 ## Controls
 
@@ -50,6 +54,8 @@ py star-hero/main.py
 - `WASD` or Arrow Keys: Move
 - `Space`: Fire
 - Hold `F`: Move faster
+- Hold `G`: Brake (slows world speed while meter is available)
+- `B`: Launch bomb / detonate active bomb
 - `Alt + Enter`: Toggle fullscreen
 - `Esc`: Pause/unpause
 - `+` / `-`: Increase or decrease volume
@@ -58,18 +64,37 @@ py star-hero/main.py
 
 - Left analog stick: Move
 - `A`: Fire
-- `X`: Move faster
+- `X`: Boost (faster movement)
+- `Y`: Brake (slows world speed)
+- `B`: Launch bomb / detonate active bomb
 - Select/Back: Toggle fullscreen
 - `L1` / `R1`: Volume down/up
+- `Start`: Pause/unpause during run, start/restart from menu
+
+## Game Flow
+
+- Intro screen: Press Start/Enter to begin.
+- Active run: Survive, score, and collect powerups.
+- Pause: Available during active gameplay.
+- Game over: If your score qualifies, initials entry appears for leaderboard placement.
 
 ## Enemy Drops and Powerups
 
-- Hearts: Dropped by red aliens; restores health.
-- Laser Upgrades: Dropped by green aliens.
+- Hearts: Dropped by red aliens (when not at max hearts); restores health.
+- Shield: Rare red alien drop; grants temporary protection.
+- Laser Upgrades: Dropped by green aliens (up to Hyper tier).
 	- Twin Laser: Hits two side-by-side targets.
 	- Hyper Laser: Pierces through enemies.
-- Rapid Fire: Temporary fire-rate boost dropped by yellow aliens.
+- Rapid Fire: Tiered fire-rate upgrade dropped by yellow aliens (up to auto-fire tier).
 - Rainbow Beam: Temporary screen-wide beam attack dropped by blue aliens.
+- Bomb Pickup: Rare drop; increases bomb inventory by 1.
+
+## Damage and Survivability
+
+- Active shield blocks incoming damage.
+- On hit, active weapon power states can be stripped first (laser/rapid/rainbow) before hearts are reduced.
+- Low-health alarm behavior changes at 2 hearts and 1 heart.
+- Damage flash provides a brief invulnerability window.
 
 ## Enemy Types and Score Values
 
