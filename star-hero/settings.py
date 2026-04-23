@@ -131,14 +131,14 @@ class PowerupSettings:
 
 class BombSettings:
     """Contains tuning values for bomb inventory, drops, projectile behavior, and blast visuals."""
-    START_COUNT = 7
+    START_COUNT = 3
     PROJECTILE_RADIUS = 10
-    PROJECTILE_SPEED = -4
+    PROJECTILE_SPEED = -2
     FLASH_SPEED = 220
 
     BLAST_START_RADIUS = 10
-    BLAST_MAX_RADIUS = 120
-    BLAST_GROWTH = 5
+    BLAST_MAX_RADIUS = 160
+    BLAST_GROWTH = 3
     BLAST_ALPHA = 110
 
 class ExplosionSettings:
@@ -189,7 +189,7 @@ class AudioSettings:
     """
     INTRO_VOL_BOOST = 2.0
     DEFAULT_MASTER_VOLUME = 0.5 # default value is 1.0
-    DEBUG_MUTE = True # set True to silence all audio for debugging
+    DEBUG_MUTE = False # set True to silence all audio for debugging
     MUSIC_DIR = 'music/'
     AUDIO_DIR = 'audio/'
     BGM_PLAYLIST = [

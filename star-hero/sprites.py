@@ -148,17 +148,26 @@ class BombProjectile(pygame.sprite.Sprite):
         self.pos_y = float(self.rect.y)
         self.speed = BombSettings.PROJECTILE_SPEED
         self.flash_timer = 0
-        self.current_color = (255, 40, 40)
-        self.base_color = (255, 40, 40)
-        self.flash_color = (255, 180, 180)
+        self.current_color = (10, 10, 10)
+        self.base_color = (10, 10, 10)
+        self.flash_color = (55, 55, 55)
+        self.outline_color = (255, 40, 40)
         self._redraw()
 
     def _redraw(self):
         """Rebuild the projectile surface with the current flash color."""
         self.image.fill((0, 0, 0, 0))
-        center = (BombSettings.PROJECTILE_RADIUS, BombSettings.PROJECTILE_RADIUS)
-        pygame.draw.circle(self.image, self.current_color, center, BombSettings.PROJECTILE_RADIUS)
-        pygame.draw.circle(self.image, (255, 255, 255), center, BombSettings.PROJECTILE_RADIUS, 1)
+        radius = BombSettings.PROJECTILE_RADIUS
+        center = (radius, radius)
+        hex_points = []
+        for i in range(6):
+            angle = math.radians((i * 60) - 30)
+            x = center[0] + radius * math.cos(angle)
+            y = center[1] + radius * math.sin(angle)
+            hex_points.append((round(x), round(y)))
+
+        pygame.draw.polygon(self.image, self.current_color, hex_points)
+        pygame.draw.polygon(self.image, self.outline_color, hex_points, 2)
 
     def move(self, speed_multiplier=1.0):
         """Advance projectile upward with frame-scaled world speed.
@@ -218,8 +227,8 @@ class BombBlast(pygame.sprite.Sprite):
         diameter = max(2, self.radius * 2)
         self.image = pygame.Surface((diameter, diameter), pygame.SRCALPHA)
         center = (diameter // 2, diameter // 2)
-        pygame.draw.circle(self.image, (255, 235, 80, BombSettings.BLAST_ALPHA), center, self.radius)
-        pygame.draw.circle(self.image, (255, 255, 190, 220), center, self.radius, 3)
+        pygame.draw.circle(self.image, (255, 255, 255, BombSettings.BLAST_ALPHA), center, self.radius)
+        pygame.draw.circle(self.image, (255, 255, 255, 235), center, self.radius, 3)
         self.rect = self.image.get_rect(center=self.center)
 
     def update(self):
