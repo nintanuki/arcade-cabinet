@@ -207,6 +207,7 @@ class AudioSettings:
     ]
 
 class AssetPaths:
+    """Centralized filesystem paths for static graphics used by the game."""
     GRAPHICS_DIR = 'graphics/'
     BACKGROUND = 'graphics/background.png'
     EXPLOSION = 'graphics/explosion.png'

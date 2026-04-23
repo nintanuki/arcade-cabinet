@@ -134,7 +134,13 @@ class Laser(pygame.sprite.Sprite):
 
 class BombProjectile(pygame.sprite.Sprite):
     """Represents a launched bomb that travels upward and can be detonated."""
+
     def __init__(self, pos):
+        """Initialize bomb projectile sprite state.
+
+        Args:
+            pos (tuple[int, int]): Spawn position, typically at the player's ship nose.
+        """
         super().__init__()
         size = BombSettings.PROJECTILE_RADIUS * 2
         self.image = pygame.Surface((size, size), pygame.SRCALPHA)
@@ -148,16 +154,23 @@ class BombProjectile(pygame.sprite.Sprite):
         self._redraw()
 
     def _redraw(self):
+        """Rebuild the projectile surface with the current flash color."""
         self.image.fill((0, 0, 0, 0))
         center = (BombSettings.PROJECTILE_RADIUS, BombSettings.PROJECTILE_RADIUS)
         pygame.draw.circle(self.image, self.current_color, center, BombSettings.PROJECTILE_RADIUS)
         pygame.draw.circle(self.image, (255, 255, 255), center, BombSettings.PROJECTILE_RADIUS, 1)
 
     def move(self, speed_multiplier=1.0):
+        """Advance projectile upward with frame-scaled world speed.
+
+        Args:
+            speed_multiplier (float): World-speed scalar from boost/brake state.
+        """
         self.pos_y += self.speed * speed_multiplier
         self.rect.y = round(self.pos_y)
 
     def animate(self):
+        """Toggle bomb color at fixed intervals to create a flashing warning effect."""
         current_time = pygame.time.get_ticks()
         if current_time - self.flash_timer >= BombSettings.FLASH_SPEED:
             self.flash_timer = current_time
@@ -168,17 +181,29 @@ class BombProjectile(pygame.sprite.Sprite):
             self._redraw()
 
     def destroy_if_offscreen(self):
+        """Remove projectile once it leaves the top edge of the screen."""
         if self.rect.bottom < 0:
             self.kill()
 
     def update(self, speed_multiplier=1.0):
+        """Run bomb projectile movement, flash animation, and cleanup.
+
+        Args:
+            speed_multiplier (float): World-speed scalar from boost/brake state.
+        """
         self.move(speed_multiplier)
         self.animate()
         self.destroy_if_offscreen()
 
 class BombBlast(pygame.sprite.Sprite):
     """Represents the expanding area-of-effect ring created by a bomb detonation."""
+
     def __init__(self, center):
+        """Initialize a blast pulse at the detonation center.
+
+        Args:
+            center (tuple[int, int]): Screen-space center position of detonation.
+        """
         super().__init__()
         self.center = center
         self.radius = BombSettings.BLAST_START_RADIUS
@@ -189,6 +214,7 @@ class BombBlast(pygame.sprite.Sprite):
         self._redraw()
 
     def _redraw(self):
+        """Rebuild blast surface to match the current radius."""
         diameter = max(2, self.radius * 2)
         self.image = pygame.Surface((diameter, diameter), pygame.SRCALPHA)
         center = (diameter // 2, diameter // 2)
@@ -197,6 +223,7 @@ class BombBlast(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.center)
 
     def update(self):
+        """Expand the blast radius each frame and destroy once max size is reached."""
         self.radius += BombSettings.BLAST_GROWTH
         if self.radius >= self.max_radius:
             self.kill()
@@ -265,7 +292,11 @@ class Player(pygame.sprite.Sprite):
         self.world_speed_multiplier = 1.0
 
     def launch_bomb(self):
-        """Launches a bomb if available and none is currently in flight."""
+        """Launch a bomb if inventory is available and no bomb is currently airborne.
+
+        Returns:
+            bool: True when a bomb was launched; otherwise False.
+        """
         if self.bombs <= 0:
             return False
         if self.bomb_projectiles:
@@ -276,7 +307,12 @@ class Player(pygame.sprite.Sprite):
         return True
 
     def detonate_air_bomb(self):
-        """Detonates the in-flight bomb and returns its center, if one exists."""
+        """Detonate the active in-flight bomb, if present.
+
+        Returns:
+            tuple[int, int] | None: Detonation center when a bomb is active;
+                otherwise None.
+        """
         if not self.bomb_projectiles:
             return None
 
@@ -286,7 +322,12 @@ class Player(pygame.sprite.Sprite):
         return detonation_center
 
     def update_meter_state(self, boost_pressed, brake_pressed):
-        """Handles shared boost/brake meter drain while held and recharge while inactive."""
+        """Update boost/brake state machine and shared energy meter.
+
+        Args:
+            boost_pressed (bool): Whether boost input is currently held.
+            brake_pressed (bool): Whether brake input is currently held.
+        """
         dt = 1 / ScreenSettings.FPS
 
         # While depleted, prevent using boost or brake until the meter fully refills.
@@ -317,7 +358,11 @@ class Player(pygame.sprite.Sprite):
                 self.boost_locked_until_full = False
 
     def get_boost_meter(self):
-        """Returns a normalized meter value and state for the boost UI."""
+        """Return current boost meter ratio and semantic state for HUD rendering.
+
+        Returns:
+            tuple[float, str]: Meter ratio in [0, 1] and one of boost/brake/cooldown/ready.
+        """
         if self.boost_active:
             return self.boost_meter, 'boost'
 
@@ -330,7 +375,11 @@ class Player(pygame.sprite.Sprite):
         return self.boost_meter, 'ready'
 
     def get_world_speed_multiplier(self):
-        """Returns current world speed multiplier used to scale non-player movement."""
+        """Return current world-speed scalar used by non-player entities.
+
+        Returns:
+            float: Brake multiplier while braking, otherwise 1.0.
+        """
         if self.brake_active:
             return PlayerSettings.BRAKE_WORLD_SPEED_MULT
         return 1.0
@@ -363,7 +412,11 @@ class Player(pygame.sprite.Sprite):
             self.laser_cooldown = PlayerSettings.DEFAULT_LASER_COOLDOWN
 
     def is_invulnerable(self):
-        """Returns True while any invulnerability source is active."""
+        """Check whether damage should currently be ignored for the player.
+
+        Returns:
+            bool: True when flashing, shielded, or rainbow-beam invulnerable.
+        """
         return self.is_flashing or self.rainbow_beam_active or self.shield_active
 
     def animate_damage(self):
@@ -583,7 +636,11 @@ class Player(pygame.sprite.Sprite):
             self.trigger_shot()
 
     def draw_shield_orb(self, screen):
-        """Draws a flashing cyan orb around the ship while shield is active."""
+        """Draw a pulsing shield orb around the player's ship while shield is active.
+
+        Args:
+            screen (pygame.Surface): Destination surface for shield rendering.
+        """
         if not self.shield_active:
             return
 
@@ -697,7 +754,12 @@ class Alien(pygame.sprite.Sprite):
         self.confusion_growth = 0  # Starts at 0, will increase to ScreenSettings.HEIGHT
 
     def apply_movement(self, delta_x, delta_y):
-        """Applies sub-pixel movement while keeping rect in sync for collisions."""
+        """Apply sub-pixel deltas and keep rect coordinates synchronized.
+
+        Args:
+            delta_x (float): Horizontal movement delta in pixels.
+            delta_y (float): Vertical movement delta in pixels.
+        """
         self.position.x += delta_x
         self.position.y += delta_y
         self.rect.x = round(self.position.x)
@@ -706,7 +768,9 @@ class Alien(pygame.sprite.Sprite):
     def calculate_movement(self, speed_multiplier=1.0):
         """
         Calculates the movement of the alien based on its color and behavior patterns.
-        Called every frame in update()
+
+        Args:
+            speed_multiplier (float): World-speed scalar applied to alien motion.
         """
         # Check for confusion attack trigger (only for blue aliens with the ability)
         if self.can_confuse and not self.has_projected:
@@ -753,7 +817,11 @@ class Alien(pygame.sprite.Sprite):
             self.kill()
 
     def update(self, speed_multiplier=1.0):
-        """Handles movement, animation, and self-destruction when off-screen. Called every frame."""
+        """Update alien behavior for one frame.
+
+        Args:
+            speed_multiplier (float): World-speed scalar applied to movement.
+        """
         self.calculate_movement(speed_multiplier)
         self.animate()
         self.destroy()

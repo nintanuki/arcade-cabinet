@@ -2,8 +2,15 @@ import pygame
 from settings import *
 
 class Style():
-    """"Handles UI rendering for menus, scores, volume, and game-over screens."""
+    """Render all HUD, menu, pause, and game-over UI layers for Star Hero."""
+
     def __init__(self,screen,audio):
+        """Initialize fonts, shared screen/audio references, and title-screen ship art.
+
+        Args:
+            screen (pygame.Surface): The active display surface used for all UI blits.
+            audio (Audio): Audio manager instance used for reading current volume.
+        """
         self.screen = screen
         self.small_font = pygame.font.Font(FontSettings.FONT,FontSettings.SMALL)
         self.medium_font = pygame.font.Font(FontSettings.FONT,FontSettings.MEDIUM)
@@ -17,19 +24,24 @@ class Style():
         self.player_ship_rect = self.player_ship.get_rect(center = (ScreenSettings.CENTER))
 
     def display_title(self):
-        """Displays the title on the intro screen"""
+        """Draw the game title on the intro screen."""
         title = self.large_font.render('STAR HERO', False, FontSettings.COLOR)
         title_rect = title.get_rect(center=(ScreenSettings.WIDTH / 2, 70))
         self.screen.blit(title, title_rect)
 
     def display_game_over(self):
-        """Displays Game Over message"""
+        """Draw the game-over heading."""
         game_over_message = self.large_font.render('GAME OVER', False, FontSettings.COLOR)
         game_over_message_rect = game_over_message.get_rect(center=(ScreenSettings.WIDTH / 2, 70))
         self.screen.blit(game_over_message, game_over_message_rect)
 
     def display_player_ship(self, y_pos=None):
-        """Displays the player ship on intro and game over screens"""
+        """Draw the player ship image centered on intro/game-over screens.
+
+        Args:
+            y_pos (int | None): Optional y-coordinate for custom vertical placement.
+                When None, the ship is drawn at full screen center.
+        """
         if y_pos is None:
             rect = self.player_ship.get_rect(center=ScreenSettings.CENTER)
         else:
@@ -37,12 +49,17 @@ class Style():
         self.screen.blit(self.player_ship, rect)
 
     def display_intro_message(self):
+        """Draw the intro prompt instructing the player to start the game."""
         intro_message = self.medium_font.render('PRESS START TO PLAY', False, FontSettings.COLOR)
         intro_message_rect = intro_message.get_rect(center=(ScreenSettings.WIDTH / 2, ScreenSettings.HEIGHT - 70))
         self.screen.blit(intro_message, intro_message_rect)
 
     def display_high_score(self, save_data):
-        """Displays the high score on the intro and game over screens"""
+        """Draw the persistent high score label.
+
+        Args:
+            save_data (dict): Save payload containing at least a high_score key.
+        """
         self.save_data = save_data
 
         high_score_message = self.medium_font.render(
@@ -54,7 +71,12 @@ class Style():
         self.screen.blit(high_score_message, high_score_message_rect)
 
     def display_in_game_score(self, save_data, score):
-        """Displays the high score and current score on the top left during gameplay"""
+        """Draw gameplay HUD score fields in the top-left corner.
+
+        Args:
+            save_data (dict): Save payload containing leaderboard and high-score data.
+            score (int): Current run score.
+        """
         self.save_data = save_data
         self.score = score
 
@@ -67,7 +89,11 @@ class Style():
         self.screen.blit(score_surf, score_rect)
 
     def display_game_over_score(self, score):
-        """Displays the player score on the game over screen"""
+        """Draw the final run score on the game-over screen.
+
+        Args:
+            score (int): Final score earned in the just-finished run.
+        """
         self.score = score
 
         score_message = self.medium_font.render(f'YOUR SCORE: {self.score}', False, FontSettings.COLOR)
@@ -75,13 +101,13 @@ class Style():
         self.screen.blit(score_message, score_message_rect)
 
     def display_pause_text(self):
-        """Displays the Pause message on pause"""
+        """Draw the pause banner while gameplay is halted."""
         pause_text = self.medium_font.render('PAUSED', False, (FontSettings.COLOR))
         pause_text_rect = pause_text.get_rect(center = (ScreenSettings.CENTER))
         self.screen.blit(pause_text,pause_text_rect)
 
     def display_volume(self):
-        """Displays the volume, called when + and - keys are pressed"""
+        """Draw the temporary volume HUD with both numeric value and meter bar."""
 
         # Volume Number
         volume_message = self.small_font.render(f'VOLUME: {round(self.audio.master_volume * 10)}',False,(FontSettings.COLOR))
@@ -92,6 +118,13 @@ class Style():
         pygame.draw.rect(self.screen,'green',(10,ScreenSettings.HEIGHT - 20,(self.audio.master_volume*1000)/UISettings.VOLUME_BAR_RATIO,10))
 
     def display_leaderboard(self, leaderboard, title="TOP 10", start_y=300):
+        """Draw a centered leaderboard block.
+
+        Args:
+            leaderboard (list[dict]): Ranked score entries with name and score fields.
+            title (str): Heading label displayed above leaderboard rows.
+            start_y (int): Vertical anchor where the title row starts.
+        """
         screen_center_x = ScreenSettings.WIDTH // 2
 
         title_surf = self.small_font.render(title, False, FontSettings.COLOR)
@@ -107,7 +140,11 @@ class Style():
             y += 22
 
     def display_level(self, score):
-        """Displays the current level in the bottom left corner"""
+        """Draw the computed difficulty level in the bottom-left HUD.
+
+        Args:
+            score (int): Current score used to derive the level index.
+        """
         # Level starts at 1 and increases every DIFFICULTY_STEP points (max 20)
         level = min(20, (score // AlienSettings.DIFFICULTY_STEP) + 1)
         level_surf = self.small_font.render(f'LEVEL: {level}', False, FontSettings.COLOR)
@@ -115,7 +152,11 @@ class Style():
         self.screen.blit(level_surf, level_rect)
 
     def display_player_status(self, player):
-        """Displays a status table with split colors and rainbow effects"""
+        """Draw right-aligned status rows for ship state, weapon mode, power, bombs, and boost meter.
+
+        Args:
+            player (Player): Active player sprite providing status and meter values.
+        """
         
         # --- 1. Determine Values and Colors ---
         # Status
@@ -232,6 +273,16 @@ class Style():
            entering_initials=False,
            initials="AAA",
            initials_index=0):
+        """Render the correct UI screen for the current game state.
+
+        Args:
+            game_state (str): One of intro, game_active, game_over, or pause.
+            save_data (dict): Save payload containing leaderboard/high-score data.
+            score (int): Current run score.
+            entering_initials (bool): Whether the game-over initials-entry UI is active.
+            initials (str): Current three-letter initials buffer.
+            initials_index (int): Active cursor position within initials buffer.
+        """
 
         self.game_state = game_state
         self.save_data = save_data
