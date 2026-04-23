@@ -87,6 +87,7 @@ class GameSettings:
     OPTIONS = [
         ("Star Hero", Path("star-hero") / "main.py"),
         ("Dungeon Digger", Path("dungeon-digger") / "main.py"),
+        ("Jezz Ball", Path("jezz-ball") / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
