@@ -206,6 +206,8 @@ class GameManager:
         self.game_active = False
         self.game_result = result
         self.ui_state = 'game_over'
+        if self.map_memory is not None:
+            self.map_memory.reveal_full_terrain_memory()
         self.pending_leaderboard_score = self.score
         self.game_over_message_complete_time = 0
         self.game_over_prompt_start_time = 0
@@ -561,7 +563,7 @@ class GameManager:
                 self.render.draw_grid_background()
                 self.all_sprites.draw(self.screen)
 
-                if not DebugSettings.NO_FOG:
+                if self.ui_state == 'playing' and not DebugSettings.NO_FOG:
                     self.render.draw_fog_of_war()
                 self.render.draw_ui_frames()
                 self.message_log.draw(self.screen)

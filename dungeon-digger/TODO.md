@@ -34,7 +34,7 @@ Do NOT add new features until steps 1–4 are complete.
 - [ ] Monster gets stuck between walls
 - [X] Monster-player collision delay (should trigger instant game over)
 - [ ] Map drawing is incorrect / broken
-- [ ] Entire map not revealed on win/loss
+- [X] Entire map not revealed on win/loss
 - [ ] Play found gold/treasure sound AFTER dig sound (they currently overlap)
 - [ ] Check that we don't need high_score.txt now that we have leaderboard.txt
 
