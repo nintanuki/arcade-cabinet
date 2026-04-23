@@ -37,7 +37,6 @@ class LauncherCRT:
 		except (FileNotFoundError, pygame.error):
 			self.base_tv = pygame.Surface(ScreenSettings.RESOLUTION, pygame.SRCALPHA)
 
-	# TODO: Move this to a dedicated CRT class.
 	def create_crt_lines(self, surf: pygame.Surface) -> None:
 		"""Draw scan lines onto a temporary overlay surface.
 
