@@ -275,17 +275,16 @@ class ItemSettings:
         # Items not listed here default to quantity 1.
     }
 
-    INITIAL_INVENTORY = {
-        # # 'GOLD COINS': 10000,
-        # 'LANTERN': 100,
-        # 'MONSTER REPELLENT': 100,
-        # # # 'INVISIBILITY SCROLL': 100,
-        # 'INVISIBILITY CLOAK': 1,
-        # 'MAGIC MAP': 1,
-        # # 'KEY': 1,
-        # For local test scenarios, temporarily adjust this dictionary as needed
-        # Add "godmode" setting later to toggle between normal and test inventories without manual edits.
+    NORMAL_INITIAL_INVENTORY = {}
+
+    TEST_INITIAL_INVENTORY = {
+        'INVISIBILITY CLOAK': 1,
+        'KEY': 1,
+        'MAGIC MAP': 1,
+        'LANTERN': 99,
     }
+
+    INITIAL_INVENTORY = NORMAL_INITIAL_INVENTORY.copy()
 
 class FontSettings:
     """Font files, sizes, and text-color mappings for UI rendering."""
@@ -320,7 +319,8 @@ class AssetPaths:
     # TODO: Consider moving asset paths to a dedicated asset_manifest.py to keep settings focused on gameplay constants.
 
     # Images
-    GRAPHICS_DIR = 'graphics/'
+    BASE_DIR = os.path.dirname(__file__)
+    GRAPHICS_DIR = os.path.join(BASE_DIR, 'graphics')
     MONSTER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'monsters')
     PLAYER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'player')
     NPC_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'npcs')
@@ -346,7 +346,7 @@ class AssetPaths:
     TV = os.path.join(GRAPHICS_DIR, 'tv.png')
 
     # Audio
-    SOUND_DIR = 'sound/'
+    SOUND_DIR = os.path.join(BASE_DIR, 'sound')
     MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_movement_footstepsloop4_slow.wav')
     DIG_SOUND = os.path.join(SOUND_DIR, 'minecraft_digging_dirt_sound_effect.mp3')
     BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'pokemon_wall_bump_sound_effect.mp3')
@@ -364,7 +364,7 @@ class AssetPaths:
     WARM_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop6.wav')
 
     # Music
-    MUSIC_DIR = 'music/'
+    MUSIC_DIR = os.path.join(BASE_DIR, 'music')
     MUSIC_TRACKS = [
         os.path.join(MUSIC_DIR, 'Goof Troop SNES - Illusion.mp3'),
         os.path.join(MUSIC_DIR, 'Goof Troop SNES - Lose My Way.mp3'),
@@ -377,3 +377,4 @@ class DebugSettings:
     MUTE = False # Force mute all sound output during testing.
     NO_FOG = False # Disable fog rendering for visibility debugging.
     SPAWN_LOG = True # Print spawn/item placement summary during dungeon setup.
+    USE_TEST_INITIAL_INVENTORY = True # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.

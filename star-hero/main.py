@@ -1,6 +1,7 @@
 import pygame
 import sys, random, time
 import json
+import os
 from settings import *
 from animations import Background, Explosion, CRT
 from sprites import Laser, Player, Alien, PowerUp, BombBlast
@@ -151,7 +152,7 @@ class GameManager:
 
         # Player Health
         self.hearts = PlayerSettings.MAX_HEALTH
-        self.heart_surf = pygame.image.load('graphics/heart.png').convert_alpha()
+        self.heart_surf = pygame.image.load(AssetPaths.HEART).convert_alpha()
         self.heart_x_start_pos = ScreenSettings.WIDTH - (self.heart_surf.get_size()[0] * PlayerSettings.MAX_HEALTH + 30)
 
         # Background Setup
@@ -180,7 +181,8 @@ class GameManager:
 
         # Load saved high score and leaderboard data if available
         try:
-            with open('high_score.txt') as high_score_file:
+            score_file_path = os.path.join(os.path.dirname(__file__), 'high_score.txt')
+            with open(score_file_path) as high_score_file:
                 self.save_data = json.load(high_score_file)
         except (OSError, json.JSONDecodeError):
             print('No file created yet')
@@ -273,7 +275,8 @@ class GameManager:
     def save_scores(self):
         """Saves the current leaderboard and high score to a file"""
         self._sort_and_trim_leaderboard()
-        with open('high_score.txt', 'w') as high_score_file:
+        score_file_path = os.path.join(os.path.dirname(__file__), 'high_score.txt')
+        with open(score_file_path, 'w') as high_score_file:
             json.dump(self.save_data, high_score_file)
 
     def qualifies_for_leaderboard(self, score: int) -> bool:

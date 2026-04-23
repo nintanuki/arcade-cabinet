@@ -36,7 +36,12 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft = position)
         self.position = pygame.math.Vector2(self.rect.topleft)
 
-        self.inventory = ItemSettings.INITIAL_INVENTORY.copy()
+        initial_inventory = (
+            ItemSettings.TEST_INITIAL_INVENTORY
+            if DebugSettings.USE_TEST_INITIAL_INVENTORY
+            else ItemSettings.NORMAL_INITIAL_INVENTORY
+        )
+        self.inventory = initial_inventory.copy()
         self.discovered_items = set(self.inventory.keys())
         
         self.repellent_turns = 0

@@ -20,7 +20,7 @@ class Style():
         self.audio = audio # Audio reference used to read and display the current volume
 
         # Load image of ship for intro and game over screens
-        self.player_ship = pygame.image.load('graphics/player_ship.png').convert_alpha()
+        self.player_ship = pygame.image.load(AssetPaths.PLAYER).convert_alpha()
         self.player_ship = pygame.transform.rotozoom(self.player_ship,0,0.2)
         self.player_ship_rect = self.player_ship.get_rect(center = (ScreenSettings.CENTER))
 

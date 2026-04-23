@@ -1,3 +1,6 @@
+import os
+
+
 class ScreenSettings:
     """Holds all the settings related to the game screen, such as dimensions, frame rate, background color, and other visual parameters."""
     WIDTH = 600
@@ -159,7 +162,7 @@ class FontSettings:
     including the path to the font file, sizes for different text elements,
     and the color of the text.
     """
-    FONT = 'font/Pixeled.ttf'
+    FONT = os.path.join(os.path.dirname(__file__), 'font', 'Pixeled.ttf')
     SMALL = 10
     MEDIUM = 20
     LARGE = 30
@@ -191,8 +194,9 @@ class AudioSettings:
     INTRO_VOL_BOOST = 2.0
     DEFAULT_MASTER_VOLUME = 0.5 # default value is 1.0
     DEBUG_MUTE = False # set True to silence all audio for debugging
-    MUSIC_DIR = 'music/'
-    AUDIO_DIR = 'audio/'
+    BASE_DIR = os.path.dirname(__file__)
+    MUSIC_DIR = os.path.join(BASE_DIR, 'music')
+    AUDIO_DIR = os.path.join(BASE_DIR, 'audio')
     BGM_PLAYLIST = [
         'star_fox_64_katina.mp3',
         # 'star_fox_64_meteo.mp3',
@@ -209,9 +213,10 @@ class AudioSettings:
 
 class AssetPaths:
     """Centralized filesystem paths for static graphics used by the game."""
-    GRAPHICS_DIR = 'graphics/'
-    BACKGROUND = 'graphics/background.png'
-    EXPLOSION = 'graphics/explosion.png'
-    PLAYER = 'graphics/player_ship.png'
-    HEART = 'graphics/heart.png'
-    TV = 'graphics/tv.png'
+    BASE_DIR = os.path.dirname(__file__)
+    GRAPHICS_DIR = os.path.join(BASE_DIR, 'graphics')
+    BACKGROUND = os.path.join(GRAPHICS_DIR, 'background.png')
+    EXPLOSION = os.path.join(GRAPHICS_DIR, 'explosion.png')
+    PLAYER = os.path.join(GRAPHICS_DIR, 'player_ship.png')
+    HEART = os.path.join(GRAPHICS_DIR, 'heart.png')
+    TV = os.path.join(GRAPHICS_DIR, 'tv.png')
