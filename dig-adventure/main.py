@@ -53,7 +53,8 @@ class GameManager:
         self.game_over_message_complete_time = 0
         self.game_over_prompt_start_time = 0
         self.pending_leaderboard_score = 0
-        self.initials_entry = ""
+        self.initials_entry = "AAA"
+        self.initials_index = 0
         
         # -------- Between-level: treasure conversion --------
         # TODO: Move conversion timing defaults (2000, 520, 450, 650) to GameSettings constants.
@@ -327,7 +328,8 @@ class GameManager:
         """Advance to initials entry or directly to the leaderboard."""
         if self.is_top_ten_score(self.pending_leaderboard_score):
             self.ui_state = 'enter_initials'
-            self.initials_entry = ""
+            self.initials_entry = "AAA"
+            self.initials_index = 0
             return
 
         self.ui_state = 'leaderboard'
@@ -342,21 +344,55 @@ class GameManager:
         if self.ui_state != 'enter_initials':
             return
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_BACKSPACE:
-                self.initials_entry = self.initials_entry[:-1]
-                return
+        # --- D-pad (controller hat) ---
+        if event.type == pygame.JOYHATMOTION:
+            hat_x, hat_y = event.value
 
-            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and len(self.initials_entry) == 3:
+            if hat_x == -1:
+                self.initials_index = max(0, self.initials_index - 1)
+            elif hat_x == 1:
+                self.initials_index = min(2, self.initials_index + 1)
+
+            if hat_y == 1:  # D-pad Up: next letter
+                chars = list(self.initials_entry)
+                current = chars[self.initials_index]
+                chars[self.initials_index] = 'A' if current == 'Z' else chr(ord(current) + 1)
+                self.initials_entry = ''.join(chars)
+            elif hat_y == -1:  # D-pad Down: previous letter
+                chars = list(self.initials_entry)
+                current = chars[self.initials_index]
+                chars[self.initials_index] = 'Z' if current == 'A' else chr(ord(current) - 1)
+                self.initials_entry = ''.join(chars)
+            return
+
+        # --- Controller buttons ---
+        # Button 7 (Start) submit is handled by handle_start_press to avoid double-firing
+        # on the same frame that transitions game_over -> enter_initials.
+        if event.type == pygame.JOYBUTTONDOWN:
+            if event.button == 0:  # A button confirms
                 self.submit_initials_entry()
-                return
+            return
 
-            if event.unicode and event.unicode.isalpha() and len(self.initials_entry) < 3:
-                self.initials_entry += event.unicode.upper()
+        # --- Keyboard fallback ---
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                self.initials_index = max(0, self.initials_index - 1)
                 return
-
-        if event.type == pygame.JOYBUTTONDOWN and event.button == 7 and len(self.initials_entry) == 3:
-            self.submit_initials_entry()
+            if event.key == pygame.K_RIGHT:
+                self.initials_index = min(2, self.initials_index + 1)
+                return
+            if event.key == pygame.K_UP:
+                chars = list(self.initials_entry)
+                current = chars[self.initials_index]
+                chars[self.initials_index] = 'A' if current == 'Z' else chr(ord(current) + 1)
+                self.initials_entry = ''.join(chars)
+                return
+            if event.key == pygame.K_DOWN:
+                chars = list(self.initials_entry)
+                current = chars[self.initials_index]
+                chars[self.initials_index] = 'Z' if current == 'A' else chr(ord(current) - 1)
+                self.initials_entry = ''.join(chars)
+                return
 
     def handle_start_press(self) -> None:
         """Handle Start/Enter based on top-level UI state."""
@@ -366,6 +402,10 @@ class GameManager:
 
         if self.ui_state == 'game_over' and self.can_continue_from_game_over():
             self.continue_from_game_over()
+            return
+
+        if self.ui_state == 'enter_initials':
+            self.submit_initials_entry()
             return
 
         if self.ui_state == 'leaderboard':
@@ -564,7 +604,7 @@ class GameManager:
                 # Use None to represent unlimited stock.
                 self.shop_stock[item_name] = None
 
-        self.log_message("KHAJIIT HAS WARES, IF YOU HAVE COIN.")
+        self.log_message('"KHAJIIT HAS WARES, IF YOU HAVE COIN."')
 
     def get_shop_menu_options(self) -> list[str]:
         """Return shop items plus a continue option."""
@@ -967,6 +1007,9 @@ class GameManager:
 
                 if event.type == pygame.JOYHATMOTION and self.is_in_shop_phase:
                     self.handle_shop_event(event)
+
+                if event.type == pygame.JOYHATMOTION:
+                    self.handle_initials_event(event)
 
                 # Controller trigger mute toggle (edge-triggered).
                 # TODO: Replace axis literals (2, 4) and threshold literal (0.5) with named constants.

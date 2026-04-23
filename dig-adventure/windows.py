@@ -37,6 +37,7 @@ class MessageLog:
 
         term_colors = {
             "YOU WERE CAUGHT BY THE MONSTER": ColorSettings.TEXT_LOSS,
+            "KHAJIIT HAS WARES, IF YOU HAVE COIN.": ColorSettings.MEDIUM_ORCHID,
             "KEY": ColorSettings.BORDER_KEY_ACTIVE,
             "REPELLENT": ColorSettings.REPELLED_TINT,
             "RUBY": ColorSettings.TREASURE_RUBY,
@@ -234,24 +235,8 @@ class InventoryWindow:
         Returns:
             tuple[int, int, int] | str: Pygame-compatible color.
         """
-        if item == 'RUBY':
-            return ColorSettings.TREASURE_RUBY
-        if item == 'SAPPHIRE':
-            return ColorSettings.TREASURE_SAPPHIRE
-        if item == 'EMERALD':
-            return ColorSettings.TREASURE_EMERALD
-        if item == 'DIAMOND':
-            return ColorSettings.TREASURE_DIAMOND
-        if item == 'INVISIBILITY CLOAK':
-            return self._cloak_glow_color()
-        if item == 'MAGIC MAP':
-            return self._rainbow_color()
-        if item == 'KEY':
-            return ColorSettings.BORDER_KEY_ACTIVE
         if item == 'GOLD COINS':
             return ColorSettings.TEXT_GOLD
-        if item == 'MONSTER REPELLENT':
-            return ColorSettings.REPELLED_TINT
         return FontSettings.DEFAULT_COLOR
 
     def draw(self, surface):

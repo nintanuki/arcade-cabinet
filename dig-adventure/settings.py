@@ -296,7 +296,7 @@ class AudioSettings:
     """Global audio toggles and mixer-level defaults."""
 
     MUTE = False
-    MUTE_MUSIC = True  # Keep music disabled while retaining sound effects.
+    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
     MUSIC_VOLUME = 0.2  # Background music volume in the range [0.0, 1.0].
 
 class AssetPaths:

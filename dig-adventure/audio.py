@@ -27,6 +27,9 @@ class AudioManager:
         """
         pygame.mixer.set_num_channels(len(self.CHANNEL_IDS))
 
+        # Track last played song to avoid back-to-back repeats.
+        self._last_bgm_track = None
+
         # Initialize Music
         self.play_random_bgm()
 
@@ -75,7 +78,7 @@ class AudioManager:
         self.channels[channel_name].play(sound)
 
     def play_random_bgm(self):
-        """Selects a random track and starts looping it."""
+        """Selects a random track (avoiding the last played) and starts looping it."""
         if AudioSettings.MUTE or AudioSettings.MUTE_MUSIC:
             return
 
@@ -83,8 +86,12 @@ class AudioManager:
             print("Warning: No music tracks found in AssetPaths.MUSIC_TRACKS")
             return
 
-        # Select one track for continuous playback.
-        track = random.choice(AssetPaths.MUSIC_TRACKS)
+        # Exclude the last played track so the same song never repeats back-to-back.
+        available = [t for t in AssetPaths.MUSIC_TRACKS if t != self._last_bgm_track]
+        if not available:
+            available = AssetPaths.MUSIC_TRACKS
+        track = random.choice(available)
+        self._last_bgm_track = track
         
         try:
             pygame.mixer.music.load(track)

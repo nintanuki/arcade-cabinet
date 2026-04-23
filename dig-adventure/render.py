@@ -286,16 +286,27 @@ class RenderManager:
         invite_rect = invite_surf.get_rect(center=(ScreenSettings.WIDTH / 2, 240))
         self.screen.blit(invite_surf, invite_rect)
 
-        padded_initials = self.game.initials_entry.ljust(3, '_')
-        initials_surf = title_font.render(padded_initials, False, ColorSettings.TEXT_PROMPT)
-        initials_rect = initials_surf.get_rect(center=(ScreenSettings.WIDTH / 2, 310))
-        self.screen.blit(initials_surf, initials_rect)
-
         score_surf = body_font.render(f"SCORE: {self.game.pending_leaderboard_score}", False, ColorSettings.TEXT_GOLD)
-        score_rect = score_surf.get_rect(center=(ScreenSettings.WIDTH / 2, 360))
+        score_rect = score_surf.get_rect(center=(ScreenSettings.WIDTH / 2, 268))
         self.screen.blit(score_surf, score_rect)
 
-        help_surf = prompt_font.render("TYPE 3 LETTERS. PRESS START TO CONFIRM.", False, ColorSettings.TEXT_DEFAULT)
+        padded_initials = self.game.initials_entry.ljust(3, 'A')
+        active_index = self.game.initials_index
+        char_font = pygame.font.Font(FontSettings.FONT, FontSettings.ENDGAME_SIZE)
+        char_width = char_font.size("A")[0] + 8
+        total_width = char_width * 3
+        start_x = ScreenSettings.WIDTH / 2 - total_width / 2
+        for i, ch in enumerate(padded_initials):
+            color = ColorSettings.TEXT_PROMPT if i == active_index else ColorSettings.TEXT_DEFAULT
+            ch_surf = char_font.render(ch, False, color)
+            ch_rect = ch_surf.get_rect(midtop=(start_x + i * char_width + char_width / 2, 295))
+            self.screen.blit(ch_surf, ch_rect)
+            if i == active_index:
+                cursor_x = int(start_x + i * char_width)
+                cursor_y = ch_rect.bottom + 2
+                pygame.draw.rect(self.screen, color, (cursor_x, cursor_y, char_width - 8, 3))
+
+        help_surf = prompt_font.render("D-PAD UP/DOWN TO CYCLE. A OR START TO CONFIRM.", False, ColorSettings.TEXT_DEFAULT)
         help_rect = help_surf.get_rect(center=(ScreenSettings.WIDTH / 2, 430))
         self.screen.blit(help_surf, help_rect)
 
