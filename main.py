@@ -72,6 +72,7 @@ class ArcadeLauncher:
 		self.initialize_runtime()
 
 		self.options = [(label, self.root_dir / relative_path) for label, relative_path in GameSettings.OPTIONS]
+		self.preview_images = self.load_preview_images()
 		self.selected_index = 0
 		self.vertical_axis_engaged = False
 		self.status_message = ""
@@ -111,6 +112,63 @@ class ArcadeLauncher:
 	def move_selection_down(self) -> None:
 		"""Move the menu cursor to the next game option with wrap-around."""
 		self.selected_index = (self.selected_index + 1) % len(self.options)
+
+	def load_preview_images(self) -> dict[str, pygame.Surface]:
+		"""Load menu preview screenshots and scale them to fit the preview panel."""
+		preview_images: dict[str, pygame.Surface] = {}
+		max_preview_width = MenuSettings.PREVIEW_BOX_WIDTH - (MenuSettings.PREVIEW_INNER_PADDING * 2)
+		max_preview_height = MenuSettings.PREVIEW_BOX_HEIGHT - (MenuSettings.PREVIEW_INNER_PADDING * 2)
+
+		for label, relative_path in GameSettings.PREVIEW_IMAGES.items():
+			preview_path = self.root_dir / relative_path
+			try:
+				preview_surface = pygame.image.load(str(preview_path)).convert()
+			except (FileNotFoundError, pygame.error):
+				continue
+
+			if preview_surface.get_width() == 0 or preview_surface.get_height() == 0:
+				continue
+
+			scale_ratio = min(
+				max_preview_width / preview_surface.get_width(),
+				max_preview_height / preview_surface.get_height(),
+			)
+			target_size = (
+				max(1, int(preview_surface.get_width() * scale_ratio)),
+				max(1, int(preview_surface.get_height() * scale_ratio)),
+			)
+			preview_images[label] = pygame.transform.smoothscale(preview_surface, target_size)
+
+		return preview_images
+
+	def draw_preview_panel(self) -> None:
+		"""Draw the selected game's screenshot in a rounded white-bordered panel."""
+		preview_rect = pygame.Rect(
+			MenuSettings.PREVIEW_BOX_X,
+			MenuSettings.PREVIEW_BOX_Y,
+			MenuSettings.PREVIEW_BOX_WIDTH,
+			MenuSettings.PREVIEW_BOX_HEIGHT,
+		)
+		inner_rect = preview_rect.inflate(-(MenuSettings.PREVIEW_INNER_PADDING * 2), -(MenuSettings.PREVIEW_INNER_PADDING * 2))
+
+		pygame.draw.rect(
+			self.screen,
+			ColorSettings.WHITE,
+			preview_rect,
+			MenuSettings.PREVIEW_BORDER_WIDTH,
+			MenuSettings.PREVIEW_BORDER_RADIUS,
+		)
+
+		selected_label, _ = self.options[self.selected_index]
+		preview_surface = self.preview_images.get(selected_label)
+
+		if preview_surface is not None:
+			preview_surface_rect = preview_surface.get_rect(center=inner_rect.center)
+			self.screen.blit(preview_surface, preview_surface_rect)
+		else:
+			fallback_surface = self.subtitle_font.render("PREVIEW NOT AVAILABLE", False, ColorSettings.WHITE)
+			fallback_rect = fallback_surface.get_rect(center=inner_rect.center)
+			self.screen.blit(fallback_surface, fallback_rect)
 
 	def launch_selected_game(self) -> None:
 		"""Launch the selected game, then restore launcher runtime after it exits."""
@@ -166,7 +224,7 @@ class ArcadeLauncher:
 			is_selected = index == self.selected_index
 			color = ColorSettings.YELLOW if is_selected else ColorSettings.WHITE
 			text_surface = self.option_font.render(label.upper(), False, color)
-			text_rect = text_surface.get_rect(center=(ScreenSettings.WIDTH // 2, option_y))
+			text_rect = text_surface.get_rect(midleft=(MenuSettings.OPTIONS_LEFT_X, option_y))
 			self.screen.blit(text_surface, text_rect)
 
 			if is_selected:
@@ -175,6 +233,8 @@ class ArcadeLauncher:
 					midright=(text_rect.left - MenuSettings.CURSOR_GAP, text_rect.centery)
 				)
 				self.screen.blit(cursor_surface, cursor_rect)
+
+		self.draw_preview_panel()
 
 		hint_line_1_surface = self.hint_font.render(
 			MenuSettings.FOOTER_TEXT_LINE_1,

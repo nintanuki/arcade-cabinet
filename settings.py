@@ -45,10 +45,18 @@ class MenuSettings:
     SUBTITLE_TEXT = "CHOOSE A GAME TO PLAY"
     TITLE_CENTER_Y = 180
     SUBTITLE_CENTER_Y = 285
+    OPTIONS_LEFT_X = 250
     OPTIONS_START_Y = 390
     OPTION_SPACING = 70
     CURSOR_SYMBOL = ">"
     CURSOR_GAP = 20
+    PREVIEW_BOX_X = 770
+    PREVIEW_BOX_Y = 320
+    PREVIEW_BOX_WIDTH = 320
+    PREVIEW_BOX_HEIGHT = 240
+    PREVIEW_BORDER_WIDTH = 2
+    PREVIEW_BORDER_RADIUS = 22
+    PREVIEW_INNER_PADDING = 12
     FOOTER_TEXT_LINE_1 = "PRESS SELECT ON CONTROLLER OR F11 ON KEYBOARD TO TOGGLE FULLSCREEN WHILE IN GAME."
     FOOTER_TEXT_LINE_2 = "PRESS START + SELECT + L1 + L2 OR CLOSE THE GAME WINDOW TO RETURN TO THIS MENU."
     FOOTER_LINE_1_CENTER_Y = 670
@@ -80,3 +88,8 @@ class GameSettings:
         ("Star Hero", Path("star-hero") / "main.py"),
         ("Dungeon Digger", Path("dig-adventure") / "main.py"),
     ]
+
+    PREVIEW_IMAGES = {
+        "Star Hero": Path("graphics") / "star_hero_screenshot.png",
+        "Dungeon Digger": Path("graphics") / "dungeon_digger_screenshot.png",
+    }
