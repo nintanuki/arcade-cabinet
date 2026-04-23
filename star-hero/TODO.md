@@ -47,3 +47,4 @@
 ### Misc Notes
 * Use `channel_#.play(music, -1)` to loop instead?
 * Try [pygame.mixer.music](https://www.pygame.org/docs/ref/music.html) instead of the sound class for music, gives more control like queue music.
+* The dark blue for HYPER in the status is too dark to read, change to CYAN or flashing colors like rainbow beam. Consider doing the same for auto, fast flashing. Change sound effect for hyper to something that sounds very powerful (x wing or tie fighter laser sounds?)
