@@ -225,7 +225,7 @@ class ItemSettings:
     }
 
     SHOP_PRICES = {
-        'MATCH': 50,
+        'MATCH': 100,
         'TORCH': 250,
         'LANTERN': 1000,
         'MONSTER REPELLENT': 500,
@@ -261,9 +261,9 @@ class ItemSettings:
         'RUBY': (1, 7),
         'SAPPHIRE': (1, 5),
         'EMERALD': (1, 3),
-        'MATCH': (1, 5),
+        'MATCH': (1, 3),
         'TORCH': (1, 5),
-        'MONSTER REPELLENT': (1, 2)
+        # 'MONSTER REPELLENT': (1, 2)
         # Items not listed here default to quantity 1.
     }
 
