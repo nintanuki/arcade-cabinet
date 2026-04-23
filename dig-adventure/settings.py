@@ -269,6 +269,11 @@ class ItemSettings:
 
     INITIAL_INVENTORY = {
         # 'MATCH': 1,
+        'KEY': 1,
+        'LANTERN': 100,
+        'INVISIBILITY CLOAK': 100,
+        'MONSTER REPELLENT': 100,
+        'MAGIC MAP': 1,
         # For local test scenarios, temporarily adjust this dictionary as needed
         # Add "godmode" setting later to toggle between normal and test inventories without manual edits.
     }

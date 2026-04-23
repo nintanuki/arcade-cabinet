@@ -37,7 +37,6 @@ class MessageLog:
 
         term_colors = {
             "YOU WERE CAUGHT BY THE MONSTER": ColorSettings.TEXT_LOSS,
-            "KHAJIIT HAS WARES, IF YOU HAVE COIN.": ColorSettings.MEDIUM_ORCHID,
             "KEY": ColorSettings.BORDER_KEY_ACTIVE,
             "REPELLENT": ColorSettings.REPELLED_TINT,
             "RUBY": ColorSettings.TREASURE_RUBY,

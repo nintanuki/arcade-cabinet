@@ -738,10 +738,6 @@ class GameManager:
         if event.type == pygame.JOYBUTTONDOWN:
             # Controller confirm mappings for shop interactions.
             # TODO: Replace controller button index literals (7/0/2) with named input constants.
-            if event.button == 7:
-                self.complete_shop_phase()
-                return
-
             if event.button == 0:  # A button confirms selection.
                 selected_option = options[self.shop_selected_index]
                 if selected_option == 'CONTINUE':

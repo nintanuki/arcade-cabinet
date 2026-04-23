@@ -3,15 +3,36 @@ import random
 from settings import *
 
 class Audio():
+    """Manages all game audio including music, background tracks, and sound effects.
+
+    Loads every sound asset on construction and exposes named channel references
+    so callers can play, pause, and stop individual audio streams without
+    worrying about channel allocation details.
+    """
     def _effective_volume(self):
-        """Returns 0 when debug mute is enabled; otherwise uses master volume."""
+        """Returns the master volume scaled to 0 when debug mute is enabled.
+
+        Returns:
+            float: Effective volume level between 0.0 and 1.0.
+        """
         return 0 if self.muted else self.master_volume
 
     def _half_effective_volume(self):
-        """Shared helper for assets intentionally mixed at half volume."""
+        """Returns half the effective volume; used for SFX mixed quieter than music.
+
+        Returns:
+            float: Half of the current effective volume level.
+        """
         return self._effective_volume() / 2
 
     def __init__(self):
+        """
+        Initializes the pygame mixer, pre-loads all music tracks and sound effects,
+        sets initial volume levels, and assigns each audio asset to a dedicated mixer channel.
+
+        Note: A loading screen should be displayed before constructing this object
+        as pre-loading all tracks can cause a brief freeze on slower hardware.
+        """
         super().__init__()
         # Increase the number of available channels from 8 to 16
         pygame.mixer.set_num_channels(16)
@@ -95,7 +116,12 @@ class Audio():
         self.channel_9 = pygame.mixer.Channel(9)
 
     def load_random_bgm(self):
-        """Selects and loads a random track from the playlist"""
+        """Selects a random background music track from the pre-loaded playlist.
+
+        Avoids repeating the most recently played track when more than one
+        track is available. The selected track is stored in self.bg_music
+        and must be explicitly played on a channel by the caller.
+        """
         if not self.bgm_tracks:
             return
 
@@ -108,7 +134,11 @@ class Audio():
         self.last_bgm = self.bg_music
 
     def update(self):
-        """Updates volume of all sounds and music"""
+        """Reapplies volume levels to every loaded sound and music asset.
+
+        Should be called whenever master_volume or DEBUG_MUTE changes so that
+        all currently-loaded sounds reflect the new settings immediately.
+        """
         self.muted = AudioSettings.DEBUG_MUTE
         effective_volume = self._effective_volume()
         half_effective_volume = effective_volume / 2

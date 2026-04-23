@@ -471,14 +471,13 @@ class RenderManager:
 
         font_small = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
         font_large = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
-        font_prompt = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
 
         start_x = UISettings.ACTION_WINDOW_X + 20
         start_y = UISettings.ACTION_WINDOW_Y + 20
         line_height = 22
         y_pos = start_y
 
-        title_surf = font_large.render("KHAJIIT HAS WARES, IF YOU HAVE COIN", False, ColorSettings.TEXT_TITLE)
+        title_surf = font_large.render('"KHAJIIT HAS WARES, IF YOU HAVE COIN."', False, ColorSettings.MEDIUM_ORCHID)
         self.screen.blit(title_surf, (start_x, y_pos))
         y_pos += line_height + 16
 
@@ -516,13 +515,4 @@ class RenderManager:
 
             y_pos += line_height
 
-        elapsed = pygame.time.get_ticks() - self.game.shop_display_start_time
-        if elapsed >= self.game.shop_display_delay_ms:
-            prompt_surf = font_prompt.render("PRESS START TO CONTINUE", False, ColorSettings.TEXT_PROMPT)
-            prompt_rect = prompt_surf.get_rect(
-                center=(
-                    UISettings.ACTION_WINDOW_X + (UISettings.ACTION_WINDOW_WIDTH // 2),
-                    UISettings.ACTION_WINDOW_Y + UISettings.ACTION_WINDOW_HEIGHT - 18,
-                )
-            )
-            self.screen.blit(prompt_surf, prompt_rect)
+        # Shop progression now happens only by selecting the CONTINUE row.
