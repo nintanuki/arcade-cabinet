@@ -61,6 +61,18 @@ class ArcadeLauncher:
 
 	def __init__(self) -> None:
 		"""Create launcher systems, load resources, and initialize menu state."""
+		self.root_dir = Path(__file__).resolve().parent
+		self.font_path = self.root_dir / FontSettings.FILE
+		self.tv_path = self.root_dir / CRTSettings.OVERLAY_IMAGE
+
+		self.initialize_runtime()
+
+		self.options = [(label, self.root_dir / relative_path) for label, relative_path in GameSettings.OPTIONS]
+		self.selected_index = 0
+		self.vertical_axis_engaged = False
+
+	def initialize_runtime(self) -> None:
+		"""Initialize Pygame systems required for rendering and input handling."""
 		pygame.init()
 		pygame.joystick.init()
 		self.joysticks = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
@@ -68,19 +80,18 @@ class ArcadeLauncher:
 		pygame.display.set_caption(LauncherSettings.WINDOW_TITLE)
 		self.clock = pygame.time.Clock()
 
-		root_dir = Path(__file__).resolve().parent
-		font_path = root_dir / FontSettings.FILE
-		tv_path = root_dir / CRTSettings.OVERLAY_IMAGE
+		self.title_font = pygame.font.Font(str(self.font_path), FontSettings.TITLE_SIZE)
+		self.subtitle_font = pygame.font.Font(str(self.font_path), FontSettings.SUBTITLE_SIZE)
+		self.option_font = pygame.font.Font(str(self.font_path), FontSettings.OPTION_SIZE)
+		self.hint_font = pygame.font.Font(str(self.font_path), FontSettings.HINT_SIZE)
 
-		self.title_font = pygame.font.Font(str(font_path), FontSettings.TITLE_SIZE)
-		self.subtitle_font = pygame.font.Font(str(font_path), FontSettings.SUBTITLE_SIZE)
-		self.option_font = pygame.font.Font(str(font_path), FontSettings.OPTION_SIZE)
+		self.crt = LauncherCRT(self.screen, self.tv_path)
 
-		self.crt = LauncherCRT(self.screen, tv_path)
-
-		self.options = [(label, root_dir / relative_path) for label, relative_path in GameSettings.OPTIONS]
-		self.selected_index = 0
-		self.vertical_axis_engaged = False
+	def suspend_runtime(self) -> None:
+		"""Shut down launcher rendering/input systems before child game launch."""
+		pygame.display.quit()
+		pygame.joystick.quit()
+		pygame.quit()
 
 	def move_selection_up(self) -> None:
 		"""Move the menu cursor to the previous game option with wrap-around."""
@@ -91,15 +102,20 @@ class ArcadeLauncher:
 		self.selected_index = (self.selected_index + 1) % len(self.options)
 
 	def launch_selected_game(self) -> None:
-		"""Launch the currently selected game in its own working directory."""
+		"""Launch the selected game, then restore launcher runtime after it exits."""
 		_, game_main = self.options[self.selected_index]
 		game_dir = game_main.parent
+		self.suspend_runtime()
 
-		subprocess.run(
-			[sys.executable, str(game_main)],
-			cwd=str(game_dir),
-			check=False,
-		)
+		try:
+			subprocess.run(
+				[sys.executable, str(game_main)],
+				cwd=str(game_dir),
+				check=False,
+			)
+		finally:
+			self.initialize_runtime()
+			self.vertical_axis_engaged = False
 
 	def draw(self) -> None:
 		"""Render the launcher title, subtitle, game options, and CRT overlay."""
@@ -133,6 +149,26 @@ class ArcadeLauncher:
 					midright=(text_rect.left - MenuSettings.CURSOR_GAP, text_rect.centery)
 				)
 				self.screen.blit(cursor_surface, cursor_rect)
+
+		hint_line_1_surface = self.hint_font.render(
+			MenuSettings.FOOTER_TEXT_LINE_1,
+			False,
+			ColorSettings.LIGHT_BLUE,
+		)
+		hint_line_1_rect = hint_line_1_surface.get_rect(
+			center=(ScreenSettings.WIDTH // 2, MenuSettings.FOOTER_LINE_1_CENTER_Y)
+		)
+		self.screen.blit(hint_line_1_surface, hint_line_1_rect)
+
+		hint_line_2_surface = self.hint_font.render(
+			MenuSettings.FOOTER_TEXT_LINE_2,
+			False,
+			ColorSettings.LIGHT_BLUE,
+		)
+		hint_line_2_rect = hint_line_2_surface.get_rect(
+			center=(ScreenSettings.WIDTH // 2, MenuSettings.FOOTER_LINE_2_CENTER_Y)
+		)
+		self.screen.blit(hint_line_2_surface, hint_line_2_rect)
 
 		self.crt.draw()
 		pygame.display.flip()
