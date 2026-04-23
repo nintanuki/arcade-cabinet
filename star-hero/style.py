@@ -15,6 +15,7 @@ class Style():
         self.small_font = pygame.font.Font(FontSettings.FONT,FontSettings.SMALL)
         self.medium_font = pygame.font.Font(FontSettings.FONT,FontSettings.MEDIUM)
         self.large_font = pygame.font.Font(FontSettings.FONT,FontSettings.LARGE)
+        self.micro_font = pygame.font.Font(FontSettings.FONT, 6)
 
         self.audio = audio # Audio reference used to read and display the current volume
 
@@ -151,6 +152,77 @@ class Style():
         level_rect = level_surf.get_rect(bottomleft=(10, ScreenSettings.HEIGHT - 10))
         self.screen.blit(level_surf, level_rect)
 
+    def _draw_bomb_icons(self, bomb_count, top_right, spacing=4):
+        """Draw bomb icons showing count up to 6; for 7+, show single icon with 'x#' label.
+        
+        For 1-6 bombs: display individual icons right-aligned.
+        For 7+ bombs: display single icon followed by 'x#' text to the right, both centered vertically.
+
+        Args:
+            bomb_count (int): Number of bombs to represent.
+            top_right (tuple[int, int]): Top-right anchor for the display.
+            spacing (int): Horizontal space between elements.
+        """
+        icon_width = 16
+        icon_height = 14
+
+        # For 7+ bombs, show icon + x# indicator
+        if bomb_count > 6:
+            top_y = top_right[1]
+            center_y = top_y + (icon_height // 2)
+            
+            # Calculate icon position (to the left of text)
+            indicator_text = f'x{bomb_count}'
+            indicator_surf = self.small_font.render(indicator_text, False, 'white')
+            icon_x = top_right[0] - indicator_surf.get_width() - spacing - icon_width
+            center_x = icon_x + (icon_width // 2)
+            
+            # Draw single bomb icon
+            points = [
+                (icon_x + 3, top_y),
+                (icon_x + icon_width - 3, top_y),
+                (icon_x + icon_width, center_y),
+                (icon_x + icon_width - 3, top_y + icon_height),
+                (icon_x + 3, top_y + icon_height),
+                (icon_x, center_y),
+            ]
+
+            pygame.draw.polygon(self.screen, 'black', points)
+            pygame.draw.polygon(self.screen, 'red', points, 1)
+
+            bomb_letter = self.micro_font.render('B', False, 'white')
+            bomb_rect = bomb_letter.get_rect(center=(center_x, center_y - 1))
+            self.screen.blit(bomb_letter, bomb_rect)
+
+            # Draw x# indicator, centered vertically with the icon
+            indicator_rect = indicator_surf.get_rect(midright=(top_right[0], center_y))
+            self.screen.blit(indicator_surf, indicator_rect)
+        else:
+            # Draw individual bomb icons (1-6)
+            total_width = (bomb_count * icon_width) + (max(0, bomb_count - 1) * spacing)
+            start_x = top_right[0] - total_width
+            top_y = top_right[1]
+
+            for index in range(bomb_count):
+                left = start_x + (index * (icon_width + spacing))
+                center_x = left + (icon_width // 2)
+                center_y = top_y + (icon_height // 2)
+                points = [
+                    (left + 3, top_y),
+                    (left + icon_width - 3, top_y),
+                    (left + icon_width, center_y),
+                    (left + icon_width - 3, top_y + icon_height),
+                    (left + 3, top_y + icon_height),
+                    (left, center_y),
+                ]
+
+                pygame.draw.polygon(self.screen, 'black', points)
+                pygame.draw.polygon(self.screen, 'red', points, 1)
+
+                bomb_letter = self.micro_font.render('B', False, 'white')
+                bomb_rect = bomb_letter.get_rect(center=(center_x, center_y - 1))
+                self.screen.blit(bomb_letter, bomb_rect)
+
     def display_player_status(self, player):
         """Draw right-aligned status rows for ship state, weapon mode, power, bombs, and boost meter.
 
@@ -244,21 +316,20 @@ class Style():
                 self.screen.blit(surf, (value_x, y_pos))
                 value_x += surf.get_width()
 
-        bombs_surf = self.small_font.render(f'BOMBS = {player.bombs}', False, 'white')
-        bombs_rect = bombs_surf.get_rect(topright=(ScreenSettings.WIDTH - right_margin, start_y + (len(rows) * row_spacing) + 6))
-        self.screen.blit(bombs_surf, bombs_rect)
+        bombs_top_right = (ScreenSettings.WIDTH - right_margin, start_y + (len(rows) * row_spacing) + 16)
+        self._draw_bomb_icons(player.bombs, bombs_top_right)
 
         # --- 4. Boost/Brake Meter ---
         ratio, boost_state = player.get_boost_meter()
 
         if boost_state == 'boost':
-            fill_color = 'deepskyblue'
+            fill_color = 'orange'
         elif boost_state == 'brake':
             fill_color = 'gold'
         elif boost_state == 'cooldown':
-            fill_color = 'orange'
+            fill_color = 'red'
         else:
-            fill_color = 'limegreen'
+            fill_color = 'deepskyblue'
 
         pygame.draw.rect(self.screen, (60, 60, 60), (meter_x, meter_y, meter_width, meter_height), border_radius=3)
         pygame.draw.rect(

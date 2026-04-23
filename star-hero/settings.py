@@ -17,7 +17,7 @@ class PlayerSettings:
     SPEED = 2
     SPEED_BOOST = 2
     BRAKE_WORLD_SPEED_MULT = 0.45
-    BOOST_DRAIN_PER_SECOND = 0.35 # meter drained per second while boost is held
+    BOOST_DRAIN_PER_SECOND = 0.70 # meter drained per second while boost is held
     BOOST_RECHARGE_PER_SECOND = 0.25 # meter recharged per second when not boosting
     SCALE = 0.15
     DEFAULT_LASER_COOLDOWN = 600 # lower numbers = faster rate of fire
@@ -131,7 +131,7 @@ class PowerupSettings:
 
 class BombSettings:
     """Contains tuning values for bomb inventory, drops, projectile behavior, and blast visuals."""
-    START_COUNT = 3
+    START_COUNT = 7
     PROJECTILE_RADIUS = 10
     PROJECTILE_SPEED = -4
     FLASH_SPEED = 220
@@ -189,7 +189,7 @@ class AudioSettings:
     """
     INTRO_VOL_BOOST = 2.0
     DEFAULT_MASTER_VOLUME = 0.5 # default value is 1.0
-    DEBUG_MUTE = False # set True to silence all audio for debugging
+    DEBUG_MUTE = True # set True to silence all audio for debugging
     MUSIC_DIR = 'music/'
     AUDIO_DIR = 'audio/'
     BGM_PLAYLIST = [
