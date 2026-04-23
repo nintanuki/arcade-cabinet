@@ -897,6 +897,10 @@ class GameManager:
             self.player.invisibility_turns -= 1
             if self.player.invisibility_turns == 0:
                 self.log_message("THE INVISIBILITY WEARS OFF.")
+                if self.player.invisibility_from_cloak:
+                    # TODO: Move cooldown turn-buffer literal (+1) into a named gameplay constant.
+                    self.player.invisibility_cooldown_turns = ItemSettings.INVISIBILITY_CLOAK_COOLDOWN + 1
+                    self.player.invisibility_from_cloak = False
 
         # Handle Invisibility Cloak Cooldown
         if self.player.invisibility_cooldown_turns > 0:

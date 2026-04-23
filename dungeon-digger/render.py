@@ -21,6 +21,15 @@ class RenderManager:
         self.scaled_dug_tile = game.scaled_dug_tile
         self.scaled_dirt_tiles = game.scaled_dirt_tiles
 
+        title_sprite_size = GridSettings.TILE_SIZE * 2
+        player_title_surf = pygame.image.load(AssetPaths.PLAYER).convert_alpha()
+        monster_title_surf = pygame.image.load(AssetPaths.MONSTER).convert_alpha()
+        self.title_player_sprite = pygame.transform.scale(player_title_surf, (title_sprite_size, title_sprite_size))
+        self.title_monster_sprite = pygame.transform.scale(monster_title_surf, (title_sprite_size, title_sprite_size))
+        self.title_chase_initial_delay_ms = 60000
+        self.title_chase_cooldown_ms = 60000
+        self.title_chase_duration_ms = 2400
+
     def _rainbow_color(self) -> tuple[int, int, int]:
         """Return a slow-cycling rainbow RGB color."""
         hue = (pygame.time.get_ticks() * 0.00008) % 1.0
@@ -259,6 +268,31 @@ class RenderManager:
 
         title_font = pygame.font.Font(FontSettings.FONT, FontSettings.ENDGAME_SIZE)
         prompt_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
+
+        sprite_y = int((ScreenSettings.HEIGHT / 2) - 96)
+        elapsed_ms = pygame.time.get_ticks()
+        cycle_length_ms = self.title_chase_duration_ms + self.title_chase_cooldown_ms
+        if elapsed_ms >= self.title_chase_initial_delay_ms:
+            cycle_elapsed_ms = (elapsed_ms - self.title_chase_initial_delay_ms) % cycle_length_ms
+        else:
+            cycle_elapsed_ms = cycle_length_ms
+
+        if cycle_elapsed_ms < self.title_chase_duration_ms:
+            chase_progress = cycle_elapsed_ms / self.title_chase_duration_ms
+
+            monster_width = self.title_monster_sprite.get_width()
+            player_width = self.title_player_sprite.get_width()
+            spacing = 42
+
+            start_monster_x = -monster_width
+            end_monster_x = ScreenSettings.WIDTH + monster_width
+            monster_x = int(start_monster_x + (end_monster_x - start_monster_x) * chase_progress)
+            player_x = monster_x + monster_width + spacing
+
+            monster_rect = self.title_monster_sprite.get_rect(midleft=(monster_x, sprite_y))
+            player_rect = self.title_player_sprite.get_rect(midleft=(player_x, sprite_y))
+            self.screen.blit(self.title_monster_sprite, monster_rect)
+            self.screen.blit(self.title_player_sprite, player_rect)
 
         title_surf = title_font.render("DUNGEON DIGGER", False, ColorSettings.TEXT_DEFAULT)
         title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, (ScreenSettings.HEIGHT / 2) - 20))

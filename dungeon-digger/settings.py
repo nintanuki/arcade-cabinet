@@ -269,12 +269,13 @@ class ItemSettings:
     }
 
     INITIAL_INVENTORY = {
-        'GOLD COINS': 10000,
-        'LANTERN': 100,
-        'MONSTER REPELLENT': 100,
-        'INVISIBILITY SCROLL': 100,
-        'MAGIC MAP': 1,
-        'KEY': 1,
+        # 'GOLD COINS': 10000,
+        # 'LANTERN': 100,
+        # 'MONSTER REPELLENT': 100,
+        # # 'INVISIBILITY SCROLL': 100,
+        'INVISIBILITY CLOAK': 1,
+        # 'MAGIC MAP': 1,
+        # 'KEY': 1,
         # For local test scenarios, temporarily adjust this dictionary as needed
         # Add "godmode" setting later to toggle between normal and test inventories without manual edits.
     }
@@ -313,9 +314,12 @@ class AssetPaths:
 
     # Images
     GRAPHICS_DIR = 'graphics/'
+    MONSTER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'monsters')
+    PLAYER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'player')
 
     # Sprites
     PLAYER = os.path.join(GRAPHICS_DIR, 'tile_0097.png')
+    PLAYER_CLOAK = os.path.join(PLAYER_VARIANTS_DIR, 'tile_0096.png')
     MONSTER = os.path.join(GRAPHICS_DIR, 'tile_0121.png')
 
     # Door

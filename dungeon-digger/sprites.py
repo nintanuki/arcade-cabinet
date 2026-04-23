@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 from typing import Literal
 from settings import *
 
@@ -24,7 +25,11 @@ class Player(pygame.sprite.Sprite):
         super().__init__(groups)
         # -------- Sprite visuals --------
         player_surf = pygame.image.load(AssetPaths.PLAYER).convert_alpha()
-        self.base_image = pygame.transform.scale(player_surf, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
+        cloak_player_path = AssetPaths.PLAYER_CLOAK if os.path.exists(AssetPaths.PLAYER_CLOAK) else AssetPaths.PLAYER
+        cloak_player_surf = pygame.image.load(cloak_player_path).convert_alpha()
+        self.normal_base_image = pygame.transform.scale(player_surf, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
+        self.cloak_base_image = pygame.transform.scale(cloak_player_surf, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
+        self.base_image = self.normal_base_image
         self.image = self.base_image.copy()
 
         # -------- Position and movement state --------
@@ -37,6 +42,7 @@ class Player(pygame.sprite.Sprite):
         self.repellent_turns = 0
         self.invisibility_turns = 0
         self.invisibility_cooldown_turns = 0
+        self.invisibility_from_cloak = False
         self.flash_frame = 0
 
         self.light_radius = LightSettings.DEFAULT_RADIUS
@@ -250,8 +256,7 @@ class Player(pygame.sprite.Sprite):
             elif has_cloak:
                 # TODO: Move invisibility turn-buffer literal (+1) into a named gameplay constant.
                 self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + 1
-                # TODO: Move cooldown turn-buffer literal (+1) into a named gameplay constant.
-                self.invisibility_cooldown_turns = ItemSettings.INVISIBILITY_CLOAK_COOLDOWN + 1
+                self.invisibility_from_cloak = True
                 self.game.log_message("YOU WRAP YOURSELF IN THE INVISIBILITY CLOAK.")
                 self.game.audio.play_vanish_sound()
                 self.game.advance_turn()
@@ -262,6 +267,7 @@ class Player(pygame.sprite.Sprite):
 
                 # TODO: Move invisibility turn-buffer literal (+1) into a named gameplay constant.
                 self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + 1
+                self.invisibility_from_cloak = False
                 self.game.log_message("YOU READ THE INVISIBILITY SCROLL.")
                 self.game.audio.play_vanish_sound()
                 self.game.advance_turn()
@@ -427,6 +433,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.flash_frame = 0
 
+        self.base_image = self.cloak_base_image if (is_invisible or is_repelled) else self.normal_base_image
         self.image = self.base_image.copy()
 
         if is_repelled:
@@ -494,9 +501,17 @@ class Monster(pygame.sprite.Sprite):
         super().__init__(groups)
         self.game = game
         self.dungeon = self.game.dungeon
-        
-        # Load and scale the monster image
-        surface = pygame.image.load(AssetPaths.MONSTER).convert_alpha()
+
+        # Load and scale a random monster variant for this instance.
+        monster_candidates: list[str] = []
+        if os.path.isdir(AssetPaths.MONSTER_VARIANTS_DIR):
+            for name in os.listdir(AssetPaths.MONSTER_VARIANTS_DIR):
+                candidate_path = os.path.join(AssetPaths.MONSTER_VARIANTS_DIR, name)
+                if os.path.isfile(candidate_path) and name.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                    monster_candidates.append(candidate_path)
+
+        monster_sprite_path = random.choice(monster_candidates) if monster_candidates else AssetPaths.MONSTER
+        surface = pygame.image.load(monster_sprite_path).convert_alpha()
         self.image = pygame.transform.scale(surface, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
         
         self.rect = self.image.get_rect(topleft = position)
