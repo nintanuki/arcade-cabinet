@@ -1,5 +1,5 @@
 import random
-from settings import UISettings, ItemSettings, MonsterSettings, DebugSettings
+from settings import UISettings, ItemSettings, MonsterSettings, NPCSettings, DebugSettings
 from tilemaps import DUNGEONS
 
 class DungeonMaster:
@@ -110,6 +110,12 @@ class DungeonMaster:
 
         self.key_grid_pos = self.place_fixed_item("KEY", available_positions)
         map_grid_pos = self.place_fixed_item("MAP", available_positions)
+
+        # Spawn 0–NPCSettings.MAX_COUNT NPCs on remaining walkable tiles.
+        self.npc_grid_positions = []
+        for _ in range(NPCSettings.MAX_COUNT):
+            if available_positions and random.random() < NPCSettings.SPAWN_CHANCE:
+                self.npc_grid_positions.append(self.draw_random_position(available_positions))
 
         if DebugSettings.SPAWN_LOG:
             def fmt_pos(pos: tuple[int, int]) -> str:
@@ -223,7 +229,32 @@ class DungeonMaster:
                 return item, amount
                 
         return None, 0
-    
+
+    def roll_random_loot(self) -> tuple[str | None, int]:
+        """Roll a random loot drop using the same distribution as tile digging."""
+        eligible_items: list[tuple[str, float]] = []
+        for item, chance in ItemSettings.SPAWN_CHANCE.items():
+            if item in ItemSettings.LEVEL_SCOPED_ITEMS and item in self.level_unique_items_found:
+                continue
+            eligible_items.append((item, chance))
+
+        total_chance = sum(chance for _, chance in eligible_items)
+        if total_chance <= 0:
+            return None, 0
+
+        roll = random.random()
+        cumulative_chance = 0
+        for item, chance in eligible_items:
+            cumulative_chance += chance
+            if roll < cumulative_chance:
+                min_qty, max_qty = ItemSettings.SPAWN_QUANTITIES.get(item, (1, 1))
+                amount = random.randint(min_qty, max_qty)
+                if item in ItemSettings.LEVEL_SCOPED_ITEMS:
+                    self.level_unique_items_found.add(item)
+                return item, amount
+
+        return None, 0
+
     # -------------------------
     # MAP RULES / LOOKUPS
     # -------------------------

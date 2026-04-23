@@ -133,4 +133,5 @@ These notes capture confirmed progress without changing checkbox status unless a
 - Prioritize unresolved gameplay bugs before balance/features.
 
 # Note
+Make shopkeeper and NPCs drop hints.
 

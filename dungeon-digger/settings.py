@@ -194,6 +194,13 @@ class MonsterSettings:
     REPELLENT_DURATION = 5 # Number of turns the repellent effect remains active.
     ANIMATION_SPEED = 1 # Pixels advanced per frame during sprite interpolation.
 
+class NPCSettings:
+    """NPC spawn tuning values."""
+
+    MAX_COUNT = 2
+    SPAWN_CHANCE = 0.1  # Probability for each potential NPC slot to actually spawn.
+    FADE_SPEED = 1       # Alpha units subtracted per frame during fade-out (~255 frames = ~4s at 60fps).
+
 class LightSettings:
     """Lighting radius and duration values for consumable light sources."""
 
@@ -214,7 +221,7 @@ class ItemSettings:
     """Item inventory, spawn, scoring, and shop economy configuration."""
 
     INVISIBILITY_CLOAK_DURATION = 5
-    INVISIBILITY_CLOAK_COOLDOWN = 5
+    INVISIBILITY_CLOAK_COOLDOWN = 3
     LEVEL_SCOPED_ITEMS = {"KEY", "MAP", "MAGIC MAP", "KEY DETECTOR"}
 
     TREASURE_SCORE_VALUES = {
@@ -269,13 +276,13 @@ class ItemSettings:
     }
 
     INITIAL_INVENTORY = {
-        # 'GOLD COINS': 10000,
+        # # 'GOLD COINS': 10000,
         # 'LANTERN': 100,
         # 'MONSTER REPELLENT': 100,
-        # # 'INVISIBILITY SCROLL': 100,
-        'INVISIBILITY CLOAK': 1,
+        # # # 'INVISIBILITY SCROLL': 100,
+        # 'INVISIBILITY CLOAK': 1,
         # 'MAGIC MAP': 1,
-        # 'KEY': 1,
+        # # 'KEY': 1,
         # For local test scenarios, temporarily adjust this dictionary as needed
         # Add "godmode" setting later to toggle between normal and test inventories without manual edits.
     }
@@ -316,6 +323,7 @@ class AssetPaths:
     GRAPHICS_DIR = 'graphics/'
     MONSTER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'monsters')
     PLAYER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'player')
+    NPC_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'npcs')
 
     # Sprites
     PLAYER = os.path.join(GRAPHICS_DIR, 'tile_0097.png')

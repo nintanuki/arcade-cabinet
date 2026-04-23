@@ -723,6 +723,48 @@ class Monster(pygame.sprite.Sprite):
         """
         pass
 
+class NPC(pygame.sprite.Sprite):
+    """A stationary NPC that gives the player a random item when approached."""
+
+    def __init__(self, game, position: tuple[int, int], groups) -> None:
+        super().__init__(groups)
+        self.game = game
+
+        npc_candidates: list[str] = []
+        if os.path.isdir(AssetPaths.NPC_VARIANTS_DIR):
+            for name in os.listdir(AssetPaths.NPC_VARIANTS_DIR):
+                candidate_path = os.path.join(AssetPaths.NPC_VARIANTS_DIR, name)
+                if os.path.isfile(candidate_path) and name.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                    npc_candidates.append(candidate_path)
+
+        npc_sprite_path = random.choice(npc_candidates) if npc_candidates else AssetPaths.PLAYER
+        surface = pygame.image.load(npc_sprite_path).convert_alpha()
+        self.image = pygame.transform.scale(surface, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
+
+        self.rect = self.image.get_rect(topleft=position)
+        self.position = pygame.math.Vector2(position)
+
+        # Fade state: stays solid until message finishes, then fades out.
+        self.fade_pending = False
+        self.fading = False
+        self.fade_alpha = 255
+
+    def animate(self) -> None:
+        """Advance fade-out animation once any pending message has finished typing."""
+        if self.fade_pending and not self.game.message_log.is_typing:
+            self.fade_pending = False
+            self.fading = True
+
+        if self.fading:
+            self.fade_alpha = max(0, self.fade_alpha - NPCSettings.FADE_SPEED)
+            self.image.set_alpha(self.fade_alpha)
+            if self.fade_alpha <= 0:
+                self.kill()
+
+    def update(self) -> None:
+        pass
+
+
 class Door(pygame.sprite.Sprite):
     """Represent the level door sprite and open/closed visual states."""
 

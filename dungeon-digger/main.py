@@ -4,7 +4,7 @@ import os
 
 from settings import *
 from audio import AudioManager
-from sprites import Player, Monster, Door
+from sprites import Player, Monster, Door, NPC
 from windows import MessageLog, InventoryWindow, MapWindow
 from dungeon import DungeonMaster
 from mapmemory import MapMemory
@@ -49,6 +49,7 @@ class GameManager:
         self.message_success_border_until = 0
         self.l2_trigger_is_pressed = False
         self.ui_state = 'title'
+        self.npcs: list = []
 
         self.game_over_message_complete_time = 0
         self.game_over_prompt_start_time = 0
@@ -438,6 +439,7 @@ class GameManager:
         self.dungeon.setup_tile_map()
         self.spawn_door()
         self.spawn_monster()
+        self.spawn_npcs()
         self.spawn_player()
         self.restore_player_progress(player_progress)
 
@@ -816,6 +818,59 @@ class GameManager:
         x, y = self.grid_to_screen(col, row)
         self.door = Door(self, (x, y), self.all_sprites)
 
+    def spawn_npcs(self):
+        """Spawn NPC sprites at the precomputed dungeon NPC positions."""
+        self.npcs = []
+        for col, row in self.dungeon.npc_grid_positions:
+            x, y = self.grid_to_screen(col, row)
+            npc = NPC(self, (x, y), self.all_sprites)
+            self.npcs.append(npc)
+
+    def _trigger_npc_interaction(self, npc) -> None:
+        """Give the player a random item from an NPC then remove it."""
+        self.log_message("IT'S DANGEROUS TO GO ALONE! TAKE THIS!")
+
+        found_item, amount = self.dungeon.roll_random_loot()
+        if found_item:
+            display_name = found_item
+            if amount > 1:
+                if found_item == "TORCH":
+                    display_name = "TORCHES"
+                elif found_item == "MATCH":
+                    display_name = "MATCHES"
+                elif found_item.endswith("Y"):
+                    display_name = found_item[:-1] + "IES"
+                elif not found_item.endswith("S"):
+                    display_name = found_item + "S"
+
+            if found_item in ItemSettings.TREASURE_SCORE_VALUES:
+                self.add_score(found_item, amount)
+
+            if amount > 1:
+                self.log_message(f"YOU FOUND {amount} {display_name}!")
+            elif found_item == "MONSTER REPELLENT":
+                self.log_message("YOU FOUND A CAN OF MONSTER REPELLENT!")
+            else:
+                article = 'AN' if found_item[0] in 'AEIOU' else 'A'
+                self.log_message(f"YOU FOUND {article} {found_item}!")
+
+            if found_item == "GOLD COINS" or found_item in ["RUBY", "SAPPHIRE", "EMERALD", "DIAMOND"]:
+                self.audio.play_coin_sound()
+
+            if found_item == "MAGIC MAP" and self.player.inventory.get("MAP", 0) > 0:
+                self.player.inventory["MAP"] -= 1
+                if self.player.inventory["MAP"] <= 0:
+                    self.player.inventory.pop("MAP", None)
+
+            self.player.inventory[found_item] = self.player.inventory.get(found_item, 0) + amount
+            self.player.discovered_items.add(found_item)
+
+            if found_item in ["MAP", "MAGIC MAP"]:
+                self.map_memory.reveal_full_terrain_memory()
+
+        npc.fade_pending = True
+        self.npcs.remove(npc)
+
     # TODO: Refactor spawning helpers into a dedicated SpawnManager when setup logic grows further.
 
     # -------------------------
@@ -906,8 +961,27 @@ class GameManager:
         if self.player.invisibility_cooldown_turns > 0:
             self.player.invisibility_cooldown_turns -= 1
 
+        # Check NPC adjacency: trigger interaction when player moves to a tile adjacent to an NPC.
+        if self.player.is_moving:
+            dest_col, dest_row = self.screen_to_grid(
+                self.player.target_pos.x, self.player.target_pos.y)
+            for npc in list(self.npcs):
+                npc_col, npc_row = self.screen_to_grid(npc.position.x, npc.position.y)
+                if abs(dest_col - npc_col) + abs(dest_row - npc_row) == 1:
+                    self._trigger_npc_interaction(npc)
+
         for monster in self.monsters:
             monster.resolve_turn()
+
+        # Remove any NPC that a monster has landed on.
+        for monster in self.monsters:
+            dest = monster.target_pos if monster.is_moving else monster.position
+            m_col, m_row = self.screen_to_grid(dest.x, dest.y)
+            for npc in list(self.npcs):
+                npc_col, npc_row = self.screen_to_grid(npc.position.x, npc.position.y)
+                if m_col == npc_col and m_row == npc_row:
+                    npc.kill()
+                    self.npcs.remove(npc)
 
         self.check_player_caught_by_monster()
 
