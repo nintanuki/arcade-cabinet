@@ -30,8 +30,12 @@ class LauncherCRT:
 			tv_image_path (Path): Path to the CRT overlay texture image.
 		"""
 		self.screen = screen
-		self.base_tv = pygame.image.load(str(tv_image_path)).convert_alpha()
-		self.base_tv = pygame.transform.scale(self.base_tv, ScreenSettings.RESOLUTION)
+		# Fall back to a transparent surface if the CRT texture is missing.
+		try:
+			self.base_tv = pygame.image.load(str(tv_image_path)).convert_alpha()
+			self.base_tv = pygame.transform.scale(self.base_tv, ScreenSettings.RESOLUTION)
+		except (FileNotFoundError, pygame.error):
+			self.base_tv = pygame.Surface(ScreenSettings.RESOLUTION, pygame.SRCALPHA)
 
 	def create_crt_lines(self, surf: pygame.Surface) -> None:
 		"""Draw scan lines onto a temporary overlay surface.
@@ -70,6 +74,13 @@ class ArcadeLauncher:
 		self.options = [(label, self.root_dir / relative_path) for label, relative_path in GameSettings.OPTIONS]
 		self.selected_index = 0
 		self.vertical_axis_engaged = False
+		self.status_message = ""
+		self.status_message_until = 0
+
+	def show_status_message(self, message: str, duration_ms: int = 3500) -> None:
+		"""Display a temporary status/error message at the bottom of the screen."""
+		self.status_message = message
+		self.status_message_until = pygame.time.get_ticks() + duration_ms
 
 	def initialize_runtime(self) -> None:
 		"""Initialize Pygame systems required for rendering and input handling."""
@@ -103,8 +114,17 @@ class ArcadeLauncher:
 
 	def launch_selected_game(self) -> None:
 		"""Launch the selected game, then restore launcher runtime after it exits."""
-		_, game_main = self.options[self.selected_index]
+		game_label, game_main = self.options[self.selected_index]
 		game_dir = game_main.parent
+
+		if not game_dir.exists():
+			self.show_status_message(f"Cannot launch {game_label}: folder not found.")
+			return
+
+		if not game_main.exists():
+			self.show_status_message(f"Cannot launch {game_label}: main.py not found.")
+			return
+
 		self.suspend_runtime()
 
 		try:
@@ -113,9 +133,15 @@ class ArcadeLauncher:
 				cwd=str(game_dir),
 				check=False,
 			)
-		finally:
+		except OSError as error:
 			self.initialize_runtime()
+			self.show_status_message(f"Failed to launch {game_label}: {error}")
 			self.vertical_axis_engaged = False
+			return
+		finally:
+			if not pygame.get_init():
+				self.initialize_runtime()
+				self.vertical_axis_engaged = False
 
 	def draw(self) -> None:
 		"""Render the launcher title, subtitle, game options, and CRT overlay."""
@@ -160,8 +186,12 @@ class ArcadeLauncher:
 		)
 		self.screen.blit(hint_line_1_surface, hint_line_1_rect)
 
+		footer_line_2_text = MenuSettings.FOOTER_TEXT_LINE_2
+		if self.status_message and pygame.time.get_ticks() < self.status_message_until:
+			footer_line_2_text = self.status_message
+
 		hint_line_2_surface = self.hint_font.render(
-			MenuSettings.FOOTER_TEXT_LINE_2,
+			footer_line_2_text,
 			False,
 			ColorSettings.LIGHT_BLUE,
 		)
