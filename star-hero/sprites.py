@@ -543,8 +543,10 @@ class Player(pygame.sprite.Sprite):
     def shoot_laser(self):
         """Spawns lasers based on current powerup state. Handles twin lasers, rapid fire, and beam logic."""
         is_rainbow_beam = self.rainbow_beam_active
-        is_hyper = (self.laser_level == 3) # Tier 3 check
+        is_hyper = (self.laser_level == 4)
+        is_piercing = self.laser_level >= 3
         has_rapid = self.rapid_fire_level > 0
+        laser_speed = LaserSettings.PLAYER_LASER_SPEED * 2 if is_hyper else LaserSettings.PLAYER_LASER_SPEED
         
         # 1. Determine the behavior and growth of the rainbow beam
         width = LaserSettings.RAINBOW_BEAM_WIDTH if is_rainbow_beam else LaserSettings.DEFAULT_WIDTH
@@ -553,13 +555,14 @@ class Player(pygame.sprite.Sprite):
         # 2. Assign colors based on priority
         if self.rainbow_beam_active:
             colors = "rainbow"
-        elif has_rapid and is_hyper:
-            # Hyper + Rapid alternates blue and yellow.
+        elif has_rapid and is_piercing:
             colors = LaserSettings.COLORS['hyper_rapid']
         elif has_rapid:
             colors = LaserSettings.COLORS['rapid']
         elif is_hyper:
             colors = LaserSettings.COLORS['hyper']
+        elif self.laser_level == 3:
+            colors = LaserSettings.COLORS['burst']
         elif self.laser_level >= 2:
             colors = LaserSettings.COLORS['twin']
         else:
@@ -569,19 +572,19 @@ class Player(pygame.sprite.Sprite):
         if self.laser_level >= 2:
             # Left laser
             self.lasers.add(Laser((self.rect.centerx - offset, self.rect.centery), 
-                                LaserSettings.PLAYER_LASER_SPEED, colors, width, 
-                                should_grow=is_rainbow_beam, is_piercing=is_hyper))
+                                laser_speed, colors, width, 
+                                should_grow=is_rainbow_beam, is_piercing=is_piercing))
             # Right laser
             self.lasers.add(Laser((self.rect.centerx + offset, self.rect.centery), 
-                                LaserSettings.PLAYER_LASER_SPEED, colors, width, 
-                                should_grow=is_rainbow_beam, is_piercing=is_hyper))
+                                laser_speed, colors, width, 
+                                should_grow=is_rainbow_beam, is_piercing=is_piercing))
         else:
             # Level 1: Single laser
-            self.lasers.add(Laser(self.rect.center, LaserSettings.PLAYER_LASER_SPEED, 
-                                colors, width, should_grow=is_rainbow_beam, is_piercing=is_hyper))
+            self.lasers.add(Laser(self.rect.center, laser_speed, 
+                                colors, width, should_grow=is_rainbow_beam, is_piercing=is_piercing))
             
         
-        if self.laser_level == 3 or self.rainbow_beam_active:
+        if self.laser_level >= 3 or self.rainbow_beam_active:
             self.audio.channel_10.play(self.audio.hyper_sound)
         else:
             self.audio.channel_3.play(self.audio.laser_sound)
@@ -596,7 +599,7 @@ class Player(pygame.sprite.Sprite):
         current_time = pygame.time.get_ticks()
 
         if powerup.powerup_type == 'laser_upgrade':
-            if self.laser_level < 3:
+            if self.laser_level < 4:
                 self.laser_level += 1
                 
         elif powerup.powerup_type == 'rapid_fire':

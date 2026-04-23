@@ -92,7 +92,7 @@ class CollisionManager:
             else:
                 # Only play sound if it's a new powerup activation, not if player already has it active
                 if powerup.powerup_type == 'laser_upgrade':
-                    if self.game.player.sprite.laser_level < 3:
+                    if self.game.player.sprite.laser_level < 4:
                         self.game.audio.channel_8.play(self.game.audio.powerup_twin)
                 elif powerup.powerup_type in ['rapid_fire', 'rainbow_beam', 'shield', 'bomb']:
                     self.game.audio.channel_8.play(self.game.audio.powerup_weapon)
@@ -425,8 +425,8 @@ class GameManager:
             can_drop_color_powerup = True
 
             if alien.color == 'green':
-                # Stop dropping if player is already at Hyper (Level 3)
-                can_drop_color_powerup = self.player.sprite.laser_level < 3
+                # Stop dropping if player is already at Hyper (Level 4)
+                can_drop_color_powerup = self.player.sprite.laser_level < 4
             elif alien.color == 'yellow':
                 # Stop dropping if player is already at Auto (Level 3)
                 can_drop_color_powerup = self.player.sprite.rapid_fire_level < 3
