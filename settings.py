@@ -76,7 +76,7 @@ class ControlSettings:
 class CRTSettings:
     """CRT overlay effect tuning for the launcher screen."""
 
-    OVERLAY_IMAGE = Path("dig-adventure") / "graphics" / "tv.png"
+    OVERLAY_IMAGE = Path("dungeon-digger") / "graphics" / "tv.png"
     SCANLINE_HEIGHT = 3
     ALPHA_RANGE = (75, 90)
 
@@ -86,7 +86,7 @@ class GameSettings:
 
     OPTIONS = [
         ("Star Hero", Path("star-hero") / "main.py"),
-        ("Dungeon Digger", Path("dig-adventure") / "main.py"),
+        ("Dungeon Digger", Path("dungeon-digger") / "main.py"),
     ]
 
     PREVIEW_IMAGES = {

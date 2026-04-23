@@ -108,8 +108,8 @@ cython_debug/
 
 # Game runtime data
 star-hero/high_score.txt
-dig-adventure/high_score.txt
-dig-adventure/leaderboard.txt
+dungeon-digger/high_score.txt
+dungeon-digger/leaderboard.txt
 
 # Marimo
 marimo/_static/
