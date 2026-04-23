@@ -2,14 +2,14 @@ import pygame
 import random
 from settings import *
 
-class Audio():
+class Audio:
     """Manages all game audio including music, background tracks, and sound effects.
 
     Loads every sound asset on construction and exposes named channel references
     so callers can play, pause, and stop individual audio streams without
     worrying about channel allocation details.
     """
-    def _effective_volume(self):
+    def _effective_volume(self) -> float:
         """Returns the master volume scaled to 0 when debug mute is enabled.
 
         Returns:
@@ -17,7 +17,7 @@ class Audio():
         """
         return 0 if self.muted else self.master_volume
 
-    def _half_effective_volume(self):
+    def _half_effective_volume(self) -> float:
         """Returns half the effective volume; used for SFX mixed quieter than music.
 
         Returns:
@@ -25,7 +25,7 @@ class Audio():
         """
         return self._effective_volume() / 2
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the pygame mixer, pre-loads all music tracks and sound effects,
         sets initial volume levels, and assigns each audio asset to a dedicated mixer channel.
@@ -41,12 +41,9 @@ class Audio():
         self.muted = AudioSettings.DEBUG_MUTE
 
         """Music"""
-        self.intro_music = pygame.mixer.Sound('music/star_hero_intro.ogg')
-        # self.intro_music.set_volume(self.master_volume * 2) # Low volume for some reason
         self.intro_music = pygame.mixer.Sound('music/star_fox_snes_controls_and_map_select.mp3')
         self.intro_music.set_volume(self._half_effective_volume())
         self.channel_0 = pygame.mixer.Channel(0)
-        self.play_intro_music = True # Set to False after user begins, only plays once
 
 
         self.channel_1 = pygame.mixer.Channel(1)
@@ -115,7 +112,7 @@ class Audio():
         self.tractor_beam.set_volume(self._half_effective_volume())
         self.channel_9 = pygame.mixer.Channel(9)
 
-    def load_random_bgm(self):
+    def load_random_bgm(self) -> None:
         """Selects a random background music track from the pre-loaded playlist.
 
         Avoids repeating the most recently played track when more than one
@@ -133,7 +130,7 @@ class Audio():
         self.bg_music = random.choice(choices)
         self.last_bgm = self.bg_music
 
-    def update(self):
+    def update(self) -> None:
         """Reapplies volume levels to every loaded sound and music asset.
 
         Should be called whenever master_volume or DEBUG_MUTE changes so that

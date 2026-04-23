@@ -105,6 +105,12 @@ class GameManager:
         self.audio.stop_music()
 
         # TODO: Refactor inventory/shop/leaderboard lifecycle concerns into dedicated manager classes.
+        # TODO: Planned extractions when refactoring GameManager:
+        # - ProgressionManager: level flow, door unlock, and transition timing.
+        # - ScoreLeaderboardManager: score/high-score/leaderboard persistence.
+        # - ShopManager: stock, purchase, and between-level shop UI/input state.
+        # - InputRouter: map keyboard/controller events to gameplay/shop/ui intents.
+        # - GameLoopController: split run() into process_events(), update_state(), render_frame().
 
     def reset_game(self):
         """
@@ -488,7 +494,6 @@ class GameManager:
             self.finish_game("win")
             return
 
-        next_level_number = self.current_level_number + 1
         self.pending_level_index = self.current_level_index + 1
         self.audio.stop_music()
         self.log_message(

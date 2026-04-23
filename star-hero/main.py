@@ -6,7 +6,6 @@ from animations import Background, Explosion, CRT
 from sprites import Laser, Player, Alien, PowerUp, BombBlast
 from style import Style
 from audio import Audio
-import debug
 
 class CollisionManager:
     """Handles all collision logic in one place"""
@@ -117,8 +116,9 @@ class GameManager:
 
         # Controller setup
         pygame.joystick.init()
-        # Start button doesn't work without this
-        self.joysticks = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
+        # Keep joystick objects alive so button events remain reliable on all backends.
+        self.joysticks = []
+        self.refresh_joysticks()
 
         # Display setup
         self.screen = pygame.display.set_mode((ScreenSettings.RESOLUTION), pygame.SCALED)
@@ -144,6 +144,10 @@ class GameManager:
 
         # Collisions
         self.collisions = CollisionManager(self)
+        # TODO: Move these responsibilities into dedicated classes:
+        # - ScoreManager (high score + leaderboard I/O)
+        # - SessionStateManager (run reset, pause, game over transitions)
+        # - SpawnDirector (timers, spawn pacing, and adaptive difficulty)
 
         # Player Health
         self.hearts = PlayerSettings.MAX_HEALTH
@@ -178,7 +182,7 @@ class GameManager:
         try:
             with open('high_score.txt') as high_score_file:
                 self.save_data = json.load(high_score_file)
-        except:
+        except (OSError, json.JSONDecodeError):
             print('No file created yet')
 
         # Timers
@@ -211,13 +215,43 @@ class GameManager:
         pygame.quit()
         sys.exit()
 
-    def quit_combo_pressed(self):
-        """Return True if START + SELECT + L1 + R1 are held on any controller."""
-        required_buttons = (7, 6, 4, 5)
+    def refresh_joysticks(self) -> None:
+        """Rebuild the active joystick list to support controller hot-plugging."""
+        self.joysticks = []
         for index in range(pygame.joystick.get_count()):
             joystick = pygame.joystick.Joystick(index)
-            if all(joystick.get_button(button) for button in required_buttons):
-                return True
+            if not joystick.get_init():
+                joystick.init()
+            self.joysticks.append(joystick)
+
+    def quit_combo_pressed(self):
+        """Return True if START + SELECT + L1 + R1 are held on any controller."""
+        if len(self.joysticks) != pygame.joystick.get_count():
+            self.refresh_joysticks()
+
+        required_buttons = (7, 6, 4, 5)
+        for joystick in self.joysticks:
+            try:
+                if all(joystick.get_button(button) for button in required_buttons):
+                    return True
+            except pygame.error:
+                # Device may have disconnected between frames.
+                continue
+        return False
+
+    def _is_joystick_device_event(self, event_type: int) -> bool:
+        """Return True when the event type indicates joystick add/remove."""
+        joystick_events = {
+            getattr(pygame, 'JOYDEVICEADDED', None),
+            getattr(pygame, 'JOYDEVICEREMOVED', None),
+        }
+        return event_type in joystick_events
+
+    def _handle_joystick_hotplug(self, event: pygame.event.Event) -> bool:
+        """Refresh joystick cache when a controller connect/disconnect event arrives."""
+        if self._is_joystick_device_event(event.type):
+            self.refresh_joysticks()
+            return True
         return False
 
     def _sort_and_trim_leaderboard(self):
@@ -242,7 +276,7 @@ class GameManager:
         with open('high_score.txt', 'w') as high_score_file:
             json.dump(self.save_data, high_score_file)
 
-    def qualifies_for_leaderboard(self, score):
+    def qualifies_for_leaderboard(self, score: int) -> bool:
         """
         Checks if the given score qualifies for the leaderboard or is a personal best
 
@@ -258,14 +292,14 @@ class GameManager:
         # If leaderboard is full, check if it beats the 10th place
         return score > leaderboard[-1]['score']
 
-    def start_initial_entry(self):
+    def start_initial_entry(self) -> None:
         """Initiates the process of entering initials for a new high score"""
         self.entering_initials = True
         self.initials = FontSettings.DEFAULT_INITIALS
         self.initials_index = 0
         self.pending_score = self.score
 
-    def submit_initials(self):
+    def submit_initials(self) -> None:
         """Submits the entered initials and score to the leaderboard, updating existing names"""
         leaderboard = self.save_data.get('leaderboard', [])
         
@@ -293,7 +327,7 @@ class GameManager:
         self.pending_score = None
         self.score_processed = True
 
-    def finalize_game_over_score(self):
+    def finalize_game_over_score(self) -> None:
         """
         Finalizes the score at game over,
         checking if it qualifies for the leaderboard
@@ -310,7 +344,7 @@ class GameManager:
             self.save_scores()
             self.score_processed = True
 
-    def reset_for_new_game(self):
+    def reset_for_new_game(self) -> None:
         """Resets all necessary game state to start a new game"""
         self.score = 0
         self.hearts = PlayerSettings.MAX_HEALTH
@@ -375,7 +409,7 @@ class GameManager:
         # Make sure death timer isn't still hanging around
         pygame.time.set_timer(self.player_death_timer, 0)
 
-    def spawn_aliens(self,alien_color):
+    def spawn_aliens(self, alien_color: str) -> None:
         """
         Spawns a new alien of the given color
 
@@ -386,7 +420,7 @@ class GameManager:
         if alien_color == 'blue':
             self.audio.channel_5.play(self.audio.ufo_sound)
 
-    def spawn_powerup(self, pos, color):
+    def spawn_powerup(self, pos: tuple[int, int], color: str) -> None:
         """
         Spawns a new powerup of the given color at the given position
 
@@ -396,7 +430,7 @@ class GameManager:
         """
         self.powerups.add(PowerUp(pos, color))
 
-    def get_bomb_drop_chance(self, alien_value):
+    def get_bomb_drop_chance(self, alien_value: int) -> float:
         """Returns a rare bomb-drop chance weighted by alien point value."""
         all_values = AlienSettings.POINTS.values()
         min_value = min(all_values)
@@ -408,7 +442,7 @@ class GameManager:
         value_ratio = (alien_value - min_value) / (max_value - min_value)
         return AlienSettings.BOMB_DROP_BASE + (AlienSettings.BOMB_DROP_BONUS * value_ratio)
 
-    def try_spawn_alien_drop(self, alien):
+    def try_spawn_alien_drop(self, alien: Alien) -> None:
         """Handles standard drops and rare bomb drops for a defeated alien."""
         spawned_standard_drop = False
 
@@ -440,18 +474,18 @@ class GameManager:
         if not spawned_standard_drop and random.random() < self.get_bomb_drop_chance(alien.value):
             self.spawn_powerup(alien.rect.center, 'bomb')
 
-    def handle_alien_destroyed(self, alien):
+    def handle_alien_destroyed(self, alien: Alien) -> None:
         """Awards score, triggers explosion, and evaluates drops after an alien is destroyed."""
         self.score += alien.value
         self.adjust_difficulty()
         self.explode(alien.rect.centerx, alien.rect.centery)
         self.try_spawn_alien_drop(alien)
 
-    def trigger_bomb_blast(self, center):
+    def trigger_bomb_blast(self, center: tuple[int, int]) -> None:
         """Spawns an expanding bomb blast orb at the given center position."""
         self.bomb_blasts.add(BombBlast(center))
 
-    def handle_bomb_input(self):
+    def handle_bomb_input(self) -> None:
         """Launches a bomb on first press or detonates the active bomb on second press."""
         detonation_center = self.player.sprite.detonate_air_bomb()
         if detonation_center:
@@ -460,7 +494,7 @@ class GameManager:
 
         self.player.sprite.launch_bomb()
 
-    def alien_shoot(self):
+    def alien_shoot(self) -> None:
         """Spawns a new alien laser from a random alien"""
         if self.aliens.sprites():
             # Only select from aliens that aren't blue since they don't shoot lasers, and also prevents them from shooting while they're doing their confusion attack
@@ -497,7 +531,7 @@ class GameManager:
                         )
                     self.alien_lasers.add(laser_sprite)
 
-    def adjust_difficulty(self):
+    def adjust_difficulty(self) -> None:
         """Gradually decreases timers as score increases"""
         # Calculate how many 'difficulty steps' the player has achieved
         steps = self.score // AlienSettings.DIFFICULTY_STEP
@@ -524,7 +558,7 @@ class GameManager:
         for bg in self.background.sprites():
             bg.scroll_speed = new_bg_speed
 
-    def explode(self,x_pos,y_pos):
+    def explode(self, x_pos: int, y_pos: int) -> None:
         """
         Triggers an explosion animation at the given position and plays the sound effect
 
@@ -533,11 +567,25 @@ class GameManager:
             y_pos (int): The y-coordinate of the explosion's center
         """
         self.audio.channel_2.play(self.audio.explosion_sound)
-        self.explosion = Explosion(x_pos,y_pos)
-        self.exploding_sprites.add(self.explosion)
-        self.explosion.explode()
+        explosion = Explosion(x_pos, y_pos)
+        self.exploding_sprites.add(explosion)
+        explosion.explode()
 
-    def player_damage(self):
+    def _move_initials_cursor(self, step: int) -> None:
+        """Move initials cursor left/right and clamp to valid range."""
+        self.initials_index = max(0, min(2, self.initials_index + step))
+
+    def _cycle_initials_char(self, step: int) -> None:
+        """Rotate the selected initials character by one alphabet step."""
+        chars = list(self.initials)
+        current = chars[self.initials_index]
+        if step > 0:
+            chars[self.initials_index] = 'A' if current == 'Z' else chr(ord(current) + 1)
+        else:
+            chars[self.initials_index] = 'Z' if current == 'A' else chr(ord(current) - 1)
+        self.initials = ''.join(chars)
+
+    def player_damage(self) -> None:
         """
         Handles logic for when the player takes damage,
         including reducing hearts, triggering flash effect, playing alarms, and handling death.
@@ -575,17 +623,22 @@ class GameManager:
             self.explode(self.player.sprite.rect.centerx, self.player.sprite.rect.centery)
             self.audio.channel_1.pause()
             self.player_alive = False
+            # Freeze any post-death input/shooting during death-delay transition.
+            player.ready = False
+            player.shoot_button_held = True
             pygame.time.set_timer(self.player_death_timer, PlayerSettings.DEATH_DELAY)
 
-    def display_hearts(self):
+    def display_hearts(self) -> None:
         """displays the heart icons on the top right"""
         for heart in range(self.hearts):
             x = self.heart_x_start_pos + (heart * (self.heart_surf.get_size()[0] + UISettings.HEART_SPACING))
             self.screen.blit(self.heart_surf,(x,UISettings.HEART_TOP_MARGIN))
 
-    def pause(self):
+    def pause(self) -> None:
         """Pauses game when ESC or START is pressed"""
         self.paused = not self.paused
+        # Stop confusion-beam loop while paused to prevent lingering audio.
+        self.audio.channel_9.stop()
         while self.paused:
             if self.quit_combo_pressed():
                 self.close_game()
@@ -593,6 +646,9 @@ class GameManager:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.close_game()
+
+                if self._handle_joystick_hotplug(event):
+                    continue
                 
                 # Check for Keyboard ESC
                 if event.type == pygame.KEYDOWN:
@@ -617,20 +673,20 @@ class GameManager:
 
                     # L1/R1 for Volume
                     if event.button == 4: # L1
-                        self.adjust_master_volume(-0.1)
+                        self.adjust_master_volume(-0.1, show_overlay=True)
                     if event.button == 5: # R1
-                        self.adjust_master_volume(0.1)
+                        self.adjust_master_volume(0.1, show_overlay=True)
 
             self.screen.fill((0, 0, 0))
             self.style.update('pause', self.save_data, self.score)
             pygame.display.update()
 
-    def toggle_debug_mute(self):
+    def toggle_debug_mute(self) -> None:
         """Flips debug mute and immediately reapplies all audio volumes."""
         AudioSettings.DEBUG_MUTE = not AudioSettings.DEBUG_MUTE
         self.audio.update()
 
-    def adjust_master_volume(self, delta, show_overlay=False):
+    def adjust_master_volume(self, delta: float, show_overlay: bool = False) -> None:
         """Adjusts volume with clamping and optionally shows the HUD volume bar."""
         self.audio.master_volume = max(0.0, min(1.0, self.audio.master_volume + delta))
         self.audio.update()
@@ -639,14 +695,14 @@ class GameManager:
             pygame.time.set_timer(self.volume_display_timer, UISettings.VOLUME_DISPLAY_TIME)
             self.show_volume = True
 
-    def unpause_game(self):
+    def unpause_game(self) -> None:
         """Helper to handle unpausing logic"""
         self.audio.channel_0.unpause() # Unpause intro music if it was playing
         self.audio.channel_1.unpause() # Unpause bg music if it was playing
         self.audio.channel_7.play(self.audio.unpause_sound) # Play unpause sound effect
         self.paused = False
 
-    def run(self):
+    def run(self) -> None:
         """Main game loop"""
         last_time = time.time() # Track time for delta_time calculations for smooth movement and animations regardless of frame rate
         while True:
@@ -660,6 +716,9 @@ class GameManager:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.close_game()
+
+                if self._handle_joystick_hotplug(event):
+                    continue
 
                 # Controller input
                 if event.type == pygame.JOYBUTTONDOWN:
@@ -737,19 +796,13 @@ class GameManager:
                     if event.type == pygame.KEYDOWN:
                         if self.entering_initials:
                             if event.key == pygame.K_LEFT:
-                                self.initials_index = max(0, self.initials_index - 1)
+                                self._move_initials_cursor(-1)
                             elif event.key == pygame.K_RIGHT:
-                                self.initials_index = min(2, self.initials_index + 1)
+                                self._move_initials_cursor(1)
                             elif event.key == pygame.K_UP:
-                                chars = list(self.initials)
-                                current = chars[self.initials_index]
-                                chars[self.initials_index] = 'A' if current == 'Z' else chr(ord(current) + 1)
-                                self.initials = ''.join(chars)
+                                self._cycle_initials_char(1)
                             elif event.key == pygame.K_DOWN:
-                                chars = list(self.initials)
-                                current = chars[self.initials_index]
-                                chars[self.initials_index] = 'Z' if current == 'A' else chr(ord(current) - 1)
-                                self.initials = ''.join(chars)
+                                self._cycle_initials_char(-1)
                             elif event.key == pygame.K_RETURN:
                                 self.submit_initials()
                         else:
@@ -764,21 +817,15 @@ class GameManager:
                             
                             # Left/Right to change character index
                             if hat_x == -1: # D-pad Left
-                                self.initials_index = max(0, self.initials_index - 1)
+                                self._move_initials_cursor(-1)
                             elif hat_x == 1: # D-pad Right
-                                self.initials_index = min(2, self.initials_index + 1)
+                                self._move_initials_cursor(1)
                             
                             # Up/Down to cycle through letters
                             if hat_y == 1: # D-pad Up
-                                chars = list(self.initials)
-                                current = chars[self.initials_index]
-                                chars[self.initials_index] = 'A' if current == 'Z' else chr(ord(current) + 1)
-                                self.initials = ''.join(chars)
+                                self._cycle_initials_char(1)
                             elif hat_y == -1: # D-pad Down
-                                chars = list(self.initials)
-                                current = chars[self.initials_index]
-                                chars[self.initials_index] = 'Z' if current == 'A' else chr(ord(current) - 1)
-                                self.initials = ''.join(chars)
+                                self._cycle_initials_char(-1)
 
                         # Handle Button Press (A button or Start)
                         if event.type == pygame.JOYBUTTONDOWN:
@@ -811,7 +858,8 @@ class GameManager:
                     self.audio.load_random_bgm()
                     self.audio.channel_1.play(self.audio.bg_music)
                 self.player.sprite.world_speed_multiplier = world_speed_multiplier
-                self.player.update()
+                if self.player_alive:
+                    self.player.update()
                 self.alien_lasers.update(world_speed_multiplier)
                 self.aliens.update(world_speed_multiplier)
                 self.powerups.update()
@@ -880,6 +928,7 @@ class GameManager:
                 self.style.display_player_status(self.player.sprite) # Display player status info under hearts
             else:
                 self.audio.channel_1.stop()
+                self.audio.channel_9.stop()
                 if self.play_intro_music:
                     if not self.audio.channel_0.get_busy():
                         self.audio.channel_0.play(self.audio.intro_music)
