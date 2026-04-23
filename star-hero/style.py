@@ -245,7 +245,7 @@ class Style():
         # Laser
         if player.laser_level == 4:
             laser_val = "HYPER"
-            laser_color = 'blue'
+            laser_color = 'cyan'
         elif player.laser_level == 3:
             laser_val = "BURST"
             laser_color = 'cyan'
