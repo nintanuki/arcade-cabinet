@@ -93,6 +93,7 @@ class LaserSettings:
     COLORS = {
         'single': ('green', 'white'),
         'twin': ('green', 'white'),
+        'burst': ('cyan', 'white'),
         'hyper': ('cyan', 'white'), # Hyper
         'rapid': ('yellow', 'white'), # Rapid (any tier)
         'hyper_rapid': ('cyan', 'yellow'), # Hyper + Rapid alternation
