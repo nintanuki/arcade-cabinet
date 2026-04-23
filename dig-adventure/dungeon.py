@@ -104,7 +104,7 @@ class DungeonMaster:
 
         monster_count = MonsterSettings.COUNT
         self.monster_grid_positions = [
-            self.draw_random_position(available_positions)
+            self.draw_position_far_from_player(available_positions)
             for _ in range(monster_count)
         ]
 
@@ -150,6 +150,22 @@ class DungeonMaster:
     def draw_random_position(self, available_positions: list[tuple[int, int]]) -> tuple[int, int]:
         """Draw and remove one random position from the available pool."""
         selected = random.choice(available_positions)
+        available_positions.remove(selected)
+        return selected
+
+    def draw_position_far_from_player(self, available_positions: list[tuple[int, int]]) -> tuple[int, int]:
+        """Draw a random position at least MIN_PLAYER_DISTANCE tiles from the player.
+
+        Falls back to any available position if no qualifying tile exists, so
+        small or densely-walled maps never deadlock during setup.
+        """
+        player_col, player_row = self.player_grid_pos
+        far_positions = [
+            pos for pos in available_positions
+            if abs(pos[0] - player_col) + abs(pos[1] - player_row) >= MonsterSettings.MIN_PLAYER_DISTANCE
+        ]
+        pool = far_positions if far_positions else available_positions
+        selected = random.choice(pool)
         available_positions.remove(selected)
         return selected
 

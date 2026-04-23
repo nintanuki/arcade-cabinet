@@ -189,7 +189,8 @@ class MonsterSettings:
 
     COUNT = 3
     CHASE_RADIUS = 3  # Manhattan distance
-    IDLE_CHANCE = 0.3 
+    IDLE_CHANCE = 0.3
+    MIN_PLAYER_DISTANCE = 5  # Minimum Manhattan distance between a monster and the player at spawn.
     REPELLENT_DURATION = 5 # Number of turns the repellent effect remains active.
     ANIMATION_SPEED = 1 # Pixels advanced per frame during sprite interpolation.
 
