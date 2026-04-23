@@ -285,7 +285,7 @@ class Player(pygame.sprite.Sprite):
         if self.position == self.game.door.position:
             if self.inventory.get('KEY', 0) > 0:
                 self.game.door.open_door()
-                self.game.handle_door_unlock()
+                self.game.between_level_manager.handle_door_unlock()
             else:
                 self.game.log_message("THE DOOR IS LOCKED. YOU NEED A KEY!")
                 self.game.audio.play_boundary_sound()
@@ -328,7 +328,7 @@ class Player(pygame.sprite.Sprite):
                     display_name = found_item + "S"
 
             if found_item in ItemSettings.TREASURE_SCORE_VALUES:
-                self.game.add_score(found_item, amount)
+                self.game.score_manager.add_score(found_item, amount)
 
             if amount > 1:
                 self.game.log_message(f"YOU FOUND {amount} {display_name}!")
