@@ -214,6 +214,7 @@ class ItemSettings:
     """Item inventory, spawn, scoring, and shop economy configuration."""
 
     INVISIBILITY_CLOAK_DURATION = 5
+    INVISIBILITY_CLOAK_COOLDOWN = 5
     LEVEL_SCOPED_ITEMS = {"KEY", "MAP", "MAGIC MAP", "KEY DETECTOR"}
 
     TREASURE_SCORE_VALUES = {
@@ -242,7 +243,7 @@ class ItemSettings:
         'TORCH': 0.15,
         'LANTERN': 0.02,
         'MONSTER REPELLENT': 0.10,
-        'INVISIBILITY CLOAK': 0.01,
+        'INVISIBILITY SCROLL': 0.01,
         
         # Treasure
         'GOLD COINS': 0.20,
@@ -268,12 +269,12 @@ class ItemSettings:
     }
 
     INITIAL_INVENTORY = {
-        # 'MATCH': 1,
-        # 'KEY': 1,
-        # 'LANTERN': 100,
-        # 'INVISIBILITY CLOAK': 100,
-        # 'MONSTER REPELLENT': 100,
-        # 'MAGIC MAP': 1,
+        'GOLD COINS': 10000,
+        'LANTERN': 100,
+        'MONSTER REPELLENT': 100,
+        'INVISIBILITY SCROLL': 100,
+        'MAGIC MAP': 1,
+        'KEY': 1,
         # For local test scenarios, temporarily adjust this dictionary as needed
         # Add "godmode" setting later to toggle between normal and test inventories without manual edits.
     }

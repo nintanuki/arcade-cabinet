@@ -131,3 +131,6 @@ These notes capture confirmed progress without changing checkbox status unless a
 ## Current Focus Guidance
 - Continue reducing complexity in `GameManager` before adding new mechanics.
 - Prioritize unresolved gameplay bugs before balance/features.
+
+# Note
+

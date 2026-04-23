@@ -36,6 +36,7 @@ class Player(pygame.sprite.Sprite):
         
         self.repellent_turns = 0
         self.invisibility_turns = 0
+        self.invisibility_cooldown_turns = 0
         self.flash_frame = 0
 
         self.light_radius = LightSettings.DEFAULT_RADIUS
@@ -237,16 +238,31 @@ class Player(pygame.sprite.Sprite):
                 self.game.log_message("YOU HAVE NO MONSTER REPELLENT LEFT!")
 
         elif action == 'cloak':
-            if self.inventory.get('INVISIBILITY CLOAK', 0) <= 0:
-                self.game.log_message("YOU DON'T HAVE AN INVISIBILITY CLOAK!")
+            has_scroll = self.inventory.get('INVISIBILITY SCROLL', 0) > 0
+            has_cloak = self.inventory.get('INVISIBILITY CLOAK', 0) > 0
+
+            if not has_scroll and not has_cloak:
+                self.game.log_message("YOU DON'T HAVE AN INVISIBILITY SCROLL!")
+            elif self.invisibility_turns > 0:
+                self.game.log_message("YOU ARE ALREADY INVISIBLE!")
+            elif has_cloak and self.invisibility_cooldown_turns > 0:
+                self.game.log_message("THE INVISIBILITY CLOAK NEEDS TIME TO RECHARGE.")
+            elif has_cloak:
+                # TODO: Move invisibility turn-buffer literal (+1) into a named gameplay constant.
+                self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + 1
+                # TODO: Move cooldown turn-buffer literal (+1) into a named gameplay constant.
+                self.invisibility_cooldown_turns = ItemSettings.INVISIBILITY_CLOAK_COOLDOWN + 1
+                self.game.log_message("YOU WRAP YOURSELF IN THE INVISIBILITY CLOAK.")
+                self.game.audio.play_vanish_sound()
+                self.game.advance_turn()
             else:
-                self.inventory['INVISIBILITY CLOAK'] -= 1
-                if self.inventory['INVISIBILITY CLOAK'] <= 0:
-                    self.inventory.pop('INVISIBILITY CLOAK', None)
+                self.inventory['INVISIBILITY SCROLL'] -= 1
+                if self.inventory['INVISIBILITY SCROLL'] <= 0:
+                    self.inventory.pop('INVISIBILITY SCROLL', None)
 
                 # TODO: Move invisibility turn-buffer literal (+1) into a named gameplay constant.
                 self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + 1
-                self.game.log_message("YOU WRAP YOURSELF IN THE INVISIBILITY CLOAK.")
+                self.game.log_message("YOU READ THE INVISIBILITY SCROLL.")
                 self.game.audio.play_vanish_sound()
                 self.game.advance_turn()
 
@@ -283,6 +299,11 @@ class Player(pygame.sprite.Sprite):
         self.game.audio.play_dig_sound()
         self.game.map_memory.remember_visible_map_info()
         found_item, amount = self.dungeon.get_item_at_tile(tile_grid_pos)
+
+        # Suppress scroll drops if the player already owns the cloak upgrade.
+        if found_item == 'INVISIBILITY SCROLL' and self.inventory.get('INVISIBILITY CLOAK', 0) > 0:
+            found_item = None
+            amount = 0
 
         # Build a display-friendly item label for quantity messages.
         if found_item:

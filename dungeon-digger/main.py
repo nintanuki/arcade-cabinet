@@ -490,7 +490,7 @@ class GameManager:
         self.pending_level_index = self.current_level_index + 1
         self.audio.stop_music()
         self.log_message(
-            f"YOU UNLOCK THE DOOR. DESCENDING TO LEVEL {next_level_number}...",
+            "YOU UNLOCK THE DOOR AND ESCAPE THIS FLOOR",
             type_speed=0.12,
         )
         # TODO: Promote message type speed literal (0.12) to a named setting.
@@ -604,6 +604,10 @@ class GameManager:
                 # Use None to represent unlimited stock.
                 self.shop_stock[item_name] = None
 
+        # Cloak is a permanent upgrade; once owned it can never be bought again.
+        if self.player.inventory.get('INVISIBILITY CLOAK', 0) > 0:
+            self.shop_stock['INVISIBILITY CLOAK'] = 0
+
         self.log_message('"KHAJIIT HAS WARES, IF YOU HAVE COIN."')
 
     def get_shop_menu_options(self) -> list[str]:
@@ -677,6 +681,10 @@ class GameManager:
         self.player.discovered_items.add(item_name)
         self.log_message(self._format_purchase_message(item_name, purchase_quantity))
         self.audio.play_coin_sound()
+
+        # Cloak is an upgrade that replaces all scrolls.
+        if item_name == 'INVISIBILITY CLOAK':
+            self.player.inventory.pop('INVISIBILITY SCROLL', None)
 
         if stock is not None:
             self.shop_stock[item_name] = max(0, stock - purchase_quantity)
@@ -888,7 +896,11 @@ class GameManager:
         if self.player.invisibility_turns > 0:
             self.player.invisibility_turns -= 1
             if self.player.invisibility_turns == 0:
-                self.log_message("THE INVISIBILITY CLOAK FADES.")
+                self.log_message("THE INVISIBILITY WEARS OFF.")
+
+        # Handle Invisibility Cloak Cooldown
+        if self.player.invisibility_cooldown_turns > 0:
+            self.player.invisibility_cooldown_turns -= 1
 
         for monster in self.monsters:
             monster.resolve_turn()
