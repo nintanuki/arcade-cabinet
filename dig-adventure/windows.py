@@ -235,8 +235,6 @@ class InventoryWindow:
         Returns:
             tuple[int, int, int] | str: Pygame-compatible color.
         """
-        if item == 'GOLD COINS':
-            return ColorSettings.TEXT_GOLD
         return FontSettings.DEFAULT_COLOR
 
     def draw(self, surface):
