@@ -234,6 +234,9 @@ class GameManager:
         self.game_paused = False
         self.controller_axis = pygame.Vector2()
         self.using_joystick: bool = False
+        self.input_options = ["MOUSE", "CONTROLLER"]
+        self.input_selection_index = 0
+        self.selected_input_mode = "mouse"
         self.cursor_position = pygame.Vector2(PLAYFIELD.center)
         self.orientation = Orientation.VERTICAL
         self.building_wall: BuildingWall | None = None
@@ -810,6 +813,21 @@ class GameManager:
         self.load_level(0)
         self.game_state = GameState.PLAYING
 
+    def _cycle_input_mode(self, direction: int) -> None:
+        """Move title-screen input mode selection by one slot."""
+        self.input_selection_index = (self.input_selection_index + direction) % len(self.input_options)
+
+    def _confirm_input_mode_and_start(self) -> None:
+        """Apply selected input mode and start the game from title screen."""
+        if self.input_options[self.input_selection_index] == "CONTROLLER":
+            self.selected_input_mode = "controller"
+            self.using_joystick = True
+        else:
+            self.selected_input_mode = "mouse"
+            self.using_joystick = False
+        self.controller_axis.update(0.0, 0.0)
+        self._start_game()
+
     def _continue_from_game_over(self) -> None:
         """Advance from the game over screen to initials entry or the leaderboard."""
         if self.qualifies_for_leaderboard:
@@ -838,6 +856,19 @@ class GameManager:
         Args:
             dt: Time elapsed since the previous frame in seconds.
         """
+        if self.selected_input_mode != "controller":
+            self.using_joystick = False
+            self.controller_axis.update(0.0, 0.0)
+            return
+
+        if self.joysticks:
+            try:
+                # Poll as a fallback for devices that don't reliably emit JOYAXISMOTION.
+                self.controller_axis.x = self.joysticks[0].get_axis(ControlSettings.AXIS_CURSOR_X)
+                self.controller_axis.y = self.joysticks[0].get_axis(ControlSettings.AXIS_CURSOR_Y)
+            except pygame.error:
+                pass
+
         ax = self.controller_axis.x if abs(self.controller_axis.x) >= ControlSettings.ANALOG_DEADZONE else 0.0
         ay = self.controller_axis.y if abs(self.controller_axis.y) >= ControlSettings.ANALOG_DEADZONE else 0.0
         if ax == 0.0 and ay == 0.0:
@@ -888,8 +919,12 @@ class GameManager:
         if event.key == pygame.K_ESCAPE:
             self.running = False
         elif self.game_state == GameState.TITLE:
-            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-                self._start_game()
+            if event.key in (pygame.K_LEFT, pygame.K_UP, pygame.K_a, pygame.K_w):
+                self._cycle_input_mode(-1)
+            elif event.key in (pygame.K_RIGHT, pygame.K_DOWN, pygame.K_d, pygame.K_s):
+                self._cycle_input_mode(1)
+            elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                self._confirm_input_mode_and_start()
         elif self.game_state == GameState.GAME_OVER:
             if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                 self._continue_from_game_over()
@@ -930,7 +965,9 @@ class GameManager:
             self._toggle_fullscreen()
         elif self.game_state == GameState.TITLE:
             if event.button in (ControlSettings.BUTTON_START, ControlSettings.BUTTON_A):
-                self._start_game()
+                self._confirm_input_mode_and_start()
+            elif event.button == ControlSettings.BUTTON_X:
+                self._cycle_input_mode(1)
         elif self.game_state == GameState.GAME_OVER:
             if event.button == ControlSettings.BUTTON_START:
                 self._continue_from_game_over()
@@ -981,32 +1018,40 @@ class GameManager:
             if event.type == pygame.KEYDOWN:
                 self._handle_keyboard(event)
             elif event.type == pygame.MOUSEMOTION:
-                if not self.using_joystick:
+                if self.selected_input_mode == "mouse" and not self.using_joystick:
                     self.cursor_position = pygame.Vector2(event.pos)
                     self._snap_cursor_to_grid()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if not self.using_joystick:
+                if self.selected_input_mode == "mouse" and not self.using_joystick:
                     self.cursor_position = pygame.Vector2(event.pos)
                     self._snap_cursor_to_grid()
-                self._handle_mouse_button(event)
+                if self.selected_input_mode == "mouse":
+                    self._handle_mouse_button(event)
             elif event.type == pygame.JOYBUTTONDOWN:
                 self._handle_controller_button(event)
             elif event.type == pygame.JOYAXISMOTION:
-                if event.axis == ControlSettings.AXIS_CURSOR_X:
-                    self.controller_axis.x = event.value
-                elif event.axis == ControlSettings.AXIS_CURSOR_Y:
-                    self.controller_axis.y = event.value
-            elif event.type == pygame.JOYHATMOTION and self.game_state == GameState.INITIALS:
+                if self.selected_input_mode == "controller" and self.game_state == GameState.PLAYING:
+                    if event.axis == ControlSettings.AXIS_CURSOR_X:
+                        self.controller_axis.x = event.value
+                    elif event.axis == ControlSettings.AXIS_CURSOR_Y:
+                        self.controller_axis.y = event.value
+            elif event.type == pygame.JOYHATMOTION:
                 hat_x, hat_y = event.value
-                if hat_x == -1:
-                    self._advance_initials_cursor(-1)
-                elif hat_x == 1:
-                    self._advance_initials_cursor(1)
+                if self.game_state == GameState.INITIALS:
+                    if hat_x == -1:
+                        self._advance_initials_cursor(-1)
+                    elif hat_x == 1:
+                        self._advance_initials_cursor(1)
 
-                if hat_y == 1:
-                    self._cycle_initials_character(1)
-                elif hat_y == -1:
-                    self._cycle_initials_character(-1)
+                    if hat_y == 1:
+                        self._cycle_initials_character(1)
+                    elif hat_y == -1:
+                        self._cycle_initials_character(-1)
+                elif self.game_state == GameState.TITLE:
+                    if hat_x == -1 or hat_y == 1:
+                        self._cycle_input_mode(-1)
+                    elif hat_x == 1 or hat_y == -1:
+                        self._cycle_input_mode(1)
 
     def _update(self, dt: float) -> None:
         """Advance the active simulation state for one frame.
@@ -1230,7 +1275,7 @@ class GameManager:
         self.screen.blit(hint_surface, hint_rect)
 
     def _draw_title_screen(self) -> None:
-        """Render the title screen with game name and start prompt."""
+        """Render the title screen with game name and input selection."""
         self.screen.fill(ColorSettings.BLACK)
         cx = ScreenSettings.WIDTH // 2
         cy = ScreenSettings.HEIGHT // 2
@@ -1251,11 +1296,26 @@ class GameManager:
         pygame.draw.circle(self.screen, ColorSettings.BALL_OUTLINE, center, r, 1)
 
         title_surface = self.title_font.render("JEZZ BALL", False, ColorSettings.TEXT)
-        title_rect = title_surface.get_rect(center=(cx, cy - 28))
+        title_rect = title_surface.get_rect(center=(cx, cy - 44))
         self.screen.blit(title_surface, title_rect)
 
-        prompt_surface = self.small_font.render("PRESS START TO PLAY", False, ColorSettings.TEXT_PROMPT)
-        prompt_rect = prompt_surface.get_rect(center=(cx, cy + 18))
+        mouse_color = (255, 255, 0) if self.input_selection_index == 0 else ColorSettings.TEXT
+        controller_color = (255, 255, 0) if self.input_selection_index == 1 else ColorSettings.TEXT
+        mouse_surface = self.small_font.render(
+            ("> " if self.input_selection_index == 0 else "  ") + "MOUSE",
+            False,
+            mouse_color,
+        )
+        controller_surface = self.small_font.render(
+            ("> " if self.input_selection_index == 1 else "  ") + "CONTROLLER",
+            False,
+            controller_color,
+        )
+        self.screen.blit(mouse_surface, mouse_surface.get_rect(center=(cx, cy + 10)))
+        self.screen.blit(controller_surface, controller_surface.get_rect(center=(cx, cy + 30)))
+
+        prompt_surface = self.small_font.render("PRESS START/ENTER TO PLAY", False, ColorSettings.TEXT_PROMPT)
+        prompt_rect = prompt_surface.get_rect(center=(cx, cy + 60))
         self.screen.blit(prompt_surface, prompt_rect)
 
     def _draw_game_over_screen(self) -> None:

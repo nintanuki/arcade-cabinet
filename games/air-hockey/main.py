@@ -52,6 +52,7 @@ class Game:
         # Fonts
         self.score_font = pygame.font.Font('Pixeled.ttf', 12)
         self.countdown_font = pygame.font.Font('Pixeled.ttf', 32)
+        self.title_font = pygame.font.Font('Pixeled.ttf', 28)
 
         # Countdown timer variables
         self.countdown = 0
@@ -73,6 +74,10 @@ class Game:
         self.joystick_y = 0.0
         self.using_joystick = False
         self.input_mode = "mouse"
+        self.locked_input_mode = None
+        self.show_title = True
+        self.input_options = ["mouse", "controller"]
+        self.input_selection_index = 0
 
         self.reset_puck()
 
@@ -209,30 +214,100 @@ class Game:
             pygame.display.flip()
             self.clock.tick(FRAMERATE)
 
+    def _cycle_input_mode(self, direction):
+        self.input_selection_index = (self.input_selection_index + direction) % len(self.input_options)
+
+    def _confirm_input_mode(self):
+        selected = self.input_options[self.input_selection_index]
+        if selected == "controller" and not self.joysticks:
+            selected = "mouse"
+        self.locked_input_mode = "joystick" if selected == "controller" else "mouse"
+        self.input_mode = self.locked_input_mode
+        self.using_joystick = self.locked_input_mode == "joystick"
+        self.show_title = False
+
+    def _draw_title_screen(self):
+        self.screen.fill(WHITE)
+        title_text = self.title_font.render("AIR HOCKEY", True, BLACK)
+        self.screen.blit(title_text, title_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 110)))
+
+        prompt_text = self.score_font.render("SELECT INPUT", True, BLACK)
+        self.screen.blit(prompt_text, prompt_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 40)))
+
+        mouse_selected = self.input_selection_index == 0
+        mouse_color = RED if mouse_selected else BLACK
+        mouse_text = self.score_font.render(("> " if mouse_selected else "  ") + "MOUSE", True, mouse_color)
+        self.screen.blit(mouse_text, mouse_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 10)))
+
+        controller_selected = self.input_selection_index == 1
+        controller_color = RED if controller_selected else BLACK
+        controller_text = self.score_font.render(("> " if controller_selected else "  ") + "CONTROLLER", True, controller_color)
+        self.screen.blit(controller_text, controller_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 16)))
+
+        hint_text = self.score_font.render("ARROWS OR DPAD TO CHOOSE", True, BLACK)
+        self.screen.blit(hint_text, hint_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 58)))
+        start_text = self.score_font.render("ENTER OR START TO PLAY", True, BLACK)
+        self.screen.blit(start_text, start_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 78)))
+
+        if not self.joysticks:
+            no_pad_text = self.score_font.render("NO CONTROLLER DETECTED", True, RED)
+            self.screen.blit(no_pad_text, no_pad_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 108)))
+
     def run(self):
         while True:
             dt = self.clock.tick(FRAMERATE) / 1000
             if self.quit_combo_pressed():
                 pygame.quit()
                 sys.exit()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+
                 if event.type == pygame.JOYDEVICEADDED:
                     j = pygame.joystick.Joystick(event.device_index)
                     j.init()
                     self.joysticks.append(j)
+
+                if self.show_title:
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE:
+                            pygame.quit()
+                            sys.exit()
+                        if event.key in (pygame.K_LEFT, pygame.K_UP, pygame.K_a, pygame.K_w):
+                            self._cycle_input_mode(-1)
+                        if event.key in (pygame.K_RIGHT, pygame.K_DOWN, pygame.K_d, pygame.K_s):
+                            self._cycle_input_mode(1)
+                        if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                            self._confirm_input_mode()
+                        if event.key == pygame.K_F11:
+                            pygame.display.toggle_fullscreen()
+                            self.full_screen = not self.full_screen
+                    if event.type == pygame.JOYHATMOTION:
+                        hat_x, hat_y = event.value
+                        if hat_x == -1 or hat_y == 1:
+                            self._cycle_input_mode(-1)
+                        elif hat_x == 1 or hat_y == -1:
+                            self._cycle_input_mode(1)
+                    if event.type == pygame.JOYBUTTONDOWN:
+                        if event.button in (0, 7):
+                            self._confirm_input_mode()
+                    continue
+
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        self.input_mode = "mouse"
+                        if self.locked_input_mode != "joystick":
+                            self.input_mode = "mouse"
                         self.is_spiking = True
                 if event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1:
-                        self.input_mode = "mouse"
+                        if self.locked_input_mode != "joystick":
+                            self.input_mode = "mouse"
                         self.is_spiking = False
                 if event.type == pygame.MOUSEMOTION:
-                    self.input_mode = "mouse"
+                    if self.locked_input_mode != "joystick":
+                        self.input_mode = "mouse"
                 if event.type == pygame.JOYBUTTONDOWN:
                     if event.button == 0:
                         self.is_spiking = True
@@ -242,12 +317,12 @@ class Game:
                 if event.type == pygame.JOYAXISMOTION:
                     if event.axis == 0:
                         self.joystick_x = event.value
-                        if abs(event.value) >= 0.15:
+                        if abs(event.value) >= 0.15 and self.locked_input_mode != "mouse":
                             self.using_joystick = True
                             self.input_mode = "joystick"
                     elif event.axis == 1:
                         self.joystick_y = event.value
-                        if abs(event.value) >= 0.15:
+                        if abs(event.value) >= 0.15 and self.locked_input_mode != "mouse":
                             self.using_joystick = True
                             self.input_mode = "joystick"
                 if event.type == pygame.KEYDOWN:
@@ -269,6 +344,13 @@ class Game:
                         pygame.time.set_timer(self.COUNTDOWN_EVENT, 0)
                         self.reset_puck()
 
+            if self.show_title:
+                self._draw_title_screen()
+                if not self.full_screen:
+                    self.crt.draw()
+                pygame.display.flip()
+                continue
+
             if self.countdown > 0:
                 self.screen.fill(WHITE)
                 self.draw_dotted_line()
@@ -281,17 +363,15 @@ class Game:
                 if not self.full_screen:
                     self.crt.draw()
                 pygame.display.flip()
-                self.clock.tick(FRAMERATE)
                 continue
 
-            # Move player: joystick takes priority, falls back to mouse
             ax = self.joystick_x if abs(self.joystick_x) >= 0.15 else 0.0
             ay = self.joystick_y if abs(self.joystick_y) >= 0.15 else 0.0
             if ax == 0.0 and ay == 0.0:
                 self.using_joystick = False
             if self.input_mode == "joystick":
-                self.player.centerx += int(ax * 500 * dt)
-                self.player.centery += int(ay * 500 * dt)
+                self.player.centerx += int(ax * 700 * dt)
+                self.player.centery += int(ay * 700 * dt)
             else:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 self.player.centerx = mouse_x
@@ -346,7 +426,6 @@ class Game:
             if not self.full_screen:
                 self.crt.draw()
             pygame.display.flip()
-            self.clock.tick(FRAMERATE)
 
 if __name__ == '__main__':
     game_manager = Game()
