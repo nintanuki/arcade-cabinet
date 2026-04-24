@@ -1,6 +1,12 @@
+from __future__ import annotations
 import pygame
+import sys
+import os
+from pathlib import Path
 from sys import exit
 from random import randint, choice
+
+from settings import ScreenSettings
 
 class Player(pygame.sprite.Sprite):
 	def __init__(self):
@@ -91,8 +97,8 @@ def collision_sprite():
 
 
 pygame.init()
-screen = pygame.display.set_mode((800,400))
-pygame.display.set_caption('Runner')
+screen = pygame.display.set_mode((ScreenSettings.WIDTH,ScreenSettings.HEIGHT))
+pygame.display.set_caption(ScreenSettings.TITLE)
 clock = pygame.time.Clock()
 test_font = pygame.font.Font('font/Pixeltype.ttf', 50)
 game_active = False
@@ -139,7 +145,6 @@ while True:
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
 				game_active = True
 				start_time = int(pygame.time.get_ticks() / 1000)
-
 
 	if game_active:
 		screen.blit(sky_surface,(0,0))
