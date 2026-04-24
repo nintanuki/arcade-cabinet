@@ -6,10 +6,10 @@ from audio import AudioManager
 from sprites import Player, Monster, Door, NPC
 from windows import MessageLog, InventoryWindow, MapWindow
 from dungeon import DungeonMaster
+from dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER, get_monster_count_for_dungeon
 from mapmemory import MapMemory
 from render import RenderManager
 from crt import CRT
-from tilemaps import DUNGEON_ORDER
 from managers import ScoreLeaderboardManager, BetweenLevelManager
 
 class GameManager:
@@ -42,7 +42,8 @@ class GameManager:
         self.score = 0
         self.high_score = self.score_manager.load_high_score()
         self.leaderboard = self.score_manager.load_leaderboard()
-        self.level_order = list(DUNGEON_ORDER)
+        self.level_order = list(LEVEL_DUNGEON_ORDER)
+        self.level_numbers = sorted(DUNGEON_CONFIG.level_difficulty_by_number.keys())
         self.current_level_index = 0
         self.pending_level_index = 0
         self.transition_label = ""
@@ -51,6 +52,7 @@ class GameManager:
         self.message_success_border_until = 0
         self.l2_trigger_is_pressed = False
         self.ui_state = 'title'
+        self.title_menu_index = 0
         self.npcs: list = []
 
         self.game_over_message_complete_time = 0
@@ -110,12 +112,14 @@ class GameManager:
 
     @property
     def current_level_number(self) -> int:
-        """Return the current 1-based dungeon level number.
+        """Return the configured level number for the current level index.
 
         Returns:
-            int: Current level index expressed as a human-facing number.
+            int: Current configured level number.
         """
-        return self.current_level_index + 1
+        if not self.level_numbers:
+            return self.current_level_index
+        return self.level_numbers[self.current_level_index]
 
     @property
     def is_transitioning(self) -> bool:
@@ -144,16 +148,35 @@ class GameManager:
         """
         return self.in_shop_phase
 
-    def start_gameplay_from_title(self) -> None:
-        """Leave title screen and begin active gameplay."""
+    def start_gameplay_from_title(self, skip_tutorial: bool = False) -> None:
+        """Leave title screen and begin active gameplay.
+
+        Args:
+            skip_tutorial: When True, advance past level 0 (The Arena) to level 1.
+        """
+        self.audio.play_menu_select_sound()
+        if skip_tutorial and len(self.level_order) > 1:
+            self.current_level_index = 1
+            self.pending_level_index = 1
+            player_progress = self.capture_player_progress()
+            self.load_level(player_progress)
         self.ui_state = 'playing'
         self.game_active = True
         self.audio.play_random_bgm()
 
+    def handle_title_menu_move(self, direction: int) -> None:
+        """Move the title screen cursor up (-1) or down (+1)."""
+        options_count = 2  # PLAY, SKIP TUTORIAL
+        new_index = (self.title_menu_index + direction) % options_count
+        if new_index != self.title_menu_index:
+            self.title_menu_index = new_index
+            self.audio.play_menu_move_sound()
+
     def handle_start_press(self) -> None:
         """Handle Start/Enter based on top-level UI state."""
         if self.ui_state == 'title':
-            self.start_gameplay_from_title()
+            skip = self.title_menu_index == 1
+            self.start_gameplay_from_title(skip_tutorial=skip)
             return
 
         if self.ui_state == 'game_over' and self.score_manager.can_continue_from_game_over():
@@ -190,8 +213,9 @@ class GameManager:
         self.all_sprites.empty()
 
         dungeon_name = self.level_order[self.current_level_index]
+        monster_count = get_monster_count_for_dungeon(dungeon_name)
         self.dungeon.load_dungeon(dungeon_name)
-        self.dungeon.setup_tile_map()
+        self.dungeon.setup_tile_map(monster_count=monster_count)
         self.spawn_door()
         self.spawn_monster()
         self.spawn_npcs()
@@ -500,6 +524,12 @@ class GameManager:
                     if event.key == pygame.K_F11:
                         pygame.display.toggle_fullscreen()
 
+                    if self.ui_state == 'title':
+                        if event.key in (pygame.K_UP, pygame.K_w):
+                            self.handle_title_menu_move(-1)
+                        elif event.key in (pygame.K_DOWN, pygame.K_s):
+                            self.handle_title_menu_move(1)
+
                     if self.is_in_shop_phase:
                         self.between_level_manager.handle_shop_event(event)
 
@@ -519,10 +549,17 @@ class GameManager:
                     if self.is_in_shop_phase:
                         self.between_level_manager.handle_shop_event(event)
 
-                    if event.button == InputSettings.JOY_BUTTON_START:
+                    if event.button in (InputSettings.JOY_BUTTON_START, InputSettings.JOY_BUTTON_CONFIRM):
                         self.handle_start_press()
 
                     self.score_manager.handle_initials_event(event)
+
+                if event.type == pygame.JOYHATMOTION and self.ui_state == 'title':
+                    _, hat_y = event.value
+                    if hat_y == 1:
+                        self.handle_title_menu_move(-1)
+                    elif hat_y == -1:
+                        self.handle_title_menu_move(1)
 
                 if event.type == pygame.JOYHATMOTION and self.is_in_shop_phase:
                     self.between_level_manager.handle_shop_event(event)

@@ -444,6 +444,8 @@ class AssetPaths:
     FOUND_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop3.wav')
     HOT_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop7.wav')
     WARM_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop6.wav')
+    MENU_MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_move2.wav')
+    MENU_SELECT_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_select3.wav')
 
     # Music
     MUSIC_DIR = os.path.join(BASE_DIR, 'music')

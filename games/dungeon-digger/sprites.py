@@ -611,18 +611,12 @@ class Monster(pygame.sprite.Sprite):
             return
 
         # Chasing rules:
-        # - if the player has no light, the monster should only chase when adjacent
+        # - if the player has no light, monsters never chase regardless of distance
         # - otherwise use the current chase radius + line of sight rules
-        if is_adjacent:
-            if not self.is_chasing:
-                self.is_chasing = True
-                self.game.audio.play_monster_chase_sound()
-                self._log_chase_warning(manhattan_distance)
-
-        elif not player_has_light:
+        if not player_has_light:
             self.is_chasing = False
 
-        elif manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player():
+        elif is_adjacent or (manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player()):
             if not self.is_chasing:
                 self.is_chasing = True
                 self.game.audio.play_monster_chase_sound()

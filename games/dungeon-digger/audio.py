@@ -18,6 +18,8 @@ class AudioManager:
         'detector': 9,
         'light': 10,
         'vanish': 11,
+        'menu_move': 12,
+        'menu_select': 13,
     }
 
     def __init__(self):
@@ -49,6 +51,8 @@ class AudioManager:
         self.found_detector_sound = self._load_sound(AssetPaths.FOUND_DETECTOR_SOUND)
         self.hot_detector_sound = self._load_sound(AssetPaths.HOT_DETECTOR_SOUND)
         self.warm_detector_sound = self._load_sound(AssetPaths.WARM_DETECTOR_SOUND)
+        self.menu_move_sound = self._load_sound(AssetPaths.MENU_MOVE_SOUND)
+        self.menu_select_sound = self._load_sound(AssetPaths.MENU_SELECT_SOUND)
 
         self.channels = {
             name: pygame.mixer.Channel(channel_id)
@@ -191,3 +195,11 @@ class AudioManager:
     def play_warm_detector_sound(self):
         """Play the weaker detector sound for distant key feedback."""
         self._play_on_channel('detector', self.warm_detector_sound)
+
+    def play_menu_move_sound(self):
+        """Play the menu navigation move sound."""
+        self._play_on_channel('menu_move', self.menu_move_sound)
+
+    def play_menu_select_sound(self):
+        """Play the menu selection confirm sound."""
+        self._play_on_channel('menu_select', self.menu_select_sound)
