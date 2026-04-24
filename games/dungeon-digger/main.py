@@ -53,6 +53,7 @@ class GameManager:
         self.ui_state = 'title'
         self.npcs: list = []
 
+        # State for game over flow and leaderboard entry.
         self.game_over_message_complete_time = 0
         self.game_over_prompt_start_time = 0
         self.pending_leaderboard_score = 0
@@ -60,6 +61,7 @@ class GameManager:
         self.initials_index = 0
         self.between_level_manager.initialize_state()
         
+        # Pre-create the fog surface to avoid doing it every frame during rendering.
         self.fog_surface = pygame.Surface((UISettings.ACTION_WINDOW_WIDTH, UISettings.ACTION_WINDOW_HEIGHT), pygame.SRCALPHA)
 
         # -------- UI windows --------
@@ -74,6 +76,7 @@ class GameManager:
         # -------- Rendering facade --------
         self.render = None
 
+        # Load the first level after all systems are initialized, so that level setup can rely on any subsystem being ready.
         self.load_level()
         self.audio.stop_music()
 
