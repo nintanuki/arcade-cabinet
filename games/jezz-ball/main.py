@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass
 from enum import Enum, auto
 import importlib.util
 import json
@@ -13,6 +12,9 @@ import random
 import sys
 
 import pygame
+
+from ball import Ball
+from wall import BuildingWall, Orientation
 
 SETTINGS_PATH = Path(__file__).resolve().parent / "settings.py"
 SETTINGS_SPEC = importlib.util.spec_from_file_location("jezz_ball_settings", SETTINGS_PATH)
@@ -42,13 +44,6 @@ PLAYFIELD = pygame.Rect(
 )
 
 
-class Orientation(Enum):
-    """Wall orientations supported by the placement cursor."""
-
-    VERTICAL = auto()
-    HORIZONTAL = auto()
-
-
 class GameState(Enum):
     """Top-level screens and flow states for the game."""
 
@@ -57,233 +52,6 @@ class GameState(Enum):
     GAME_OVER = auto()
     INITIALS = auto()
     LEADERBOARD = auto()
-
-
-@dataclass
-class Ball:
-    """Moving ball that bounces off the playfield edges and solid regions."""
-
-    position: pygame.Vector2
-    velocity: pygame.Vector2
-    radius: int = GameplaySettings.BALL_RADIUS
-    spin_phase: float = 0.0
-
-    @property
-    def rect(self) -> pygame.Rect:
-        """Return the current collision rectangle for the ball."""
-        return pygame.Rect(
-            int(self.position.x - self.radius),
-            int(self.position.y - self.radius),
-            self.radius * 2,
-            self.radius * 2,
-        )
-
-    def update(self, dt: float, bounds: pygame.Rect, solid_rects: list[pygame.Rect]) -> None:
-        """Advance the ball and bounce it off bounds or solid geometry.
-
-        Args:
-            dt: Time elapsed since the previous frame in seconds.
-            bounds: Outer playfield boundary the ball must remain inside.
-            solid_rects: Completed walls and claimed regions that block movement.
-        """
-        self.position.x += self.velocity.x * dt
-        self._resolve_axis_collision(bounds, solid_rects, axis="x")
-        self.position.y += self.velocity.y * dt
-        self._resolve_axis_collision(bounds, solid_rects, axis="y")
-        speed_ratio = self.velocity.length() / max(1.0, GameplaySettings.BASE_BALL_SPEED)
-        self.spin_phase = (self.spin_phase + (GameplaySettings.BALL_SPIN_RATE * speed_ratio * dt)) % (2 * math.pi)
-
-    def _resolve_axis_collision(
-        self,
-        bounds: pygame.Rect,
-        solid_rects: list[pygame.Rect],
-        axis: str,
-    ) -> None:
-        """Resolve collisions for a single movement axis.
-
-        Args:
-            bounds: Outer playfield boundary the ball must remain inside.
-            solid_rects: Solid obstacles that should reflect the ball.
-            axis: Axis name, either ``"x"`` or ``"y"``.
-        """
-        if axis == "x":
-            if self.position.x - self.radius < bounds.left:
-                self.position.x = bounds.left + self.radius
-                self.velocity.x *= -1
-            elif self.position.x + self.radius > bounds.right:
-                self.position.x = bounds.right - self.radius
-                self.velocity.x *= -1
-        else:
-            if self.position.y - self.radius < bounds.top:
-                self.position.y = bounds.top + self.radius
-                self.velocity.y *= -1
-            elif self.position.y + self.radius > bounds.bottom:
-                self.position.y = bounds.bottom - self.radius
-                self.velocity.y *= -1
-
-        ball_rect = self.rect
-        for solid in solid_rects:
-            if not ball_rect.colliderect(solid):
-                continue
-
-            if axis == "x":
-                if self.velocity.x > 0:
-                    self.position.x = solid.left - self.radius
-                else:
-                    self.position.x = solid.right + self.radius
-                self.velocity.x *= -1
-            else:
-                if self.velocity.y > 0:
-                    self.position.y = solid.top - self.radius
-                else:
-                    self.position.y = solid.bottom + self.radius
-                self.velocity.y *= -1
-
-            break
-
-    def draw(self, surface: pygame.Surface) -> None:
-        """Render the ball onto the provided surface.
-
-        Args:
-            surface: Target surface that receives the ball sprite.
-        """
-        center = (int(self.position.x), int(self.position.y))
-        pygame.draw.circle(surface, ColorSettings.BALL, center, self.radius)
-
-        wedge_points = [center]
-        segments = 18
-        for step in range(segments + 1):
-            angle = self.spin_phase + (math.pi * (step / segments))
-            wedge_points.append(
-                (
-                    int(self.position.x + math.cos(angle) * self.radius),
-                    int(self.position.y + math.sin(angle) * self.radius),
-                )
-            )
-        pygame.draw.polygon(surface, ColorSettings.BALL_WHITE, wedge_points)
-        pygame.draw.circle(surface, ColorSettings.BALL_OUTLINE, center, self.radius, 1)
-
-
-@dataclass
-class BuildingWall:
-    """Wall that grows outward in both directions until it hits a boundary."""
-
-    origin: pygame.Vector2
-    orientation: Orientation
-    negative_length: float = 0.0
-    positive_length: float = 0.0
-    negative_done: bool = False
-    positive_done: bool = False
-
-    @property
-    def complete(self) -> bool:
-        """Return ``True`` when both directions have finished growing."""
-        return self.negative_done and self.positive_done
-
-    def update(self, dt: float, bounds: pygame.Rect, solid_rects: list[pygame.Rect]) -> None:
-        """Grow the wall toward both ends until each side reaches a stopper.
-
-        Args:
-            dt: Time elapsed since the previous frame in seconds.
-            bounds: Outer playfield boundary that caps wall growth.
-            solid_rects: Existing walls and claimed regions that stop growth.
-        """
-        growth = GameplaySettings.WALL_BUILD_SPEED * dt
-
-        if not self.negative_done:
-            self.negative_length += growth
-            if self._reached_stop(-1, bounds, solid_rects):
-                self.negative_done = True
-
-        if not self.positive_done:
-            self.positive_length += growth
-            if self._reached_stop(1, bounds, solid_rects):
-                self.positive_done = True
-
-    def _reached_stop(self, direction: int, bounds: pygame.Rect, solid_rects: list[pygame.Rect]) -> bool:
-        """Return whether the current wall tip has hit a boundary or solid area.
-
-        Args:
-            direction: Growth direction, ``-1`` for negative and ``1`` for positive.
-            bounds: Outer playfield boundary that caps wall growth.
-            solid_rects: Existing walls and claimed regions that stop growth.
-        """
-        tip = self._tip(direction)
-        probe = pygame.Rect(
-            int(tip.x - GridSettings.WALL_THICKNESS // 2),
-            int(tip.y - GridSettings.WALL_THICKNESS // 2),
-            GridSettings.WALL_THICKNESS,
-            GridSettings.WALL_THICKNESS,
-        )
-
-        if not bounds.contains(probe):
-            return True
-
-        return any(probe.colliderect(rect) for rect in solid_rects)
-
-    def _tip(self, direction: int) -> pygame.Vector2:
-        """Return the current tip position for one end of the wall.
-
-        Args:
-            direction: Growth direction, ``-1`` for negative and ``1`` for positive.
-        """
-        length = self.positive_length if direction > 0 else self.negative_length
-        if self.orientation is Orientation.VERTICAL:
-            return pygame.Vector2(self.origin.x, self.origin.y + (direction * length))
-        return pygame.Vector2(self.origin.x + (direction * length), self.origin.y)
-
-    def get_segments(self) -> list[pygame.Rect]:
-        """Return the temporary wall segments used during growth and collision checks."""
-        half = GridSettings.WALL_THICKNESS // 2
-        thickness = GridSettings.WALL_THICKNESS
-
-        if self.orientation is Orientation.VERTICAL:
-            up = pygame.Rect(
-                int(self.origin.x - half),
-                int(self.origin.y - self.negative_length),
-                thickness,
-                int(self.negative_length),
-            )
-            down = pygame.Rect(
-                int(self.origin.x - half),
-                int(self.origin.y),
-                thickness,
-                int(self.positive_length),
-            )
-            return [up, down]
-
-        left = pygame.Rect(
-            int(self.origin.x - self.negative_length),
-            int(self.origin.y - half),
-            int(self.negative_length),
-            thickness,
-        )
-        right = pygame.Rect(
-            int(self.origin.x),
-            int(self.origin.y - half),
-            int(self.positive_length),
-            thickness,
-        )
-        return [left, right]
-
-    def collides_with_ball(self, ball: Ball) -> bool:
-        """Return whether any in-progress segment intersects the given ball.
-
-        Args:
-            ball: Ball to test against the active wall segments.
-        """
-        return any(segment.colliderect(ball.rect) for segment in self.get_segments())
-
-    def draw(self, surface: pygame.Surface) -> None:
-        """Render the currently growing wall segments.
-
-        Args:
-            surface: Target surface that receives the wall preview.
-        """
-        segment_colors = (ColorSettings.WALL_GROW_NEGATIVE, ColorSettings.WALL_GROW_POSITIVE)
-        for rect, color in zip(self.get_segments(), segment_colors, strict=False):
-            if rect.width > 0 and rect.height > 0:
-                pygame.draw.rect(surface, color, rect)
 
 
 class CRT:
@@ -445,6 +213,7 @@ class GameManager:
         self.hud_font = self._load_font(FontSettings.HUD_SIZE)
         self.small_font = self._load_font(FontSettings.SMALL_SIZE)
         self.large_font = self._load_font(FontSettings.LARGE_SIZE)
+        self.title_font = self._load_font(FontSettings.TITLE_SIZE)
         self.audio = AudioManager()
         self.crt = CRT(self.screen, CRTSettings.OVERLAY_IMAGE)
 
@@ -464,6 +233,7 @@ class GameManager:
         self.game_over = False
         self.game_paused = False
         self.controller_axis = pygame.Vector2()
+        self.using_joystick: bool = False
         self.cursor_position = pygame.Vector2(PLAYFIELD.center)
         self.orientation = Orientation.VERTICAL
         self.building_wall: BuildingWall | None = None
@@ -572,7 +342,20 @@ class GameManager:
             leaderboard = []
 
         score_value = self.pending_score if self.pending_score is not None else self.score
-        leaderboard.append({"name": self.initials, "score": int(score_value)})
+        new_entry = {"name": self.initials, "score": int(score_value)}
+
+        # Check for duplicate initials — only replace if new score is better
+        duplicate_index = next(
+            (i for i, e in enumerate(leaderboard) if e.get("name") == self.initials),
+            None,
+        )
+        if duplicate_index is not None:
+            if new_entry["score"] > leaderboard[duplicate_index]["score"]:
+                leaderboard[duplicate_index] = new_entry
+            # else keep old score, don't add duplicate
+        else:
+            leaderboard.append(new_entry)
+
         self.save_data["leaderboard"] = leaderboard
         self._save_scores()
 
@@ -1055,16 +838,14 @@ class GameManager:
         Args:
             dt: Time elapsed since the previous frame in seconds.
         """
-        if abs(self.controller_axis.x) < ControlSettings.ANALOG_DEADZONE:
-            self.controller_axis.x = 0.0
-        if abs(self.controller_axis.y) < ControlSettings.ANALOG_DEADZONE:
-            self.controller_axis.y = 0.0
-
-        if self.controller_axis.length_squared() == 0:
+        ax = self.controller_axis.x if abs(self.controller_axis.x) >= ControlSettings.ANALOG_DEADZONE else 0.0
+        ay = self.controller_axis.y if abs(self.controller_axis.y) >= ControlSettings.ANALOG_DEADZONE else 0.0
+        if ax == 0.0 and ay == 0.0:
+            self.using_joystick = False
             return
-
-        self.cursor_position.x += self.controller_axis.x * ControlSettings.CURSOR_SPEED * dt
-        self.cursor_position.y += self.controller_axis.y * ControlSettings.CURSOR_SPEED * dt
+        self.using_joystick = True
+        self.cursor_position.x += ax * ControlSettings.CURSOR_SPEED * dt
+        self.cursor_position.y += ay * ControlSettings.CURSOR_SPEED * dt
         self._snap_cursor_to_grid()
 
     def _handle_time_limit(self, dt: float) -> None:
@@ -1200,11 +981,13 @@ class GameManager:
             if event.type == pygame.KEYDOWN:
                 self._handle_keyboard(event)
             elif event.type == pygame.MOUSEMOTION:
-                self.cursor_position = pygame.Vector2(event.pos)
-                self._snap_cursor_to_grid()
+                if not self.using_joystick:
+                    self.cursor_position = pygame.Vector2(event.pos)
+                    self._snap_cursor_to_grid()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                self.cursor_position = pygame.Vector2(event.pos)
-                self._snap_cursor_to_grid()
+                if not self.using_joystick:
+                    self.cursor_position = pygame.Vector2(event.pos)
+                    self._snap_cursor_to_grid()
                 self._handle_mouse_button(event)
             elif event.type == pygame.JOYBUTTONDOWN:
                 self._handle_controller_button(event)
@@ -1407,6 +1190,19 @@ class GameManager:
         orientation_rect = orientation_text.get_rect(bottomright=(PLAYFIELD.right, ScreenSettings.HUD_BOTTOM_Y + 12))
         self.screen.blit(orientation_text, orientation_rect)
 
+        # Joystick debug — remove once analog stick is confirmed working
+        if self.joysticks:
+            try:
+                ax = self.joysticks[0].get_axis(0)
+                ay = self.joysticks[0].get_axis(1)
+                dbg = f"J {ax:.2f}/{ay:.2f} {'JOY' if self.using_joystick else 'MSE'}"
+            except Exception:
+                dbg = "J ERR"
+        else:
+            dbg = f"NO JOY (count={pygame.joystick.get_count()})"
+        dbg_surf = self.hud_font.render(dbg, False, (255, 255, 0))
+        self.screen.blit(dbg_surf, (PLAYFIELD.left, ScreenSettings.HUD_BOTTOM_Y + 12))
+
     def _draw_overlay_message(self) -> None:
         """Render pause and level-clear overlay text when needed."""
         if not (self.game_paused or self.level_complete):
@@ -1454,7 +1250,7 @@ class GameManager:
         pygame.draw.polygon(self.screen, ColorSettings.BALL_WHITE, wedge_points)
         pygame.draw.circle(self.screen, ColorSettings.BALL_OUTLINE, center, r, 1)
 
-        title_surface = self.large_font.render("JEZZ BALL", False, ColorSettings.TEXT)
+        title_surface = self.title_font.render("JEZZ BALL", False, ColorSettings.TEXT)
         title_rect = title_surface.get_rect(center=(cx, cy - 28))
         self.screen.blit(title_surface, title_rect)
 

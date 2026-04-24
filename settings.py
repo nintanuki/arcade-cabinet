@@ -16,6 +16,11 @@ class LauncherSettings:
     """Core launcher text and metadata."""
 
     WINDOW_TITLE = "Mr. Navarro's Arcade"
+    MENU_MOVE_SOUND = Path("sound") / "sfx_menu_move2.wav"
+    MENU_SELECT_SOUND_CANDIDATES = (
+        Path("sound") / "sfx_menu_move3.wav",
+        Path("sound") / "sfx_menu_select3.wav",
+    )
 
 
 class ColorSettings:
@@ -26,6 +31,7 @@ class ColorSettings:
     LIGHT_PURPLE = (210, 170, 255)
     LIGHT_BLUE = (150, 210, 255)
     YELLOW = (255, 230, 0)
+    RED = (255, 80, 80)
 
 
 class FontSettings:
@@ -46,7 +52,7 @@ class MenuSettings:
     TITLE_CENTER_Y = 180
     SUBTITLE_CENTER_Y = 285
     OPTIONS_LEFT_X = 250
-    OPTIONS_START_Y = 390
+    OPTIONS_START_Y = 320
     OPTION_SPACING = 70
     CURSOR_SYMBOL = ">"
     CURSOR_GAP = 20
@@ -61,6 +67,8 @@ class MenuSettings:
     FOOTER_TEXT_LINE_2 = "PRESS START + SELECT + L1 + R1 OR CLOSE THE GAME WINDOW TO RETURN TO THIS MENU."
     FOOTER_LINE_1_CENTER_Y = 670
     FOOTER_LINE_2_CENTER_Y = 695
+    NO_CONTROLLER_SUPPORT_TEXT = "NO CONTROLLER SUPPORT (KEYBOARD/MOUSE ONLY)"
+    NO_CONTROLLER_SUPPORT_CENTER_Y = 585
 
 
 class ControlSettings:
@@ -76,7 +84,7 @@ class ControlSettings:
 class CRTSettings:
     """CRT overlay effect tuning for the launcher screen."""
 
-    OVERLAY_IMAGE = Path("dungeon-digger") / "graphics" / "tv.png"
+    OVERLAY_IMAGE = Path("games") / "dungeon-digger" / "graphics" / "tv.png"
     SCANLINE_HEIGHT = 3
     ALPHA_RANGE = (75, 90)
 
@@ -85,13 +93,20 @@ class GameSettings:
     """Game option metadata shown in the launcher menu."""
 
     OPTIONS = [
-        ("Star Hero", Path("star-hero") / "main.py"),
-        ("Dungeon Digger", Path("dungeon-digger") / "main.py"),
-        ("Jezz Ball", Path("jezz-ball") / "main.py"),
-        ("Air Hockey", Path("air-hockey") / "main.py"),
+        ("Star Hero", Path("games") / "star-hero" / "main.py"),
+        ("Dungeon Digger", Path("games") / "dungeon-digger" / "main.py"),
+        ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
+        ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
         "Star Hero": Path("graphics") / "star_hero_screenshot.png",
         "Dungeon Digger": Path("graphics") / "dungeon_digger_screenshot.png",
+        "Jezz Ball": Path("graphics") / "jezz_ball_screenshot.png",
+        "Air Hockey": Path("graphics") / "air_hockey_screenshot.png",
+    }
+
+    NO_CONTROLLER_SUPPORT_GAMES = {
+        "Jezz Ball",
+        "Air Hockey",
     }

@@ -451,6 +451,7 @@ class AssetPaths:
         os.path.join(MUSIC_DIR, 'Goof Troop SNES - Illusion.mp3'),
         os.path.join(MUSIC_DIR, 'Goof Troop SNES - Lose My Way.mp3'),
         os.path.join(MUSIC_DIR, 'The Magical Quest Starring Mickey Mouse - Dark Forest.mp3'),
+        os.path.join(MUSIC_DIR, 'Kirby\'s Adventure - Vegetable Valley 3.mp3'),
     ]
 
 class DebugSettings:

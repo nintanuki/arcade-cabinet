@@ -68,8 +68,15 @@ class ArcadeLauncher:
 		self.root_dir = Path(__file__).resolve().parent
 		self.font_path = self.root_dir / FontSettings.FILE
 		self.tv_path = self.root_dir / CRTSettings.OVERLAY_IMAGE
+		self.menu_move_sound_path = self.root_dir / LauncherSettings.MENU_MOVE_SOUND
+		self.menu_select_sound_paths = [
+			self.root_dir / candidate for candidate in LauncherSettings.MENU_SELECT_SOUND_CANDIDATES
+		]
+		self.menu_move_sfx: pygame.mixer.Sound | None = None
+		self.menu_select_sfx: pygame.mixer.Sound | None = None
 
 		self.initialize_runtime()
+		self.load_menu_audio()
 
 		self.options = [(label, self.root_dir / relative_path) for label, relative_path in GameSettings.OPTIONS]
 		self.preview_images = self.load_preview_images()
@@ -77,6 +84,7 @@ class ArcadeLauncher:
 		self.vertical_axis_engaged = False
 		self.status_message = ""
 		self.status_message_until = 0
+		self.menu_option_hitboxes: list[pygame.Rect] = []
 
 	def show_status_message(self, message: str, duration_ms: int = 3500) -> None:
 		"""Display a temporary status/error message at the bottom of the screen."""
@@ -99,6 +107,52 @@ class ArcadeLauncher:
 
 		self.crt = LauncherCRT(self.screen, self.tv_path)
 
+	def _load_sound_if_available(self, sound_path: Path) -> pygame.mixer.Sound | None:
+		"""Load a sound if both mixer and file are available.
+
+		Args:
+			sound_path (Path): File path to the candidate sound.
+
+		Returns:
+			pygame.mixer.Sound | None: Loaded sound, or ``None`` when unavailable.
+		"""
+		if not sound_path.exists():
+			return None
+
+		try:
+			if not pygame.mixer.get_init():
+				pygame.mixer.init()
+			return pygame.mixer.Sound(str(sound_path))
+		except pygame.error:
+			return None
+
+	def load_menu_audio(self) -> None:
+		"""Load menu move/select sounds with graceful fallback if files are missing."""
+		self.menu_move_sfx = self._load_sound_if_available(self.menu_move_sound_path)
+		for candidate in self.menu_select_sound_paths:
+			loaded = self._load_sound_if_available(candidate)
+			if loaded is not None:
+				self.menu_select_sfx = loaded
+				break
+
+	def _play_move_sfx(self) -> None:
+		"""Play the move sound when changing highlighted menu option."""
+		if self.menu_move_sfx is not None:
+			self.menu_move_sfx.play()
+
+	def _play_select_sfx(self) -> None:
+		"""Play the select sound when launching a game."""
+		if self.menu_select_sfx is not None:
+			self.menu_select_sfx.play()
+
+	def _set_selected_index(self, new_index: int) -> None:
+		"""Update selection index and trigger menu-move SFX only on actual changes."""
+		wrapped_index = new_index % len(self.options)
+		if wrapped_index == self.selected_index:
+			return
+		self.selected_index = wrapped_index
+		self._play_move_sfx()
+
 	def suspend_runtime(self) -> None:
 		"""Shut down launcher rendering/input systems before child game launch."""
 		pygame.display.quit()
@@ -107,11 +161,11 @@ class ArcadeLauncher:
 
 	def move_selection_up(self) -> None:
 		"""Move the menu cursor to the previous game option with wrap-around."""
-		self.selected_index = (self.selected_index - 1) % len(self.options)
+		self._set_selected_index(self.selected_index - 1)
 
 	def move_selection_down(self) -> None:
 		"""Move the menu cursor to the next game option with wrap-around."""
-		self.selected_index = (self.selected_index + 1) % len(self.options)
+		self._set_selected_index(self.selected_index + 1)
 
 	def load_preview_images(self) -> dict[str, pygame.Surface]:
 		"""Load menu preview screenshots and scale them to fit the preview panel."""
@@ -172,6 +226,7 @@ class ArcadeLauncher:
 
 	def launch_selected_game(self) -> None:
 		"""Launch the selected game, then restore launcher runtime after it exits."""
+		self._play_select_sfx()
 		game_label, game_main = self.options[self.selected_index]
 		game_dir = game_main.parent
 
@@ -220,12 +275,15 @@ class ArcadeLauncher:
 		self.screen.blit(subtitle_surface, subtitle_rect)
 
 		for index, (label, _) in enumerate(self.options):
+			if len(self.menu_option_hitboxes) <= index:
+				self.menu_option_hitboxes.append(pygame.Rect(0, 0, 0, 0))
 			option_y = MenuSettings.OPTIONS_START_Y + index * MenuSettings.OPTION_SPACING
 			is_selected = index == self.selected_index
 			color = ColorSettings.YELLOW if is_selected else ColorSettings.WHITE
 			text_surface = self.option_font.render(label.upper(), False, color)
 			text_rect = text_surface.get_rect(midleft=(MenuSettings.OPTIONS_LEFT_X, option_y))
 			self.screen.blit(text_surface, text_rect)
+			self.menu_option_hitboxes[index] = text_rect.inflate(36, 16)
 
 			if is_selected:
 				cursor_surface = self.option_font.render(MenuSettings.CURSOR_SYMBOL, False, ColorSettings.YELLOW)
@@ -235,6 +293,18 @@ class ArcadeLauncher:
 				self.screen.blit(cursor_surface, cursor_rect)
 
 		self.draw_preview_panel()
+
+		selected_label, _ = self.options[self.selected_index]
+		if selected_label in GameSettings.NO_CONTROLLER_SUPPORT_GAMES:
+			no_controller_surface = self.hint_font.render(
+				MenuSettings.NO_CONTROLLER_SUPPORT_TEXT,
+				False,
+				ColorSettings.RED,
+			)
+			no_controller_rect = no_controller_surface.get_rect(
+				center=(ScreenSettings.WIDTH // 2, MenuSettings.NO_CONTROLLER_SUPPORT_CENTER_Y)
+			)
+			self.screen.blit(no_controller_surface, no_controller_rect)
 
 		hint_line_1_surface = self.hint_font.render(
 			MenuSettings.FOOTER_TEXT_LINE_1,
@@ -328,9 +398,27 @@ class ArcadeLauncher:
 
 		return True
 
+	def handle_mouse(self, event: pygame.event.Event) -> None:
+		"""Support hover-to-select and click-to-launch for menu options."""
+		if not self.menu_option_hitboxes:
+			return
+
+		if event.type == pygame.MOUSEMOTION:
+			for index, hitbox in enumerate(self.menu_option_hitboxes):
+				if hitbox.collidepoint(event.pos):
+					self._set_selected_index(index)
+					break
+		elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+			for index, hitbox in enumerate(self.menu_option_hitboxes):
+				if hitbox.collidepoint(event.pos):
+					self._set_selected_index(index)
+					self.launch_selected_game()
+					break
+
 	def run(self) -> None:
 		"""Run the launcher event loop until user quits."""
 		running = True
+		self.draw()
 		while running:
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
@@ -341,6 +429,8 @@ class ArcadeLauncher:
 					self.handle_hat_navigation(event)
 				elif event.type == pygame.JOYAXISMOTION:
 					self.handle_axis_navigation(event)
+				elif event.type in (pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN):
+					self.handle_mouse(event)
 				elif event.type == pygame.KEYDOWN:
 					running = self.handle_keyboard(event)
 

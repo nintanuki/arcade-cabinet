@@ -1,0 +1,13 @@
+{
+  "high_score": 70680,
+  "leaderboard": [
+    {
+      "name": "AAA",
+      "score": 70680
+    },
+    {
+      "name": "ZAA",
+      "score": 30320
+    }
+  ]
+}
