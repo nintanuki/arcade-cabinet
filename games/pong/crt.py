@@ -1,17 +1,16 @@
-"""CRT overlay effect helpers for Air Hockey rendering."""
+"""CRT overlay effect helpers for Pong."""
 
-import pygame
 from settings import *
 import random
 
 class CRT:
-    """Draw a scanline-and-flicker effect over the game surface."""
+    """Draw a CRT-style flicker and scanline overlay."""
 
     def __init__(self,screen):
-        """Load and scale the CRT overlay texture.
+        """Initialize the CRT overlay texture and target screen.
 
         Args:
-            screen (pygame.Surface): The display surface to draw onto.
+            screen (pygame.Surface): Display surface receiving the overlay.
 
         Returns:
             None.
@@ -22,7 +21,7 @@ class CRT:
         self.tv = pygame.transform.scale(self.tv,(SCREEN_WIDTH,SCREEN_HEIGHT))
 
     def create_crt_lines(self):
-        """Draw horizontal scanlines into the overlay image.
+        """Draw horizontal scanlines into the CRT texture.
 
         Args:
             None.
@@ -30,15 +29,15 @@ class CRT:
         Returns:
             None.
         """
-        # TODO(bug): Re-drawing lines every frame accumulates artifacts on self.tv.
+        # TODO(bug): Lines are drawn into the same surface each frame and can accumulate.
         line_height = 3
         line_amount = int(SCREEN_HEIGHT / line_height)
         for line in range(line_amount):
             y_pos = line * line_height
-            pygame.draw.line(self.tv,'grey',(0,y_pos),(SCREEN_WIDTH,y_pos),1)
+            pygame.draw.line(self.tv,'black',(0,y_pos),(SCREEN_WIDTH,y_pos),1)
 
     def draw(self):
-        """Apply random alpha flicker and blit the CRT overlay.
+        """Flicker the overlay alpha and blit it onto the screen.
 
         Args:
             None.

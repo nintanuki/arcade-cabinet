@@ -69,6 +69,8 @@ class MenuSettings:
     FOOTER_LINE_2_CENTER_Y = 695
     NO_CONTROLLER_SUPPORT_TEXT = "NO CONTROLLER SUPPORT (KEYBOARD/MOUSE ONLY)"
     NO_CONTROLLER_SUPPORT_CENTER_Y = 585
+    AIR_HOCKEY_WARNING_TEXT = "STILL TUNING THE PHYSICS, EXPECT QUIRKS"
+    AIR_HOCKEY_WARNING_CENTER_Y = 605
 
 
 class ControlSettings:
@@ -95,13 +97,14 @@ class GameSettings:
     OPTIONS = [
         ("Star Hero", Path("games") / "star-hero" / "main.py"),
         ("Dungeon Digger", Path("games") / "dungeon-digger" / "main.py"),
-        ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
+        ("Pong", Path("games") / "pong" / "main.py"),
         ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
         "Star Hero": Path("graphics") / "star_hero_screenshot.png",
         "Dungeon Digger": Path("graphics") / "dungeon_digger_screenshot.png",
+        "Pong": Path("graphics") / "pong_screenshot.png",
         "Jezz Ball": Path("graphics") / "jezz_ball_screenshot.png",
         "Air Hockey": Path("graphics") / "air_hockey_screenshot.png",
     }

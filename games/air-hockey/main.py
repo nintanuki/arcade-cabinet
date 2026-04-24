@@ -1,12 +1,25 @@
-﻿import pygame
+"""Air Hockey game loop, input handling, and match presentation."""
+
+import pygame
 import sys
 import random
 from settings import *
 from audio import Audio
 from crt import CRT
 
+
 class Game:
+    """Manage Air Hockey runtime state, input, and rendering."""
+
     def __init__(self):
+        """Initialize pygame systems, assets, entities, and state trackers.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SCALED)
         pygame.display.set_caption('Air Hockey')
@@ -22,24 +35,27 @@ class Game:
             j.init()
             self.joysticks.append(j)
 
-        # Game State
+        # Game state
         self.game_active = False
         self.paused = False
         self.muted = False
         self.full_screen = False
 
-        # Game Rectangles and Positions
+        # TODO(bug): self.game_active is never used to gate updates/rendering.
+        # TODO(refactor): Consolidate state flags into a dedicated state object.
+
+        # Game rectangles and positions
         self.player = pygame.Rect(
             (SCREEN_WIDTH / 2) - (PLAYER_WIDTH / 2),
             (SCREEN_HEIGHT * 7 / 8) - (PLAYER_HEIGHT / 2),
             PLAYER_WIDTH,
-            PLAYER_HEIGHT
+            PLAYER_HEIGHT,
         )
         self.opponent = pygame.Rect(
             (SCREEN_WIDTH / 2) - (OPPONENT_WIDTH / 2),
             (SCREEN_HEIGHT / 8) - (OPPONENT_HEIGHT / 2),
             OPPONENT_WIDTH,
-            OPPONENT_HEIGHT
+            OPPONENT_HEIGHT,
         )
         self.puck = pygame.Rect(0, 0, PUCK_WIDTH, PUCK_HEIGHT)
         self.player_goal = pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 8), SCREEN_HEIGHT - 10, SCREEN_WIDTH / 4, 10)
@@ -82,6 +98,14 @@ class Game:
         self.reset_puck()
 
     def puck_movement(self):
+        """Move puck, resolve wall/paddle collisions, and dampen velocity.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.puck.x += self.puck_speed_x
         self.puck.y += self.puck_speed_y
 
@@ -109,15 +133,32 @@ class Game:
             self.collision_cooldown = 30
             self.audio.channel_1.play(self.audio.plob_sound)
 
+        # TODO(bug): Applying friction every frame can create very slow puck drift states.
         self.puck_speed_x *= 0.995
         self.puck_speed_y *= 0.995
 
     def increase_speed(self):
+        """Increase puck velocity multiplier and clamp to legal speed range.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.puck_speed_x *= 1.5
         self.puck_speed_y *= 1.5
         self.apply_speed_limit()
 
     def apply_speed_limit(self):
+        """Clamp puck speed to configured minimum and maximum limits.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         speed = (self.puck_speed_x ** 2 + self.puck_speed_y ** 2) ** 0.5
         if speed > SPEED_LIMIT:
             scale = SPEED_LIMIT / speed
@@ -129,6 +170,14 @@ class Game:
             self.puck_speed_y *= scale
 
     def opponent_movement(self):
+        """Move opponent paddle toward puck position using simple chase AI.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         if self.puck.x < self.opponent.x:
             self.opponent.x -= OPPONENT_SPEED
         if self.puck.x > self.opponent.x:
@@ -139,6 +188,14 @@ class Game:
             self.opponent.y += OPPONENT_SPEED
 
     def reset_puck(self):
+        """Place puck at one side and assign randomized initial velocity.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         if random.choice([True, False]):
             self.puck.x = (SCREEN_WIDTH / 2) - (PUCK_WIDTH / 2)
             self.puck.y = (SCREEN_HEIGHT * 3 / 4) - (PUCK_HEIGHT / 2)
@@ -149,6 +206,14 @@ class Game:
         self.puck_speed_y = random.choice([-1, 1]) * INITIAL_PUCK_SPEED
 
     def check_goals(self):
+        """Detect puck entering goals, update score, and start countdown.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         if self.puck.colliderect(self.player_goal):
             self.opponent_score += 1
             self.start_countdown()
@@ -159,16 +224,40 @@ class Game:
             self.audio.channel_2.play(self.audio.score_sound)
 
     def start_countdown(self):
+        """Begin the 3-second round restart countdown timer.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.countdown = 3
         pygame.time.set_timer(self.COUNTDOWN_EVENT, self.COUNTDOWN_INTERVAL)
 
     def display_scores(self):
+        """Render player and opponent scores to the HUD.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         player_score_text = self.score_font.render(f"Player: {self.player_score}", True, BLACK)
         opponent_score_text = self.score_font.render(f"Opponent: {self.opponent_score}", True, BLACK)
         self.screen.blit(player_score_text, (10, SCREEN_HEIGHT - 40))
         self.screen.blit(opponent_score_text, (10, 10))
 
     def draw_dotted_line(self):
+        """Draw the center dotted divider line across the rink.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         y = SCREEN_HEIGHT // 2
         x = 0
         segment_length = 10
@@ -178,7 +267,14 @@ class Game:
             x += segment_length + gap_length
 
     def quit_combo_pressed(self):
-        """Return True if START + SELECT + L1 + R1 are all held."""
+        """Check whether START + SELECT + L1 + R1 are held.
+
+        Args:
+            None.
+
+        Returns:
+            bool: True when the full exit combo is held on any joystick.
+        """
         for joystick in self.joysticks:
             try:
                 if all(joystick.get_button(b) for b in (7, 6, 4, 5)):
@@ -188,6 +284,14 @@ class Game:
         return False
 
     def pause(self):
+        """Toggle pause state and run pause loop until resumed or exited.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.paused = not self.paused
         while self.paused:
             for event in pygame.event.get():
@@ -203,6 +307,7 @@ class Game:
                 pygame.quit()
                 sys.exit()
 
+            # TODO(bug): Controller START does not unpause once inside this pause loop.
             self.screen.fill(WHITE)
             self.draw_dotted_line()
             pygame.draw.rect(self.screen, BLUE, self.player_goal)
@@ -215,9 +320,25 @@ class Game:
             self.clock.tick(FRAMERATE)
 
     def _cycle_input_mode(self, direction):
+        """Move title-screen input selector left/up or right/down.
+
+        Args:
+            direction (int): Signed step for cycling input options.
+
+        Returns:
+            None.
+        """
         self.input_selection_index = (self.input_selection_index + direction) % len(self.input_options)
 
     def _confirm_input_mode(self):
+        """Lock selected input mode and leave the title selection screen.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         selected = self.input_options[self.input_selection_index]
         if selected == "controller" and not self.joysticks:
             selected = "mouse"
@@ -227,6 +348,14 @@ class Game:
         self.show_title = False
 
     def _draw_title_screen(self):
+        """Render pre-game title screen with input-mode selection menu.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.screen.fill(WHITE)
         title_text = self.title_font.render("AIR HOCKEY", True, BLACK)
         self.screen.blit(title_text, title_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 110)))
@@ -254,6 +383,15 @@ class Game:
             self.screen.blit(no_pad_text, no_pad_text.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 108)))
 
     def run(self):
+        """Run the main Air Hockey event, update, and render loop.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # TODO(refactor): Split this large method into dedicated input/update/render helpers.
         while True:
             dt = self.clock.tick(FRAMERATE) / 1000
             if self.quit_combo_pressed():
@@ -336,6 +474,7 @@ class Game:
                     if event.key == pygame.K_m:
                         self.muted = not self.muted
                         vols = [0] * 5 if self.muted else [0.5] * 5
+                        # TODO(bug): Unmuting forces fixed 0.5 volume instead of each channel's configured level.
                         for ch, v in zip((self.audio.channel_0, self.audio.channel_1, self.audio.channel_2, self.audio.channel_3, self.audio.channel_4), vols):
                             ch.set_volume(v)
                 if event.type == self.COUNTDOWN_EVENT and self.countdown > 0:
@@ -421,11 +560,13 @@ class Game:
             self.display_scores()
 
             if not self.audio.channel_0.get_busy():
-                self.audio.channel_0.play(self.audio.bg_music)
+                if not MUTE_MUSIC:
+                    self.audio.channel_0.play(self.audio.bg_music)
 
             if not self.full_screen:
                 self.crt.draw()
             pygame.display.flip()
+
 
 if __name__ == '__main__':
     game_manager = Game()

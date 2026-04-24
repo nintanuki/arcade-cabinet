@@ -224,9 +224,30 @@ class ArcadeLauncher:
 			fallback_rect = fallback_surface.get_rect(center=inner_rect.center)
 			self.screen.blit(fallback_surface, fallback_rect)
 
+	def show_loading_screen(self, duration_ms: int = 2200) -> None:
+		"""Show a temporary loading screen before launching a selected game."""
+		start_time = pygame.time.get_ticks()
+		while pygame.time.get_ticks() - start_time < duration_ms:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					pygame.quit()
+					sys.exit()
+
+			# Animate trailing dots so players can tell the launcher is active.
+			dot_count = ((pygame.time.get_ticks() - start_time) // 350) % 4
+			loading_text = f"LOADING{'.' * dot_count}"
+
+			self.screen.fill(ColorSettings.BLACK)
+			loading_surface = self.option_font.render(loading_text, False, ColorSettings.WHITE)
+			loading_rect = loading_surface.get_rect(center=(ScreenSettings.WIDTH // 2, ScreenSettings.HEIGHT // 2))
+			self.screen.blit(loading_surface, loading_rect)
+			pygame.display.flip()
+			self.clock.tick(ScreenSettings.FPS)
+
 	def launch_selected_game(self) -> None:
 		"""Launch the selected game, then restore launcher runtime after it exits."""
 		self._play_select_sfx()
+		self.show_loading_screen()
 		game_label, game_main = self.options[self.selected_index]
 		game_dir = game_main.parent
 
@@ -305,6 +326,17 @@ class ArcadeLauncher:
 				center=(ScreenSettings.WIDTH // 2, MenuSettings.NO_CONTROLLER_SUPPORT_CENTER_Y)
 			)
 			self.screen.blit(no_controller_surface, no_controller_rect)
+
+		if selected_label == "Air Hockey":
+			air_hockey_warning_surface = self.hint_font.render(
+				MenuSettings.AIR_HOCKEY_WARNING_TEXT,
+				False,
+				ColorSettings.RED,
+			)
+			air_hockey_warning_rect = air_hockey_warning_surface.get_rect(
+				center=(ScreenSettings.WIDTH // 2, MenuSettings.AIR_HOCKEY_WARNING_CENTER_Y)
+			)
+			self.screen.blit(air_hockey_warning_surface, air_hockey_warning_rect)
 
 		hint_line_1_surface = self.hint_font.render(
 			MenuSettings.FOOTER_TEXT_LINE_1,

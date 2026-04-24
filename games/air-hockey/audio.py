@@ -1,7 +1,22 @@
+"""Audio loading and channel management for Air Hockey."""
+
 import pygame
 
 class Audio():
+    """Hold reusable sound effects, music, and mixer channels.
+
+    This object centralizes all pygame mixer resources used by the game loop.
+    """
+
     def __init__(self):
+        """Initialize audio assets and assign dedicated playback channels.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         super().__init__()
         self.master_volume = 1 # default value is 1.0
 
@@ -28,7 +43,15 @@ class Audio():
 
     # Use this later for volume control
     def update(self):
-        """Updates volume of all sounds and music"""
+        """Apply the current master volume to every loaded sound.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # TODO(refactor): Replace repeated set_volume calls with an iterable of sounds.
         self.bg_music.set_volume(self.master_volume)
         self.plob_sound.set_volume(self.master_volume)
         self.score_sound.set_volume(self.master_volume)

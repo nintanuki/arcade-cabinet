@@ -1,4 +1,7 @@
+"""Global configuration constants for Air Hockey gameplay and rendering."""
+
 FRAMERATE = 60
+MUTE_MUSIC = True
 
 # Constants
 BLOCK_SIZE = 8  # Smallest unit of the grid
@@ -61,3 +64,5 @@ LIGHT_MAGENTA = (255, 224, 255)
 LIGHT_ORANGE = (255, 218, 185)
 LIGHT_PURPLE = (229, 128, 255)
 LIGHT_BROWN = (205, 133, 63)
+
+# TODO(refactor): Group constants into categories/classes to reduce wildcard-import sprawl.
