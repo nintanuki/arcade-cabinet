@@ -553,6 +553,17 @@ class Monster(pygame.sprite.Sprite):
 
         return step_x, step_y
 
+    def _is_visible_in_player_light(self, manhattan_distance: int) -> bool:
+        """Return whether the monster is currently visible in the player's light."""
+        return self.game.player.light_radius > 0 and manhattan_distance <= int(self.game.player.light_radius)
+
+    def _log_chase_warning(self, manhattan_distance: int) -> None:
+        """Log the chase warning text variant based on player-visible monster state."""
+        if self._is_visible_in_player_light(manhattan_distance):
+            self.game.log_message("YOU'VE BEEN SPOTTED BY A MONSTER!")
+        else:
+            self.game.log_message("YOU HEAR A MONSTER NEARBY!")
+
     def resolve_turn(self) -> None:
         """
         Determine the monster's behavior for a single turn.
@@ -600,20 +611,16 @@ class Monster(pygame.sprite.Sprite):
             return
 
         # Chasing rules:
-        # - if the player has no light, the monster should only chase when adjacent
+        # - if the player has no light, monsters never chase regardless of distance
         # - otherwise use the current chase radius + line of sight rules
-        if is_adjacent:
-            if not self.is_chasing:
-                self.is_chasing = True
-                self.game.audio.play_monster_chase_sound()
-
-        elif not player_has_light:
+        if not player_has_light:
             self.is_chasing = False
 
-        elif manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player():
+        elif is_adjacent or (manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player()):
             if not self.is_chasing:
                 self.is_chasing = True
                 self.game.audio.play_monster_chase_sound()
+                self._log_chase_warning(manhattan_distance)
         else:
             self.is_chasing = False
 

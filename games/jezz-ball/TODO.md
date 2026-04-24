@@ -1,0 +1,2 @@
+- [ ] Get the controller analog stick to work
+- [ ] When a ball hits the blue or red part of the wall, only that portion of the wall should disappear

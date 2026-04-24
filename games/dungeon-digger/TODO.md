@@ -37,6 +37,7 @@ Do NOT add new features until steps 1–4 are complete.
 - [X] Entire map not revealed on win/loss
 - [ ] Play found gold/treasure sound AFTER dig sound (they currently overlap)
 - [ ] Check that we don't need high_score.txt now that we have leaderboard.txt
+- [ ] Enemy line of sight doesn't seem to work diagonally
 
 ## Visual / UX Bugs
 - [ ] Text is blurry (font/rendering issue)

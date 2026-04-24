@@ -304,12 +304,25 @@ class RenderManager:
             self.screen.blit(self.title_player_sprite, player_rect)
 
         title_surf = title_font.render("DUNGEON DIGGER", False, ColorSettings.TEXT_DEFAULT)
-        title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, (ScreenSettings.HEIGHT / 2) - 20))
+        title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, (ScreenSettings.HEIGHT / 2) - 40))
         self.screen.blit(title_surf, title_rect)
 
-        prompt_surf = prompt_font.render("PRESS START TO PLAY", False, ColorSettings.TEXT_PROMPT)
-        prompt_rect = prompt_surf.get_rect(center=(ScreenSettings.WIDTH / 2, (ScreenSettings.HEIGHT / 2) + 28))
-        self.screen.blit(prompt_surf, prompt_rect)
+        menu_options = ["PLAY", "SKIP TUTORIAL"]
+        option_start_y = int(ScreenSettings.HEIGHT / 2) + 10
+        option_spacing = 28
+        cursor_symbol = ">"
+
+        for i, label in enumerate(menu_options):
+            is_selected = i == self.game.title_menu_index
+            color = ColorSettings.TEXT_SELECTOR if is_selected else ColorSettings.TEXT_DEFAULT
+            option_surf = prompt_font.render(label, False, color)
+            option_rect = option_surf.get_rect(center=(ScreenSettings.WIDTH / 2, option_start_y + i * option_spacing))
+            self.screen.blit(option_surf, option_rect)
+
+            if is_selected:
+                cursor_surf = prompt_font.render(cursor_symbol, False, ColorSettings.TEXT_SELECTOR)
+                cursor_rect = cursor_surf.get_rect(midright=(option_rect.left - 6, option_rect.centery))
+                self.screen.blit(cursor_surf, cursor_rect)
 
     def draw_initials_entry_screen(self):
         """Draw initials input for top-ten leaderboard placement."""
@@ -553,5 +566,3 @@ class RenderManager:
                 self.screen.blit(line_surf, (start_x, y_pos))
 
             y_pos += line_height
-
-        # Shop progression now happens only by selecting the CONTINUE row.

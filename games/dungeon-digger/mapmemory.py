@@ -102,6 +102,10 @@ class MapMemory:
     def remember_visible_map_info(self):
         """Persist anything currently visible to the minimap memory."""
         if not self.should_update_map_memory():
+            # Clear transient memory when light expires and no map is held.
+            if not self.player_has_any_map():
+                self.seen_tiles.clear()
+                self.last_seen_monster_pos = set()
             return
 
         self._remember_visible_tiles()
@@ -128,6 +132,9 @@ class MapMemory:
 
     def _remember_visible_tiles(self):
         """Persist visible terrain state (walls, dug tiles, and floor)."""
+        # Without a map, only show tiles currently in the light — no memory between turns.
+        if not self.player_has_any_map():
+            self.seen_tiles.clear()
         for row in range(UISettings.ROWS):
             for col in range(UISettings.COLS):
                 grid_pos = (col, row)

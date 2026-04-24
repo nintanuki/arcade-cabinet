@@ -55,6 +55,16 @@ class MessageLog:
 
         return sorted(term_colors.items(), key=lambda item: len(item[0]), reverse=True)
 
+    def _default_color_for_message(self, text: str, fallback_color: str) -> str:
+        """Return default line color, with custom overrides for warning lines."""
+        warning_messages = {
+            "YOU HEAR A MONSTER NEARBY!",
+            "YOU'VE BEEN SPOTTED BY A MONSTER!",
+        }
+        if text.upper() in warning_messages:
+            return ColorSettings.TEXT_LOSS
+        return fallback_color
+
     def _is_word_char(self, char: str) -> bool:
         """Return whether a character should count as part of a word.
 
@@ -131,8 +141,9 @@ class MessageLog:
             y (int): Baseline y pixel position.
             default_color (str): Color used for non-highlighted text.
         """
+        effective_default_color = self._default_color_for_message(text, default_color)
         draw_x = x
-        for segment_text, segment_color in self._split_colored_segments(text, default_color):
+        for segment_text, segment_color in self._split_colored_segments(text, effective_default_color):
             text_surface = self.font.render(segment_text, False, segment_color)
             surface.blit(text_surface, (draw_x, y))
             draw_x += text_surface.get_width()

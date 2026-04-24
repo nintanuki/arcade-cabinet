@@ -73,7 +73,7 @@ class DungeonMaster:
         dungeon_name = random.choice(list(DUNGEONS.keys()))
         self.load_dungeon(dungeon_name)
 
-    def setup_tile_map(self) -> None:
+    def setup_tile_map(self, monster_count: int | None = None) -> None:
         """
         Build mutable per-tile state on top of the static dungeon layout.
 
@@ -93,8 +93,13 @@ class DungeonMaster:
                         "dirt_surface": random.choice(self.scaled_dirt_tiles),
                     }
 
+        if monster_count is None:
+            monster_count = MonsterSettings.COUNT
+        if monster_count < 0:
+            raise ValueError("monster_count must be >= 0")
+
         available_positions = self.get_walkable_positions()
-        required_positions = 2 + MonsterSettings.COUNT + 2  # player, door, monsters, key, map
+        required_positions = 2 + monster_count + 2  # player, door, monsters, key, map
         if len(available_positions) < required_positions:
             raise ValueError("Not enough walkable tiles to place all entities and fixed items.")
 
@@ -102,7 +107,6 @@ class DungeonMaster:
         self.player_grid_pos = self.draw_random_position(available_positions)
         self.door_grid_pos = self.draw_random_position(available_positions)
 
-        monster_count = MonsterSettings.COUNT
         self.monster_grid_positions = [
             self.draw_position_far_from_player(available_positions)
             for _ in range(monster_count)
