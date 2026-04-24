@@ -98,6 +98,11 @@ cython_debug/
 .spyproject
 .ropeproject
 /site
+
+# Game save data
+games/jezz-ball/high_score.txt
+games/air-hockey/high_score.txt
+
 .pypirc
 .abstra/
 
