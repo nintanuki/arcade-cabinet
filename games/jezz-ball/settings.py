@@ -121,14 +121,14 @@ class AudioSettings:
 
 	MUSIC_PATH = Path("music") / "pong_bg_music.ogg"
 	MUSIC_HALF_VOLUME_TOGGLE = True
-	MUSIC_BASE_VOLUME = 0.5
+	MUSIC_BASE_VOLUME = 0.0
 	SFX_WALL_START = Path("sound") / "pong.ogg"
 	SFX_WALL_COMPLETE = Path("sound") / "pong.ogg"
 	SFX_BALL_HIT_CURSOR = Path("sound") / "explosion.wav"
 	SFX_LEVEL_CLEAR = Path("sound") / "score.ogg"
 	SFX_PAUSE_IN = Path("sound") / "sfx_sounds_pause2_in.wav"
 	SFX_PAUSE_OUT = Path("sound") / "sfx_sounds_pause2_out.wav"
-	SFX_VOLUME = 0.5
+	SFX_VOLUME = 0.0
 
 
 @dataclass(frozen=True)
