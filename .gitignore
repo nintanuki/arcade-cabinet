@@ -1,5 +1,7 @@
 # Python bytecode / compiled artifacts
 __pycache__/
+**/__pycache__/
+*.pyc
 *.py[cod]
 *$py.class
 *.so
