@@ -58,7 +58,7 @@ class MenuSettings:
     PREVIEW_BORDER_RADIUS = 22
     PREVIEW_INNER_PADDING = 12
     FOOTER_TEXT_LINE_1 = "PRESS SELECT ON CONTROLLER OR F11 ON KEYBOARD TO TOGGLE FULLSCREEN WHILE IN GAME."
-    FOOTER_TEXT_LINE_2 = "PRESS START + SELECT + L1 + L2 OR CLOSE THE GAME WINDOW TO RETURN TO THIS MENU."
+    FOOTER_TEXT_LINE_2 = "PRESS START + SELECT + L1 + R1 OR CLOSE THE GAME WINDOW TO RETURN TO THIS MENU."
     FOOTER_LINE_1_CENTER_Y = 670
     FOOTER_LINE_2_CENTER_Y = 695
 
@@ -88,6 +88,7 @@ class GameSettings:
         ("Star Hero", Path("star-hero") / "main.py"),
         ("Dungeon Digger", Path("dungeon-digger") / "main.py"),
         ("Jezz Ball", Path("jezz-ball") / "main.py"),
+        ("Air Hockey", Path("air-hockey") / "main.py"),
     ]
 
     PREVIEW_IMAGES = {

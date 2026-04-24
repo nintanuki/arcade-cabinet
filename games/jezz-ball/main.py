@@ -6,6 +6,7 @@ from collections import deque
 from dataclasses import dataclass
 from enum import Enum, auto
 import importlib.util
+import json
 import math
 from pathlib import Path
 import random
@@ -46,6 +47,16 @@ class Orientation(Enum):
 
     VERTICAL = auto()
     HORIZONTAL = auto()
+
+
+class GameState(Enum):
+    """Top-level screens and flow states for the game."""
+
+    TITLE = auto()
+    PLAYING = auto()
+    GAME_OVER = auto()
+    INITIALS = auto()
+    LEADERBOARD = auto()
 
 
 @dataclass
@@ -324,13 +335,14 @@ class AudioManager:
             return
 
         self._load_sounds()
-        self._start_music()
+        # Music is started when gameplay begins, not at init
 
     def _load_sounds(self) -> None:
         """Load all configured one-shot sound effects into memory."""
         sound_map = {
             "wall_start": AudioSettings.SFX_WALL_START,
             "wall_complete": AudioSettings.SFX_WALL_COMPLETE,
+            "ball_hit_cursor": AudioSettings.SFX_BALL_HIT_CURSOR,
             "level_clear": AudioSettings.SFX_LEVEL_CLEAR,
             "pause_in": AudioSettings.SFX_PAUSE_IN,
             "pause_out": AudioSettings.SFX_PAUSE_OUT,
@@ -350,10 +362,35 @@ class AudioManager:
             return
 
         try:
+            music_volume = AudioSettings.MUSIC_BASE_VOLUME
+            if AudioSettings.MUSIC_HALF_VOLUME_TOGGLE:
+                music_volume *= 0.5
             pygame.mixer.music.load(str(AudioSettings.MUSIC_PATH))
-            pygame.mixer.music.set_volume(AudioSettings.MUSIC_VOLUME)
+            pygame.mixer.music.set_volume(music_volume)
             pygame.mixer.music.play(-1)
         except (FileNotFoundError, pygame.error):
+            pass
+
+    def restart_music(self) -> None:
+        """Restart background music from the beginning if audio is enabled."""
+        if not self.enabled:
+            return
+
+        try:
+            pygame.mixer.music.stop()
+        except pygame.error:
+            pass
+
+        self._start_music()
+
+    def stop_music(self) -> None:
+        """Stop background music without tearing down the mixer."""
+        if not self.enabled:
+            return
+
+        try:
+            pygame.mixer.music.stop()
+        except pygame.error:
             pass
 
     def play(self, sound_key: str) -> None:
@@ -412,7 +449,16 @@ class GameManager:
         self.crt = CRT(self.screen, CRTSettings.OVERLAY_IMAGE)
 
         self.running = True
+        self.game_state = GameState.TITLE
+        self.qualifies_for_leaderboard = False
         self.score = 0
+        self.score_file_path = Path(__file__).resolve().parent / "high_score.txt"
+        self.save_data: dict[str, object] = {"high_score": 0, "leaderboard": []}
+        self.entering_initials = False
+        self.initials = "AAA"
+        self.initials_index = 0
+        self.final_score_processed = False
+        self.pending_score: int | None = None
         self.current_level_index = 0
         self.level_complete = False
         self.game_over = False
@@ -431,7 +477,150 @@ class GameManager:
         self.wall_cells: list[list[bool]] = []
         self.claimed_cells: list[list[bool]] = []
         self.balls: list[Ball] = []
+        self._load_scores()
         self.load_level(0)
+
+        # Title screen bouncing ball
+        title_speed = GameplaySettings.BASE_BALL_SPEED
+        title_angle = random.uniform(15.0, 75.0)  # avoid perfectly horizontal/vertical
+        self.title_ball_pos = pygame.Vector2(ScreenSettings.WIDTH // 2, ScreenSettings.HEIGHT // 2)
+        self.title_ball_vel = pygame.Vector2(title_speed, 0).rotate(title_angle)
+        self.title_ball_spin: float = 0.0
+        self.title_ball_radius = GameplaySettings.BALL_RADIUS
+
+    def quit_combo_pressed(self) -> bool:
+        """Return True if START + SELECT + L1 + R1 are all held on any connected controller."""
+        required = ControlSettings.BUTTON_QUIT_COMBO
+        for joystick in self.joysticks:
+            try:
+                if all(joystick.get_button(btn) for btn in required):
+                    return True
+            except pygame.error:
+                continue
+        return False
+
+    def _load_scores(self) -> None:
+        """Load high score and leaderboard data from the local save file."""
+        try:
+            loaded = json.loads(self.score_file_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            loaded = {"high_score": 0, "leaderboard": []}
+
+        high_score = int(loaded.get("high_score", 0))
+        leaderboard = loaded.get("leaderboard", [])
+        if not isinstance(leaderboard, list):
+            leaderboard = []
+
+        cleaned_entries: list[dict[str, int | str]] = []
+        for entry in leaderboard:
+            if not isinstance(entry, dict):
+                continue
+            name = str(entry.get("name", "AAA")).upper()[:3]
+            score = int(entry.get("score", 0))
+            cleaned_entries.append({"name": name, "score": score})
+
+        self.save_data = {"high_score": high_score, "leaderboard": cleaned_entries}
+        self._sort_and_trim_leaderboard()
+
+    def _save_scores(self) -> None:
+        """Persist high score and leaderboard data to disk."""
+        self._sort_and_trim_leaderboard()
+        self.score_file_path.write_text(
+            json.dumps(self.save_data, indent=2),
+            encoding="utf-8",
+        )
+
+    def _sort_and_trim_leaderboard(self) -> None:
+        """Sort leaderboard entries and keep only the top ten scores."""
+        leaderboard = self.save_data.get("leaderboard", [])
+        if not isinstance(leaderboard, list):
+            leaderboard = []
+
+        leaderboard = sorted(
+            leaderboard,
+            key=lambda entry: int(entry.get("score", 0)) if isinstance(entry, dict) else 0,
+            reverse=True,
+        )[:10]
+
+        self.save_data["leaderboard"] = leaderboard
+        self.save_data["high_score"] = int(leaderboard[0]["score"]) if leaderboard else 0
+
+    def _qualifies_for_leaderboard(self, score: int) -> bool:
+        """Return whether the supplied score qualifies for leaderboard entry.
+
+        Args:
+            score: Final run score to evaluate.
+        """
+        leaderboard = self.save_data.get("leaderboard", [])
+        if not isinstance(leaderboard, list):
+            return score > 0
+        if len(leaderboard) < 10:
+            return score > 0
+        return score > int(leaderboard[-1].get("score", 0))
+
+    def _start_initial_entry(self) -> None:
+        """Enter initials-capture mode for a qualifying score."""
+        self.entering_initials = True
+        self.initials = "AAA"
+        self.initials_index = 0
+        self.pending_score = self.score
+
+    def _submit_initials(self) -> None:
+        """Submit entered initials and persist the new leaderboard entry."""
+        leaderboard = self.save_data.get("leaderboard", [])
+        if not isinstance(leaderboard, list):
+            leaderboard = []
+
+        score_value = self.pending_score if self.pending_score is not None else self.score
+        leaderboard.append({"name": self.initials, "score": int(score_value)})
+        self.save_data["leaderboard"] = leaderboard
+        self._save_scores()
+
+        self.entering_initials = False
+        self.pending_score = None
+        self.final_score_processed = True
+        self.game_state = GameState.LEADERBOARD
+
+    def _finalize_non_qualifying_score(self) -> None:
+        """Finalize run end-state when no initials entry is required."""
+        current_high = int(self.save_data.get("high_score", 0))
+        if self.score > current_high:
+            self.save_data["high_score"] = self.score
+            self._save_scores()
+        self.final_score_processed = True
+
+    def _advance_initials_cursor(self, direction: int) -> None:
+        """Move the active initials character index left or right.
+
+        Args:
+            direction: ``-1`` moves left and ``1`` moves right.
+        """
+        self.initials_index = (self.initials_index + direction) % len(self.initials)
+
+    def _cycle_initials_character(self, direction: int) -> None:
+        """Cycle the selected initials character through alphabetic letters.
+
+        Args:
+            direction: ``1`` advances forward and ``-1`` moves backward.
+        """
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        current_character = self.initials[self.initials_index]
+        current_index = alphabet.index(current_character) if current_character in alphabet else 0
+        next_index = (current_index + direction) % len(alphabet)
+        letters = list(self.initials)
+        letters[self.initials_index] = alphabet[next_index]
+        self.initials = "".join(letters)
+
+    def _update_game_over_flow(self) -> None:
+        """Initialize score submission state after a run ends."""
+        if not self.game_over or self.final_score_processed or self.entering_initials:
+            return
+
+        if self._qualifies_for_leaderboard(self.score):
+            self._start_initial_entry()
+            return
+
+        self._finalize_non_qualifying_score()
 
     def _load_font(self, size: int) -> pygame.font.Font:
         """Load the pixel font and fall back to a default font if necessary.
@@ -482,6 +671,11 @@ class GameManager:
         self.level_complete = False
         self.game_paused = False
         self.game_over = False
+        self.final_score_processed = False
+        self.entering_initials = False
+        self.initials = "AAA"
+        self.initials_index = 0
+        self.pending_score = None
         self.time_remaining_seconds = (
             float(self.level.time_limit_seconds)
             if self.level.time_limit_seconds is not None
@@ -728,9 +922,12 @@ class GameManager:
         """Reduce the life counter and mark the game over state when it reaches zero."""
         self.building_wall = None
         self.lives_left -= 1
-        self.audio.play("wall_complete")
+        self.audio.play("ball_hit_cursor")
         if self.lives_left <= 0:
             self.game_over = True
+            self.game_state = GameState.GAME_OVER
+            self.qualifies_for_leaderboard = self._qualifies_for_leaderboard(self.score)
+            self.audio.stop_music()
 
     def _complete_wall(self) -> None:
         """Commit the finished wall, claim enclosed regions, and evaluate level completion."""
@@ -816,14 +1013,41 @@ class GameManager:
         """Move to the next configured level or stop on a final-game victory."""
         if self.current_level_index + 1 >= len(LEVELS):
             self.game_over = True
+            self.game_state = GameState.GAME_OVER
+            self.qualifies_for_leaderboard = self._qualifies_for_leaderboard(self.score)
+            self.audio.stop_music()
             return
 
         self.load_level(self.current_level_index + 1)
 
+    def _start_game(self) -> None:
+        """Begin a fresh run from the title screen."""
+        self.score = 0
+        self.qualifies_for_leaderboard = False
+        self.load_level(0)
+        self.game_state = GameState.PLAYING
+
+    def _continue_from_game_over(self) -> None:
+        """Advance from the game over screen to initials entry or the leaderboard."""
+        if self.qualifies_for_leaderboard:
+            self._start_initial_entry()
+            self.game_state = GameState.INITIALS
+        else:
+            self._finalize_non_qualifying_score()
+            self.game_state = GameState.LEADERBOARD
+
     def _restart_game(self) -> None:
         """Reset score and return the run to level one."""
         self.score = 0
+        self.entering_initials = False
+        self.initials = "AAA"
+        self.initials_index = 0
+        self.pending_score = None
+        self.final_score_processed = False
+        self.qualifies_for_leaderboard = False
         self.load_level(0)
+        self.game_state = GameState.PLAYING
+        self.audio.restart_music()
 
     def _update_cursor_with_analog(self, dt: float) -> None:
         """Apply left-stick movement to the on-screen cursor.
@@ -882,19 +1106,38 @@ class GameManager:
         """
         if event.key == pygame.K_ESCAPE:
             self.running = False
-        elif event.key == pygame.K_F11:
-            self._toggle_fullscreen()
-        elif event.key == pygame.K_RETURN:
-            if self.level_complete:
-                self._advance_level()
-            elif self.game_over:
+        elif self.game_state == GameState.TITLE:
+            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                self._start_game()
+        elif self.game_state == GameState.GAME_OVER:
+            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                self._continue_from_game_over()
+        elif self.game_state == GameState.INITIALS:
+            if event.key == pygame.K_LEFT:
+                self._advance_initials_cursor(-1)
+            elif event.key == pygame.K_RIGHT:
+                self._advance_initials_cursor(1)
+            elif event.key == pygame.K_UP:
+                self._cycle_initials_character(1)
+            elif event.key == pygame.K_DOWN:
+                self._cycle_initials_character(-1)
+            elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                self._submit_initials()
+        elif self.game_state == GameState.LEADERBOARD:
+            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_r):
                 self._restart_game()
-            else:
-                self._toggle_pause()
-        elif event.key == pygame.K_r:
-            self._restart_game()
-        elif event.key == pygame.K_SPACE:
-            self._toggle_orientation()
+        elif self.game_state == GameState.PLAYING:
+            if event.key == pygame.K_F11:
+                self._toggle_fullscreen()
+            elif event.key == pygame.K_RETURN:
+                if self.level_complete:
+                    self._advance_level()
+                else:
+                    self._toggle_pause()
+            elif event.key == pygame.K_r:
+                self._restart_game()
+            elif event.key == pygame.K_SPACE:
+                self._toggle_orientation()
 
     def _handle_controller_button(self, event: pygame.event.Event) -> None:
         """Process controller buttons for wall building, pause, and fullscreen.
@@ -904,22 +1147,31 @@ class GameManager:
         """
         if event.button == ControlSettings.BUTTON_SELECT:
             self._toggle_fullscreen()
-        elif event.button == ControlSettings.BUTTON_START:
-            if self.level_complete:
-                self._advance_level()
-            elif self.game_over:
+        elif self.game_state == GameState.TITLE:
+            if event.button in (ControlSettings.BUTTON_START, ControlSettings.BUTTON_A):
+                self._start_game()
+        elif self.game_state == GameState.GAME_OVER:
+            if event.button == ControlSettings.BUTTON_START:
+                self._continue_from_game_over()
+        elif self.game_state == GameState.INITIALS:
+            if event.button in (ControlSettings.BUTTON_START, ControlSettings.BUTTON_A):
+                self._submit_initials()
+        elif self.game_state == GameState.LEADERBOARD:
+            if event.button == ControlSettings.BUTTON_START:
                 self._restart_game()
-            else:
-                self._toggle_pause()
-        elif event.button == ControlSettings.BUTTON_A:
-            if self.game_over:
-                self._restart_game()
-            elif self.level_complete:
-                self._advance_level()
-            else:
-                self._try_start_wall()
-        elif event.button == ControlSettings.BUTTON_X:
-            self._toggle_orientation()
+        elif self.game_state == GameState.PLAYING:
+            if event.button == ControlSettings.BUTTON_START:
+                if self.level_complete:
+                    self._advance_level()
+                else:
+                    self._toggle_pause()
+            elif event.button == ControlSettings.BUTTON_A:
+                if self.level_complete:
+                    self._advance_level()
+                else:
+                    self._try_start_wall()
+            elif event.button == ControlSettings.BUTTON_X:
+                self._toggle_orientation()
 
     def _handle_mouse_button(self, event: pygame.event.Event) -> None:
         """Process mouse clicks for wall placement and orientation changes.
@@ -934,6 +1186,9 @@ class GameManager:
 
     def _process_events(self) -> None:
         """Poll and handle all pending Pygame events for one frame."""
+        if self.quit_combo_pressed():
+            self.close()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -958,6 +1213,17 @@ class GameManager:
                     self.controller_axis.x = event.value
                 elif event.axis == ControlSettings.AXIS_CURSOR_Y:
                     self.controller_axis.y = event.value
+            elif event.type == pygame.JOYHATMOTION and self.game_state == GameState.INITIALS:
+                hat_x, hat_y = event.value
+                if hat_x == -1:
+                    self._advance_initials_cursor(-1)
+                elif hat_x == 1:
+                    self._advance_initials_cursor(1)
+
+                if hat_y == 1:
+                    self._cycle_initials_character(1)
+                elif hat_y == -1:
+                    self._cycle_initials_character(-1)
 
     def _update(self, dt: float) -> None:
         """Advance the active simulation state for one frame.
@@ -965,6 +1231,29 @@ class GameManager:
         Args:
             dt: Time elapsed since the previous frame in seconds.
         """
+        if self.game_state == GameState.TITLE:
+            # Bounce the title ball around the full screen
+            r = self.title_ball_radius
+            self.title_ball_pos += self.title_ball_vel * dt
+            if self.title_ball_pos.x - r < 0:
+                self.title_ball_pos.x = r
+                self.title_ball_vel.x *= -1
+            elif self.title_ball_pos.x + r > ScreenSettings.WIDTH:
+                self.title_ball_pos.x = ScreenSettings.WIDTH - r
+                self.title_ball_vel.x *= -1
+            if self.title_ball_pos.y - r < 0:
+                self.title_ball_pos.y = r
+                self.title_ball_vel.y *= -1
+            elif self.title_ball_pos.y + r > ScreenSettings.HEIGHT:
+                self.title_ball_pos.y = ScreenSettings.HEIGHT - r
+                self.title_ball_vel.y *= -1
+            speed_ratio = self.title_ball_vel.length() / max(1.0, GameplaySettings.BASE_BALL_SPEED)
+            self.title_ball_spin = (self.title_ball_spin + GameplaySettings.BALL_SPIN_RATE * speed_ratio * dt) % (2 * math.pi)
+            return
+
+        if self.game_state != GameState.PLAYING:
+            return
+
         self._update_cursor_with_analog(dt)
 
         if self.game_over or self.level_complete or self.game_paused:
@@ -1092,7 +1381,7 @@ class GameManager:
         time_value = "--" if self.time_remaining_seconds is None else f"{int(self.time_remaining_seconds):03d}"
         time_text = self.hud_font.render(f"TIME {time_value}", False, ColorSettings.TEXT)
         area_text = self.hud_font.render(
-            f"AREA CLEARED {self.claimed_percent:.1f}% / {self.level.area_needed_percent}%",
+            f"AREA CLEARED {self.claimed_percent:.1f} / {self.level.area_needed_percent}",
             False,
             ColorSettings.TEXT,
         )
@@ -1119,8 +1408,8 @@ class GameManager:
         self.screen.blit(orientation_text, orientation_rect)
 
     def _draw_overlay_message(self) -> None:
-        """Render pause, level-clear, and game-over overlay text when needed."""
-        if not (self.game_paused or self.level_complete or self.game_over):
+        """Render pause and level-clear overlay text when needed."""
+        if not (self.game_paused or self.level_complete):
             return
 
         overlay = pygame.Surface(ScreenSettings.RESOLUTION, pygame.SRCALPHA)
@@ -1129,13 +1418,10 @@ class GameManager:
 
         if self.level_complete and self.current_level_index + 1 >= len(LEVELS):
             message = "YOU WIN"
-            hint = "PRESS START OR A TO RESTART"
+            hint = "PRESS START TO CONTINUE"
         elif self.level_complete:
             message = "LEVEL CLEAR"
-            hint = "PRESS START OR A FOR NEXT LEVEL"
-        elif self.game_over:
-            message = "GAME OVER"
-            hint = "PRESS R, START, OR A TO RESTART"
+            hint = "PRESS START FOR NEXT LEVEL"
         else:
             message = "PAUSED"
             hint = "PRESS START OR ENTER TO RESUME"
@@ -1147,12 +1433,139 @@ class GameManager:
         self.screen.blit(message_surface, message_rect)
         self.screen.blit(hint_surface, hint_rect)
 
+    def _draw_title_screen(self) -> None:
+        """Render the title screen with game name and start prompt."""
+        self.screen.fill(ColorSettings.BLACK)
+        cx = ScreenSettings.WIDTH // 2
+        cy = ScreenSettings.HEIGHT // 2
+
+        # Bouncing ball
+        r = self.title_ball_radius
+        center = (int(self.title_ball_pos.x), int(self.title_ball_pos.y))
+        pygame.draw.circle(self.screen, ColorSettings.BALL, center, r)
+        wedge_points = [center]
+        segments = 18
+        for step in range(segments + 1):
+            angle = self.title_ball_spin + (math.pi * (step / segments))
+            wedge_points.append((
+                int(self.title_ball_pos.x + math.cos(angle) * r),
+                int(self.title_ball_pos.y + math.sin(angle) * r),
+            ))
+        pygame.draw.polygon(self.screen, ColorSettings.BALL_WHITE, wedge_points)
+        pygame.draw.circle(self.screen, ColorSettings.BALL_OUTLINE, center, r, 1)
+
+        title_surface = self.large_font.render("JEZZ BALL", False, ColorSettings.TEXT)
+        title_rect = title_surface.get_rect(center=(cx, cy - 28))
+        self.screen.blit(title_surface, title_rect)
+
+        prompt_surface = self.small_font.render("PRESS START TO PLAY", False, ColorSettings.TEXT_PROMPT)
+        prompt_rect = prompt_surface.get_rect(center=(cx, cy + 18))
+        self.screen.blit(prompt_surface, prompt_rect)
+
+    def _draw_game_over_screen(self) -> None:
+        """Render the game over screen as a dim overlay over the last frame."""
+        overlay = pygame.Surface(ScreenSettings.RESOLUTION, pygame.SRCALPHA)
+        overlay.fill(ColorSettings.OVERLAY)
+        self.screen.blit(overlay, (0, 0))
+
+        cx = ScreenSettings.WIDTH // 2
+        cy = ScreenSettings.HEIGHT // 2
+
+        won = self.current_level_index + 1 >= len(LEVELS) and self.level_complete
+        message = "YOU WIN" if won else "GAME OVER"
+        msg_surface = self.large_font.render(message, False, ColorSettings.TEXT)
+        msg_rect = msg_surface.get_rect(center=(cx, cy - 40))
+        self.screen.blit(msg_surface, msg_rect)
+
+        score_surface = self.hud_font.render(f"SCORE  {self.score}", False, ColorSettings.TEXT)
+        score_rect = score_surface.get_rect(center=(cx, cy))
+        self.screen.blit(score_surface, score_rect)
+
+        prompt_surface = self.small_font.render("PRESS START TO CONTINUE", False, ColorSettings.TEXT)
+        prompt_rect = prompt_surface.get_rect(center=(cx, cy + 30))
+        self.screen.blit(prompt_surface, prompt_rect)
+
+    def _draw_initials_screen(self) -> None:
+        """Render the initials entry screen for a qualifying high score."""
+        overlay = pygame.Surface(ScreenSettings.RESOLUTION, pygame.SRCALPHA)
+        overlay.fill(ColorSettings.OVERLAY)
+        self.screen.blit(overlay, (0, 0))
+
+        cx = ScreenSettings.WIDTH // 2
+        cy = ScreenSettings.HEIGHT // 2
+
+        header_surface = self.large_font.render("NEW HIGH SCORE", False, ColorSettings.TEXT)
+        header_rect = header_surface.get_rect(center=(cx, cy - 70))
+        self.screen.blit(header_surface, header_rect)
+
+        score_surface = self.hud_font.render(f"SCORE  {self.score}", False, ColorSettings.TEXT)
+        score_rect = score_surface.get_rect(center=(cx, cy - 28))
+        self.screen.blit(score_surface, score_rect)
+
+        prompt_surface = self.small_font.render("ENTER YOUR INITIALS", False, ColorSettings.TEXT)
+        prompt_rect = prompt_surface.get_rect(center=(cx, cy + 8))
+        self.screen.blit(prompt_surface, prompt_rect)
+
+        initials_surface = self.large_font.render(self.initials, False, ColorSettings.TEXT)
+        initials_rect = initials_surface.get_rect(center=(cx, cy + 50))
+        self.screen.blit(initials_surface, initials_rect)
+
+        cursor_x_offset = (self.initials_index - 1) * 24
+        caret_surface = self.small_font.render("^", False, ColorSettings.TEXT)
+        caret_rect = caret_surface.get_rect(center=(cx + cursor_x_offset, cy + 76))
+        self.screen.blit(caret_surface, caret_rect)
+
+        hint_surface = self.small_font.render("DPAD/ARROWS TO CHANGE  START TO CONFIRM", False, ColorSettings.TEXT)
+        hint_rect = hint_surface.get_rect(center=(cx, cy + 100))
+        self.screen.blit(hint_surface, hint_rect)
+
+    def _draw_leaderboard_screen(self) -> None:
+        """Render the full leaderboard screen with top-ten entries."""
+        self.screen.fill(ColorSettings.BLACK)
+        cx = ScreenSettings.WIDTH // 2
+
+        title_surface = self.large_font.render("LEADERBOARD", False, ColorSettings.TEXT)
+        title_rect = title_surface.get_rect(center=(cx, 55))
+        self.screen.blit(title_surface, title_rect)
+
+        leaderboard = self.save_data.get("leaderboard", [])
+        if isinstance(leaderboard, list):
+            for index, entry in enumerate(leaderboard[:10], start=1):
+                if not isinstance(entry, dict):
+                    continue
+                name = str(entry.get("name", "AAA"))
+                score_value = int(entry.get("score", 0))
+                row_surface = self.small_font.render(
+                    f"{index:2}. {name}  {score_value}",
+                    False,
+                    ColorSettings.TEXT,
+                )
+                row_rect = row_surface.get_rect(center=(cx, 95 + (index - 1) * 18))
+                self.screen.blit(row_surface, row_rect)
+
+        prompt_surface = self.small_font.render("PRESS START TO PLAY AGAIN", False, ColorSettings.TEXT)
+        prompt_rect = prompt_surface.get_rect(center=(cx, ScreenSettings.HEIGHT - 35))
+        self.screen.blit(prompt_surface, prompt_rect)
+
     def _draw_frame(self) -> None:
         """Draw the full game frame and present it to the display."""
-        self._draw_playfield()
-        self._draw_cursor()
-        self._draw_hud()
-        self._draw_overlay_message()
+        if self.game_state == GameState.TITLE:
+            self._draw_title_screen()
+        elif self.game_state == GameState.GAME_OVER:
+            self._draw_playfield()
+            self._draw_hud()
+            self._draw_game_over_screen()
+        elif self.game_state == GameState.INITIALS:
+            self._draw_playfield()
+            self._draw_hud()
+            self._draw_initials_screen()
+        elif self.game_state == GameState.LEADERBOARD:
+            self._draw_leaderboard_screen()
+        else:
+            self._draw_playfield()
+            self._draw_cursor()
+            self._draw_hud()
+            self._draw_overlay_message()
         self.crt.draw()
         pygame.display.flip()
 

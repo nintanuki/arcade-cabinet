@@ -18,6 +18,7 @@ COLOR_PALETTE = {
 	"wall_positive": (60, 130, 255),
 	"cursor": (255, 255, 255),
 	"text": (245, 245, 245),
+	"text_prompt": (0, 230, 230),
 	"warning": (255, 120, 120),
 	"overlay": (0, 0, 0, 160),
 }
@@ -52,6 +53,7 @@ class ColorSettings:
 	WALL_GROW_POSITIVE = COLOR_PALETTE["wall_positive"]
 	CURSOR = COLOR_PALETTE["cursor"]
 	TEXT = COLOR_PALETTE["text"]
+	TEXT_PROMPT = COLOR_PALETTE["text_prompt"]
 	WARNING = COLOR_PALETTE["warning"]
 	OVERLAY = COLOR_PALETTE["overlay"]
 
@@ -73,6 +75,9 @@ class ControlSettings:
 	BUTTON_X = 2
 	BUTTON_SELECT = 6
 	BUTTON_START = 7
+	BUTTON_L1 = 4
+	BUTTON_R1 = 5
+	BUTTON_QUIT_COMBO = (7, 6, 4, 5)  # START + SELECT + L1 + R1
 	AXIS_CURSOR_X = 0
 	AXIS_CURSOR_Y = 1
 	ANALOG_DEADZONE = 0.25
@@ -114,13 +119,15 @@ class AudioSettings:
 	"""Paths and volume controls for Jezz Ball music and sound effects."""
 
 	MUSIC_PATH = Path("music") / "pong_bg_music.ogg"
+	MUSIC_HALF_VOLUME_TOGGLE = True
+	MUSIC_BASE_VOLUME = 0.5
 	SFX_WALL_START = Path("sound") / "pong.ogg"
 	SFX_WALL_COMPLETE = Path("sound") / "pong.ogg"
+	SFX_BALL_HIT_CURSOR = Path("sound") / "explosion.wav"
 	SFX_LEVEL_CLEAR = Path("sound") / "score.ogg"
 	SFX_PAUSE_IN = Path("sound") / "sfx_sounds_pause2_in.wav"
 	SFX_PAUSE_OUT = Path("sound") / "sfx_sounds_pause2_out.wav"
-	MUSIC_VOLUME = 0.35
-	SFX_VOLUME = 0.45
+	SFX_VOLUME = 0.5
 
 
 @dataclass(frozen=True)
