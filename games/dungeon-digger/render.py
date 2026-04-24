@@ -566,5 +566,3 @@ class RenderManager:
                 self.screen.blit(line_surf, (start_x, y_pos))
 
             y_pos += line_height
-
-        # Shop progression now happens only by selecting the CONTINUE row.
