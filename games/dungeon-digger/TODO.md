@@ -133,6 +133,10 @@ These notes capture confirmed progress without changing checkbox status unless a
 - Continue reducing complexity in `GameManager` before adding new mechanics.
 - Prioritize unresolved gameplay bugs before balance/features.
 
-# Note
-Make shopkeeper and NPCs drop hints.
-
+# Notes & Ideas
+- Make shopkeeper and NPCs drop hints.
+- Add save game feature. Player enters their name to create a new file, and it autosaves after every dungeon cleared ( decide if this is before or after the shop, probably after, before next nevel loads, so player keeps their purchases but might get a different dungeon on reload and have better luck)
+- Allow player to toggle light source, so B doesn't always automatically light lantern > torch > match
+- ^ Maybe have an indicator or highlight on the item in the inventory window with the toggle, and group light sources
+- Figure out how the tutorial will work
+- With the addition of the "tutorial" dungeon and easier levels loaded at start, more dirt tiles = more treasure meaning the player can buy the $10,000 invisibility cloak by level 2! Make it more expensive? The game is also more boring now that it starts with less "challenging" maps, just lots of digging in open space with low threat of monsters.
