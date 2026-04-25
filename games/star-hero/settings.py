@@ -34,6 +34,16 @@ class PlayerSettings:
     JOYSTICK_DEADZONE = 0.2
     CONFUSION_TIMEOUT = 4000 # how long the confusion effect lasts after being hit by a blue alien attack (in milliseconds)
 
+class ControllerSettings:
+    """Holds all the settings related to the game controller, including button mappings and joystick axes."""
+    A_BUTTON = 0
+    X_BUTTON = 2
+    Y_BUTTON = 3
+    L1_BUTTON = 4
+    R1_BUTTON = 5
+    LEFT_STICK_X = 0
+    LEFT_STICK_Y = 1
+
 class AlienSettings:
     """
     Defines all the settings related to the alien enemies,

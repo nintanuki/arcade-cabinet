@@ -457,54 +457,82 @@ class Player(pygame.sprite.Sprite):
 
     def get_input(self):
         """Handles player input for movement and shooting. Called every frame in update()"""
-        keys = pygame.key.get_pressed()
-        base  = PlayerSettings.SPEED
-        d     = -1 if self.confused else 1
+        keys = pygame.key.get_pressed() # Get keyboard state once to avoid multiple calls per frame
+        base_speed = PlayerSettings.SPEED # Base speed before any boosts or brakes
+        direction = -1 if self.confused else 1  # Confusion inverts all movement
 
-        # --- Collect all controller state in one pass ---
-        ctrl_left_boost = ctrl_right_boost = ctrl_forward_boost = False
-        ctrl_brake = ctrl_shoot = False
-        joy_x = joy_y = 0.0
+        # --- Collect all controller state in a single pass ---
+        # Rather than looping over joysticks multiple times, we gather everything here.
+        left_boost_held = right_boost_held = forward_boost_held = False
+        brake_held = shoot_held = False
+        joystick_x = joystick_y = 0.0
 
+        # We loop through all connected joysticks and check the relevant buttons and axes.
         for i in range(pygame.joystick.get_count()):
             joy = pygame.joystick.Joystick(i)
-            ctrl_left_boost    |= joy.get_button(4)  # L1
-            ctrl_right_boost   |= joy.get_button(5)  # R1
-            ctrl_forward_boost |= joy.get_button(3)  # Y
-            ctrl_brake         |= joy.get_button(2)  # X
-            ctrl_shoot         |= joy.get_button(0)
-            x, y = joy.get_axis(0), joy.get_axis(1)
-            if abs(x) > PlayerSettings.JOYSTICK_DEADZONE: joy_x = x
-            if abs(y) > PlayerSettings.JOYSTICK_DEADZONE: joy_y = y
+            left_boost_held    |= joy.get_button(ControllerSettings.L1_BUTTON)
+            right_boost_held   |= joy.get_button(ControllerSettings.R1_BUTTON)
+            forward_boost_held |= joy.get_button(ControllerSettings.Y_BUTTON)
+            brake_held         |= joy.get_button(ControllerSettings.X_BUTTON)
+            shoot_held         |= joy.get_button(ControllerSettings.A_BUTTON)
+            x, y = joy.get_axis(ControllerSettings.LEFT_STICK_X), joy.get_axis(ControllerSettings.LEFT_STICK_Y)
+            if abs(x) > PlayerSettings.JOYSTICK_DEADZONE: joystick_x = x
+            if abs(y) > PlayerSettings.JOYSTICK_DEADZONE: joystick_y = y
 
-        # --- Boost / brake meter ---
-        boost_pressed = ctrl_left_boost or ctrl_right_boost or ctrl_forward_boost
-        self.update_meter_state(boost_pressed, keys[pygame.K_g] or ctrl_brake)
+        # --- Update the boost/brake meter based on what's being held ---
+        any_boost_held = left_boost_held or right_boost_held or forward_boost_held
+        self.update_meter_state(any_boost_held, keys[pygame.K_g] or brake_held)
         self.world_speed_multiplier = self.get_world_speed_multiplier()
-        boost_ok = self.boost_active and self.boost_meter > 0
 
-        # --- Movement ---
-        def spd(condition):
-            return base * (PlayerSettings.SPEED_BOOST if boost_ok and condition else 1)
+        # Boost only applies if the meter has charge and the system is active
+        boost_available = self.boost_active and self.boost_meter > 0
 
-        if keys[pygame.K_w] or keys[pygame.K_UP]:   self.rect.y -= base * d
-        if keys[pygame.K_s] or keys[pygame.K_DOWN]:  self.rect.y += base * d
-        if keys[pygame.K_a] or keys[pygame.K_LEFT]:  self.rect.x -= spd(ctrl_left_boost)  * d
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: self.rect.x += spd(ctrl_right_boost) * d
+        # --- Helper: returns boosted or base speed depending on whether the condition is met ---
+        def boosted_speed(boost_condition):
+            if boost_available and boost_condition:
+                return base_speed * PlayerSettings.SPEED_BOOST
+            return base_speed
 
-        if joy_x: self.rect.x += joy_x * spd((joy_x < 0 and ctrl_left_boost) or (joy_x > 0 and ctrl_right_boost)) * d
-        if joy_y: self.rect.y += joy_y * spd(ctrl_forward_boost and joy_y < 0) * d
+        # --- Keyboard movement (WASD / Arrow Keys) ---
+        # Vertical movement has no boost, so we always use base_speed
+        if keys[pygame.K_w] or keys[pygame.K_UP]:
+            self.rect.y -= base_speed * direction
+        if keys[pygame.K_s] or keys[pygame.K_DOWN]:
+            self.rect.y += base_speed * direction
+
+        # Horizontal movement can be boosted per-direction via L1/R1
+        if keys[pygame.K_a] or keys[pygame.K_LEFT]:
+            self.rect.x -= boosted_speed(left_boost_held) * direction
+        if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+            self.rect.x += boosted_speed(right_boost_held) * direction
+
+        # --- Controller left stick movement ---
+        # Boost applies to horizontal left/right based on stick direction + button held
+        if joystick_x:
+            moving_left  = joystick_x < 0 and left_boost_held
+            moving_right = joystick_x > 0 and right_boost_held
+            self.rect.x += joystick_x * boosted_speed(moving_left or moving_right) * direction
+
+        # Boost applies to forward (upward) stick movement via Y button
+        if joystick_y:
+            moving_forward = forward_boost_held and joystick_y < 0
+            self.rect.y += joystick_y * boosted_speed(moving_forward) * direction
 
         # --- Shooting ---
-        shoot_pressed = keys[pygame.K_SPACE] or ctrl_shoot
+        # Space bar or controller A button both trigger shooting
+        shoot_pressed = keys[pygame.K_SPACE] or shoot_held
 
+        # Rainbow beam fires automatically via handle_auto_shooting(), so we just
+        # track the button state here and skip manual fire logic entirely
         if self.rainbow_beam_active:
             self.shoot_button_held = shoot_pressed
             return
 
+        # Auto fire (rapid_fire level 3) allows holding the button
         if self.rapid_fire_level == 3:
             if shoot_pressed and self.ready:
                 self.trigger_shot()
+        # All other modes require a fresh press (no holding)
         else:
             if shoot_pressed and not self.shoot_button_held and self.ready:
                 self.trigger_shot()
