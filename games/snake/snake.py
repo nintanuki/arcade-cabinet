@@ -5,6 +5,60 @@ from pygame.math import Vector2
 
 
 ASSET_DIR = Path(__file__).resolve().parent
+SELECT_BUTTON = 6
+LEFT_STICK_HORIZONTAL_AXIS = 0
+LEFT_STICK_VERTICAL_AXIS = 1
+AXIS_DEADZONE = 0.6
+
+
+def refresh_joysticks():
+	joysticks = []
+	for index in range(pygame.joystick.get_count()):
+		joystick = pygame.joystick.Joystick(index)
+		joystick.init()
+		joysticks.append(joystick)
+	return joysticks
+
+
+def set_snake_direction(snake, direction):
+	if direction.y and snake.direction.y != -direction.y:
+		snake.direction = direction
+	elif direction.x and snake.direction.x != -direction.x:
+		snake.direction = direction
+
+
+def controller_direction(joysticks):
+	strongest_axis_value = 0.0
+	selected_direction = None
+
+	for joystick in joysticks:
+		try:
+			horizontal = joystick.get_axis(LEFT_STICK_HORIZONTAL_AXIS)
+			vertical = joystick.get_axis(LEFT_STICK_VERTICAL_AXIS)
+		except pygame.error:
+			continue
+
+		if abs(horizontal) >= AXIS_DEADZONE and abs(horizontal) >= abs(vertical):
+			if abs(horizontal) > strongest_axis_value:
+				strongest_axis_value = abs(horizontal)
+				selected_direction = Vector2(1,0) if horizontal > 0 else Vector2(-1,0)
+		elif abs(vertical) >= AXIS_DEADZONE:
+			if abs(vertical) > strongest_axis_value:
+				strongest_axis_value = abs(vertical)
+				selected_direction = Vector2(0,1) if vertical > 0 else Vector2(0,-1)
+
+	return selected_direction
+
+
+def toggle_fullscreen(is_fullscreen):
+	global screen
+	window_size = (cell_number * cell_size,cell_number * cell_size)
+	if is_fullscreen:
+		screen = pygame.display.set_mode(window_size)
+		return False
+
+	screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+	return True
 
 class SNAKE:
 	def __init__(self):
@@ -178,6 +232,7 @@ class MAIN:
 
 pygame.mixer.pre_init(44100,-16,2,512)
 pygame.init()
+pygame.joystick.init()
 cell_size = 40
 cell_number = 20
 screen = pygame.display.set_mode((cell_number * cell_size,cell_number * cell_size))
@@ -189,27 +244,38 @@ SCREEN_UPDATE = pygame.USEREVENT
 pygame.time.set_timer(SCREEN_UPDATE,150)
 
 main_game = MAIN()
+joysticks = refresh_joysticks()
+controller_axis_engaged = False
+is_fullscreen = False
 
 while True:
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			pygame.quit()
 			sys.exit()
+		if event.type == pygame.JOYDEVICEADDED or event.type == pygame.JOYDEVICEREMOVED:
+			joysticks = refresh_joysticks()
 		if event.type == SCREEN_UPDATE:
 			main_game.update()
 		if event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_UP:
-				if main_game.snake.direction.y != 1:
-					main_game.snake.direction = Vector2(0,-1)
+				set_snake_direction(main_game.snake, Vector2(0,-1))
 			if event.key == pygame.K_RIGHT:
-				if main_game.snake.direction.x != -1:
-					main_game.snake.direction = Vector2(1,0)
+				set_snake_direction(main_game.snake, Vector2(1,0))
 			if event.key == pygame.K_DOWN:
-				if main_game.snake.direction.y != -1:
-					main_game.snake.direction = Vector2(0,1)
+				set_snake_direction(main_game.snake, Vector2(0,1))
 			if event.key == pygame.K_LEFT:
-				if main_game.snake.direction.x != 1:
-					main_game.snake.direction = Vector2(-1,0)
+				set_snake_direction(main_game.snake, Vector2(-1,0))
+		if event.type == pygame.JOYBUTTONDOWN:
+			if event.button == SELECT_BUTTON:
+				is_fullscreen = toggle_fullscreen(is_fullscreen)
+
+	analog_direction = controller_direction(joysticks)
+	if analog_direction is None:
+		controller_axis_engaged = False
+	elif not controller_axis_engaged:
+		set_snake_direction(main_game.snake, analog_direction)
+		controller_axis_engaged = True
 
 	screen.fill((175,215,70))
 	main_game.draw_elements()
