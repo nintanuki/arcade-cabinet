@@ -43,7 +43,7 @@ class Audio:
 
         """Music"""
         self.intro_music = pygame.mixer.Sound(
-            os.path.join(AudioSettings.MUSIC_DIR, 'star_fox_snes_controls_and_map_select.mp3')
+            os.path.join(AudioSettings.MUSIC_DIR, 'star_hero_intro.ogg')
         )
         self.intro_music.set_volume(self._half_effective_volume())
         self.channel_0 = pygame.mixer.Channel(0)
@@ -64,7 +64,7 @@ class Audio:
         # Not tied to a channel?
         # self.player_down = pygame.mixer.Sound('audio/game_over.ogg')
         self.player_down = pygame.mixer.Sound(
-            os.path.join(AudioSettings.MUSIC_DIR, 'star_fox_snes_player_down.mp3')
+            os.path.join(AudioSettings.MUSIC_DIR, 'game_over.ogg')
         )
         self.player_down.set_volume(self._effective_volume())
 
@@ -113,8 +113,8 @@ class Audio:
         self.powerup_weapon.set_volume(self._half_effective_volume())
         self.powerup_heart.set_volume(self._half_effective_volume())
 
-        self.tractor_beam = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'galaga_tractor_beam.mp3'))
-        self.tractor_beam.set_volume(self._half_effective_volume())
+        # Tractor beam sound disabled (file deleted)
+        self.tractor_beam = None
         self.channel_9 = pygame.mixer.Channel(9)
 
     def load_random_bgm(self) -> None:
@@ -160,7 +160,7 @@ class Audio:
         self.low_health_alarm1.set_volume(half_effective_volume)
         self.low_health_alarm2.set_volume(half_effective_volume)
         self.ufo_sound.set_volume(half_effective_volume)
-        self.tractor_beam.set_volume(half_effective_volume)
+        # self.tractor_beam.set_volume(half_effective_volume)  # Disabled
         self.pause_sound.set_volume(half_effective_volume)
         self.unpause_sound.set_volume(half_effective_volume)
         self.powerup_twin.set_volume(half_effective_volume)

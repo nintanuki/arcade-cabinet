@@ -349,10 +349,10 @@ class SessionStateManager:
                         self.unpause_game()
                     if event.button == 6:
                         pygame.display.toggle_fullscreen()
-                    if event.button == 4:
-                        game.adjust_master_volume(-0.1, show_overlay=True)
-                    if event.button == 5:
-                        game.adjust_master_volume(0.1, show_overlay=True)
+                    # if event.button == 4:
+                    #     game.adjust_master_volume(-0.1, show_overlay=True)
+                    # if event.button == 5:
+                    #     game.adjust_master_volume(0.1, show_overlay=True)
 
             game.screen.fill((0, 0, 0))
             game.style.update('pause', game.scores.save_data, game.scores.score)
@@ -973,8 +973,8 @@ class GameManager:
 
                 # 3. Handle Audio outside the loop based on the collective state
                 if any_alien_confusing:
-                    if not self.audio.channel_9.get_busy():
-                        self.audio.channel_9.play(self.audio.tractor_beam, loops=-1)
+                    # Tractor beam sound disabled (file deleted)
+                    pass
                 else:
                     # Only stop if the channel is actually busy and NO aliens are attacking
                     if self.audio.channel_9.get_busy():

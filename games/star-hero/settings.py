@@ -208,16 +208,6 @@ class AudioSettings:
     MUSIC_DIR = os.path.join(BASE_DIR, 'music')
     AUDIO_DIR = os.path.join(BASE_DIR, 'audio')
     BGM_PLAYLIST = [
-        'star_fox_64_katina.mp3',
-        # 'star_fox_64_meteo.mp3',
-        # 'star_fox_64_sector_x.mp3',
-        # 'star_fox_64_solar_and_sector_y.mp3',
-        # 'star_fox_64_titania_and_macbeth.mp3',
-        # 'star_fox_snes_corneria.mp3',
-        # 'star_fox_snes_meteor.mp3',
-        'Area 6 - Star Fox 64 Restored OST.mp3',
-        'star_fox_snes_space_armada.mp3',
-        # 'star_fox_snes_venom_asteroid_venom_orbital.mp3',
         'star_hero.mp3'
     ]
 
