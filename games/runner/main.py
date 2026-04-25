@@ -38,6 +38,7 @@ class Player(pygame.sprite.Sprite):
 
     def player_input(self):
         keys = pygame.key.get_pressed()
+        horizontal_input = 0.0
 
         controller_jump = False
         for joystick_id in range(pygame.joystick.get_count()):
@@ -52,10 +53,10 @@ class Player(pygame.sprite.Sprite):
 
         # Move left / right
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.rect.x -= 5
+            horizontal_input -= 1
 
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.rect.x += 5
+            horizontal_input += 1
 
          # Controller left stick
         for joystick_id in range(pygame.joystick.get_count()):
@@ -63,10 +64,11 @@ class Player(pygame.sprite.Sprite):
 
             axis_x = joystick.get_axis(0)  # left stick horizontal
 
-            if axis_x < -0.25:
-                self.rect.x -= 1
-            elif axis_x > 0.25:
-                self.rect.x += 1
+            if abs(axis_x) >= PlayerSettings.CONTROLLER_DEADZONE:
+                horizontal_input = axis_x
+                break
+
+        self.rect.x += int(round(horizontal_input * PlayerSettings.HORIZONTAL_SPEED))
         
         # Keep player on screen
         if self.rect.left < 0:
@@ -249,8 +251,9 @@ class Game:
                 else:
                     self.screen.blit(score_message, score_rect)
 
-            # Apply CRT effect at the very end of the draw cycle
-            self.crt.draw() 
+            # The CRT look doesn't really work for this game
+            # Add toggle in settings later
+            # self.crt.draw() 
 
             pygame.display.update()
             self.clock.tick(60)
