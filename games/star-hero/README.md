@@ -64,14 +64,15 @@ py star-hero/main.py
 
 - Left analog stick: Move
 - `A`: Fire
-- `R1`: Boost (faster movement)
-- `L1`: "Brake" (slows world speed)
+- `Y`: Forward boost (move up faster while held)
+- `L1`: Left boost (move left faster while held)
+- `R1`: Right boost (move right faster while held)
+- `X`: Brake (slows world speed while held)
 - `B`: Launch bomb / detonate active bomb
-- Select/Back: Toggle fullscreen
+- `Select/Back`: Toggle fullscreen
 - `D-Pad Up` / `Down`: Volume up/down
 - `Start`: Pause/unpause during run, start/restart from menu
-- `Select`: Toggle full screen
-- `L1 + R1 + Start + Select` Close window and re-open game launcher menu
+- `L1 + R1 + Start + Select`: Close window and re-open game launcher menu
 
 ## Game Flow
 

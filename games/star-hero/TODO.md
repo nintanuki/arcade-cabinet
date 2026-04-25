@@ -9,6 +9,10 @@
 * Volume bar overlaps with level display
 
 ### Ideas for Future Changes and Additions
+* Change every reference to break with "time slow"
+* Boost should only drain meter if player is MOVING IN THE DIRECTION that boost is giving them. If the hold L1 while moving right, the boost drains and they don't go any faster...
+* Changed controller buttons but did not update or add features to keyboard for boost, volume, etc
+* Cleanup player's get input method, it's a mess
 * No sound effect for bombs or when you lose a powerup yet
 * Bombs should only be dropped by red enemies. Because they are not tiered, red enemies need to have different chances for each of their powerups. Commonality should be bombs > hearts > shield
 * Add indicator for when the shield is about to disappear
