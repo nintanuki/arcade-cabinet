@@ -53,7 +53,7 @@ py star-hero/main.py
 
 - `WASD` or Arrow Keys: Move
 - `Space`: Fire
-- Hold `F`: Move faster
+- Hold `F`: Move faster (left, right or forward)
 - Hold `G`: Brake (slows world speed while meter is available)
 - `B`: Launch bomb / detonate active bomb
 - `F11`: Toggle fullscreen
