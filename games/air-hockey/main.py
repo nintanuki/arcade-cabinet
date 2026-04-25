@@ -1,11 +1,16 @@
 """Air Hockey game loop, input handling, and match presentation."""
 
+from pathlib import Path
+
 import pygame
 import sys
 import random
 from settings import *
 from audio import Audio
 from crt import CRT
+
+
+ASSET_DIR = Path(__file__).resolve().parent
 
 
 class Game:
@@ -66,9 +71,9 @@ class Game:
         self.opponent_score = 0
 
         # Fonts
-        self.score_font = pygame.font.Font('Pixeled.ttf', 12)
-        self.countdown_font = pygame.font.Font('Pixeled.ttf', 32)
-        self.title_font = pygame.font.Font('Pixeled.ttf', 28)
+        self.score_font = pygame.font.Font(str(ASSET_DIR / 'Pixeled.ttf'), 12)
+        self.countdown_font = pygame.font.Font(str(ASSET_DIR / 'Pixeled.ttf'), 32)
+        self.title_font = pygame.font.Font(str(ASSET_DIR / 'Pixeled.ttf'), 28)
 
         # Countdown timer variables
         self.countdown = 0

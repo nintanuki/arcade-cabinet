@@ -1,11 +1,15 @@
 """Pong entry point, event loop, and high-level runtime orchestration."""
 
 import sys
+from pathlib import Path
 from settings import *
 from sprites import Player, Opponent, Ball
 from game import GameManager
 from crt import CRT
 from audio import Audio
+
+
+ASSET_DIR = Path(__file__).resolve().parent
 
 
 START_BUTTON = 7
@@ -98,14 +102,14 @@ up_pressed = False
 down_pressed = False
 
 # Game objects
-player = Player('graphics/paddle.png', SCREEN_WIDTH - 20, SCREEN_HEIGHT / 2, 5)
-opponent = Opponent('graphics/paddle.png', 20, SCREEN_WIDTH / 2, 5)
+player = Player(str(ASSET_DIR / 'graphics' / 'paddle.png'), SCREEN_WIDTH - 20, SCREEN_HEIGHT / 2, 5)
+opponent = Opponent(str(ASSET_DIR / 'graphics' / 'paddle.png'), 20, SCREEN_WIDTH / 2, 5)
 paddle_group = pygame.sprite.Group()
 paddle_group.add(player)
 paddle_group.add(opponent)
 
 # TODO(refactor): Move font/screen dependencies out of Ball and into a UI/controller layer.
-ball = Ball('graphics/ball.png', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 4, 4, paddle_group, audio, basic_font, screen)
+ball = Ball(str(ASSET_DIR / 'graphics' / 'ball.png'), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 4, 4, paddle_group, audio, basic_font, screen)
 ball_sprite = pygame.sprite.GroupSingle()
 ball_sprite.add(ball)
 

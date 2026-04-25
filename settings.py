@@ -40,7 +40,7 @@ class FontSettings:
     FILE = Path("font") / "Pixeled.ttf"
     TITLE_SIZE = 44
     SUBTITLE_SIZE = 14
-    OPTION_SIZE = 24
+    OPTION_SIZE = 16
     HINT_SIZE = 10
 
 
@@ -53,7 +53,7 @@ class MenuSettings:
     SUBTITLE_CENTER_Y = 285
     OPTIONS_LEFT_X = 250
     OPTIONS_START_Y = 320
-    OPTION_SPACING = 70
+    OPTION_SPACING = 30
     CURSOR_SYMBOL = ">"
     CURSOR_GAP = 20
     PREVIEW_BOX_X = 770
@@ -97,16 +97,23 @@ class GameSettings:
     OPTIONS = [
         ("Star Hero", Path("games") / "star-hero" / "main.py"),
         ("Dungeon Digger", Path("games") / "dungeon-digger" / "main.py"),
+        ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
+        ("Snake", Path("games") / "snake" / "snake.py"),
+        ("Space Invaders", Path("games") / "space-invaders" / "main.py"),
+        ("Runner", Path("games") / "runner" / "main.py"),
         ("Pong", Path("games") / "pong" / "main.py"),
         ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
-        "Star Hero": Path("graphics") / "star_hero_screenshot.png",
-        "Dungeon Digger": Path("graphics") / "dungeon_digger_screenshot.png",
-        "Pong": Path("graphics") / "pong_screenshot.png",
-        "Jezz Ball": Path("graphics") / "jezz_ball_screenshot.png",
-        "Air Hockey": Path("graphics") / "air_hockey_screenshot.png",
+        "Star Hero": Path("previews") / "star_hero.png",
+        "Dungeon Digger": Path("previews") / "dungeon_digger.png",
+        "Jezz Ball": Path("previews") / "jezz_ball.png",
+        "Snake": Path("previews") / "snake.png",
+        "Space Invaders": Path("previews") / "space_invaders.png",
+        "Runner": Path("previews") / "runner.png",
+        "Pong": Path("previews") / "pong.png",
+        "Air Hockey": Path("previews") / "air_hockey.png",
     }
 
     NO_CONTROLLER_SUPPORT_GAMES = {

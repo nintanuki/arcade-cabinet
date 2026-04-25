@@ -1,7 +1,12 @@
 """CRT overlay effect helpers for Pong."""
 
+from pathlib import Path
+
 from settings import *
 import random
+
+
+ASSET_DIR = Path(__file__).resolve().parent
 
 class CRT:
     """Draw a CRT-style flicker and scanline overlay."""
@@ -17,7 +22,7 @@ class CRT:
         """
         super().__init__()
         self.screen = screen
-        self.tv = pygame.image.load('graphics/tv.png').convert_alpha()
+        self.tv = pygame.image.load(str(ASSET_DIR / 'graphics' / 'tv.png')).convert_alpha()
         self.tv = pygame.transform.scale(self.tv,(SCREEN_WIDTH,SCREEN_HEIGHT))
 
     def create_crt_lines(self):

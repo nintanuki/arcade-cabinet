@@ -1,8 +1,13 @@
 """CRT overlay effect helpers for Air Hockey rendering."""
 
+from pathlib import Path
+
 import pygame
 from settings import *
 import random
+
+
+ASSET_DIR = Path(__file__).resolve().parent
 
 class CRT:
     """Draw a scanline-and-flicker effect over the game surface."""
@@ -18,7 +23,7 @@ class CRT:
         """
         super().__init__()
         self.screen = screen
-        self.tv = pygame.image.load('graphics/tv.png').convert_alpha()
+        self.tv = pygame.image.load(str(ASSET_DIR / 'graphics' / 'tv.png')).convert_alpha()
         self.tv = pygame.transform.scale(self.tv,(SCREEN_WIDTH,SCREEN_HEIGHT))
 
     def create_crt_lines(self):
