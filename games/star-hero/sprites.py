@@ -464,38 +464,90 @@ class Player(pygame.sprite.Sprite):
         # Determine direction: if confused, multiply by -1 to invert
         direction_mod = -1 if self.confused else 1
         
-        # Check all connected joysticks for the X button (Button 2)
-        controller_boost = False
+        controller_left_boost = False
+        controller_right_boost = False
+        controller_forward_boost = False
         controller_brake = False
+
         for i in range(pygame.joystick.get_count()):
             joy = pygame.joystick.Joystick(i)
-            if joy.get_button(5): # 5 is usually 'R1' on Logitech/Xbox layouts
-                controller_boost = True
-            if joy.get_button(4): # 4 is usually 'L1' on Logitech/Xbox layouts
+
+            if joy.get_button(4): # L1
+                controller_left_boost = True
+
+            if joy.get_button(5): # R1
+                controller_right_boost = True
+
+            if joy.get_button(3): # Y
+                controller_forward_boost = True
+
+            if joy.get_button(2): # X
                 controller_brake = True
 
-        boost_pressed = keys[pygame.K_f] or controller_boost
         brake_pressed = keys[pygame.K_g] or controller_brake
+        boost_pressed = (
+            controller_left_boost or
+            controller_right_boost or
+            controller_forward_boost
+        )
+
         self.update_meter_state(boost_pressed, brake_pressed)
         self.world_speed_multiplier = self.get_world_speed_multiplier()
 
-        if self.boost_active:
-            current_speed *= PlayerSettings.SPEED_BOOST
-
         # Player Movement Input
+        boost_available = self.boost_active and self.boost_meter > 0
+
         # Keyboard input (WASD or Arrow Keys)
-        if (keys[pygame.K_w] or keys[pygame.K_UP]): self.rect.y -= (current_speed * direction_mod)
-        if (keys[pygame.K_s] or keys[pygame.K_DOWN]): self.rect.y += (current_speed * direction_mod)
-        if (keys[pygame.K_a] or keys[pygame.K_LEFT]): self.rect.x -= (current_speed * direction_mod)
-        if (keys[pygame.K_d] or keys[pygame.K_RIGHT]): self.rect.x += (current_speed * direction_mod)
+        if (keys[pygame.K_w] or keys[pygame.K_UP]):
+            self.rect.y -= (current_speed * direction_mod)
+
+        if (keys[pygame.K_s] or keys[pygame.K_DOWN]):
+            self.rect.y += (current_speed * direction_mod)
+
+        left_speed = current_speed
+        right_speed = current_speed
+        forward_speed = current_speed
+
+        if boost_available and controller_left_boost:
+            left_speed *= PlayerSettings.SPEED_BOOST
+
+        if boost_available and controller_right_boost:
+            right_speed *= PlayerSettings.SPEED_BOOST
+
+        if boost_available and controller_forward_boost:
+            forward_speed *= PlayerSettings.SPEED_BOOST
+
+        if (keys[pygame.K_a] or keys[pygame.K_LEFT]):
+            self.rect.x -= (left_speed * direction_mod)
+
+        if (keys[pygame.K_d] or keys[pygame.K_RIGHT]):
+            self.rect.x += (right_speed * direction_mod)
 
         # Controller input (Left Joystick)
         for i in range(pygame.joystick.get_count()):
             joy = pygame.joystick.Joystick(i)
-            if abs(joy.get_axis(0)) > PlayerSettings.JOYSTICK_DEADZONE:
-                self.rect.x += (joy.get_axis(0) * current_speed * direction_mod)
-            if abs(joy.get_axis(1)) > PlayerSettings.JOYSTICK_DEADZONE:
-                self.rect.y += (joy.get_axis(1) * current_speed * direction_mod)
+
+            x_axis = joy.get_axis(0)
+            y_axis = joy.get_axis(1)
+
+            x_speed = current_speed
+            y_speed = current_speed
+
+            if boost_available and x_axis < 0 and controller_left_boost:
+                x_speed *= PlayerSettings.SPEED_BOOST
+
+            if boost_available and x_axis > 0 and controller_right_boost:
+                x_speed *= PlayerSettings.SPEED_BOOST
+
+            if boost_available and y_axis < 0 and controller_forward_boost:
+                y_speed *= PlayerSettings.SPEED_BOOST
+
+            if abs(x_axis) > PlayerSettings.JOYSTICK_DEADZONE:
+                self.rect.x += (x_axis * x_speed * direction_mod)
+
+            if abs(y_axis) > PlayerSettings.JOYSTICK_DEADZONE:
+                self.rect.y += (y_axis * y_speed * direction_mod)
+
 
         # 3. MANUAL Shooting (Only for standard weapon)
         # Trigger one shot per button press, not while the button is held.
