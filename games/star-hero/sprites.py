@@ -481,7 +481,20 @@ class Player(pygame.sprite.Sprite):
 
         # --- Update the boost/brake meter based on what's being held ---
         keyboard_boost_held = keys[pygame.K_f]
-        any_boost_held = left_boost_held or right_boost_held or forward_boost_held or keyboard_boost_held
+
+        # Check if the player is actually moving in a boostable direction.
+        # Boost should only drain the meter if it's doing something useful.
+        moving_left    = keys[pygame.K_a] or keys[pygame.K_LEFT]  or joystick_x < -PlayerSettings.JOYSTICK_DEADZONE
+        moving_right   = keys[pygame.K_d] or keys[pygame.K_RIGHT] or joystick_x >  PlayerSettings.JOYSTICK_DEADZONE
+        moving_forward = keys[pygame.K_w] or keys[pygame.K_UP]    or joystick_y < -PlayerSettings.JOYSTICK_DEADZONE
+
+        # Boost only counts if a boost button matches the direction being moved
+        left_boost_active    = left_boost_held    and moving_left
+        right_boost_active   = right_boost_held   and moving_right
+        forward_boost_active = forward_boost_held and moving_forward
+        keyboard_boost_active = keyboard_boost_held and (moving_left or moving_right or moving_forward)
+
+        any_boost_held = left_boost_active or right_boost_active or forward_boost_active or keyboard_boost_active
         self.update_meter_state(any_boost_held, keys[pygame.K_g] or brake_held)
         self.world_speed_multiplier = self.get_world_speed_multiplier()
 
