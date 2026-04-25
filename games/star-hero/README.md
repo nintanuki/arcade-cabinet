@@ -56,7 +56,7 @@ py star-hero/main.py
 - Hold `F`: Move faster
 - Hold `G`: Brake (slows world speed while meter is available)
 - `B`: Launch bomb / detonate active bomb
-- `Alt + Enter`: Toggle fullscreen
+- `F11`: Toggle fullscreen
 - `Esc`: Pause/unpause
 - `+` / `-`: Increase or decrease volume
 
