@@ -5,7 +5,7 @@ from pathlib import Path
 from sys import exit
 from random import randint, choice
 
-from settings import ScreenSettings, PlayerSettings, AssetPaths
+from settings import ScreenSettings, PlayerSettings, AssetPaths, BackgroundSettings
 from crt import CRT
 
 ASSET_DIR = Path(__file__).resolve().parent
@@ -171,6 +171,8 @@ class Game:
         # Backgrounds
         self.sky_surf = pygame.image.load(str(ASSET_DIR / 'graphics' / 'Sky.png')).convert()
         self.ground_surf = pygame.image.load(str(ASSET_DIR / 'graphics' / 'ground.png')).convert()
+        self.sky_x: float = 0.0
+        self.ground_x: float = 0.0
 
         # Intro Screen
         self.player_stand = pygame.image.load(str(ASSET_DIR / 'graphics' / 'Player' / 'player_stand.png')).convert_alpha()
@@ -285,8 +287,23 @@ class Game:
                         self.start_time = int(pygame.time.get_ticks() / 1000)
 
             if self.game_active:
-                self.screen.blit(self.sky_surf, (0, 0))
-                self.screen.blit(self.ground_surf, (0, 300))
+                self.sky_x -= BackgroundSettings.SKY_SCROLL_SPEED
+                self.ground_x -= BackgroundSettings.GROUND_SCROLL_SPEED
+
+                sky_w = self.sky_surf.get_width()
+                ground_w = self.ground_surf.get_width()
+
+                sky_start = int(self.sky_x) % sky_w - sky_w
+                x = sky_start
+                while x < ScreenSettings.WIDTH:
+                    self.screen.blit(self.sky_surf, (x, 0))
+                    x += sky_w
+
+                ground_start = int(self.ground_x) % ground_w - ground_w
+                x = ground_start
+                while x < ScreenSettings.WIDTH:
+                    self.screen.blit(self.ground_surf, (x, 300))
+                    x += ground_w
                 self.score = self.display_score()
                 
                 self.player.draw(self.screen)

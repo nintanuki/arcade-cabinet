@@ -17,6 +17,10 @@ class PlayerSettings:
     CONTROLLER_DEADZONE: float = 0.25
     SPEED_MULTIPLIER: float = 2.0
 
+class BackgroundSettings:
+    SKY_SCROLL_SPEED: float = 0.5    # pixels per frame
+    GROUND_SCROLL_SPEED: float = 2.0  # pixels per frame
+
 class AssetPaths:
     BASE_DIR = Path(__file__).resolve().parent
     TV = BASE_DIR / 'graphics' / 'tv.png'
