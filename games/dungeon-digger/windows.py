@@ -312,7 +312,7 @@ class MapWindow:
         Args:
             surface: Target surface for map window rendering.
         """
-        if self.game.is_in_shop_phase:
+        if self.game.in_shop_phase:
             label_font = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
             label_surf = label_font.render("ITEM SHOP", False, ColorSettings.TEXT_TITLE)
             label_rect = label_surf.get_rect(center=(

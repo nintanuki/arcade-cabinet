@@ -133,23 +133,6 @@ class GameManager:
         """
         return pygame.time.get_ticks() < self.transition_end_time
 
-    @property
-    def is_in_treasure_conversion_phase(self) -> bool:
-        """Report whether the treasure conversion UI phase is active.
-
-        Returns:
-            bool: True when conversion UI/input handling should run.
-        """
-        return self.in_treasure_conversion
-
-    @property
-    def is_in_shop_phase(self) -> bool:
-        """Report whether the between-level shop phase is active.
-
-        Returns:
-            bool: True when shop UI/input handling should run.
-        """
-        return self.in_shop_phase
 
     def start_gameplay_from_title(self, skip_tutorial: bool = False) -> None:
         """Leave title screen and begin active gameplay.
@@ -533,7 +516,7 @@ class GameManager:
                         elif event.key in (pygame.K_DOWN, pygame.K_s):
                             self.handle_title_menu_move(1)
 
-                    if self.is_in_shop_phase:
+                    if self.in_shop_phase:
                         self.between_level_manager.handle_shop_event(event)
 
                     if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
@@ -549,7 +532,7 @@ class GameManager:
                     if event.button == InputSettings.JOY_BUTTON_FULLSCREEN:
                         pygame.display.toggle_fullscreen()
 
-                    if self.is_in_shop_phase:
+                    if self.in_shop_phase:
                         self.between_level_manager.handle_shop_event(event)
 
                     if event.button in (InputSettings.JOY_BUTTON_START, InputSettings.JOY_BUTTON_CONFIRM):
@@ -564,7 +547,7 @@ class GameManager:
                     elif hat_y == -1:
                         self.handle_title_menu_move(1)
 
-                if event.type == pygame.JOYHATMOTION and self.is_in_shop_phase:
+                if event.type == pygame.JOYHATMOTION and self.in_shop_phase:
                     self.between_level_manager.handle_shop_event(event)
 
                 if event.type == pygame.JOYHATMOTION:
@@ -583,10 +566,10 @@ class GameManager:
             # -------- Per-frame update --------
             self.message_log.update()
             if self.ui_state == 'playing' and self.game_active:
-                if not self.is_transitioning and not self.is_busy and not self.is_in_treasure_conversion_phase and not self.is_in_shop_phase:
+                if not self.is_transitioning and not self.is_busy and not self.in_treasure_conversion and not self.in_shop_phase:
                     self.all_sprites.update()
 
-                if not self.is_transitioning and not self.is_in_treasure_conversion_phase and not self.is_in_shop_phase:
+                if not self.is_transitioning and not self.in_treasure_conversion and not self.in_shop_phase:
                     # Always advance movement animation to complete in-flight motion.
                     # TODO: Replace hasattr('animate') with a protocol/base class for animatable sprites.
                     for sprite in self.all_sprites:

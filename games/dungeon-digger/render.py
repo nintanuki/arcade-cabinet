@@ -180,7 +180,7 @@ class RenderManager:
         self.screen.blit(high_score_surf, (UISettings.SCORE_X, UISettings.SCORE_Y))
         self.screen.blit(score_surf, (UISettings.CURRENT_SCORE_X, UISettings.CURRENT_SCORE_Y))
         self.screen.blit(level_surf, (UISettings.LEVEL_X, UISettings.LEVEL_Y))
-        if not self.game.is_in_shop_phase:
+        if not self.game.in_shop_phase:
             self.screen.blit(dungeon_name_surf, dungeon_name_rect)
 
     def draw_fog_of_war(self):
@@ -418,7 +418,7 @@ class RenderManager:
 
     def draw_treasure_conversion(self):
         """Draw the treasure to gold conversion display in the action window."""
-        if not self.game.is_in_treasure_conversion_phase:
+        if not self.game.in_treasure_conversion:
             return
 
         # Dim gameplay area while conversion UI is active.
@@ -514,7 +514,7 @@ class RenderManager:
 
     def draw_shop_menu(self):
         """Draw the between-level shop inside the action window."""
-        if not self.game.is_in_shop_phase:
+        if not self.game.in_shop_phase:
             return
 
         overlay = pygame.Surface((UISettings.ACTION_WINDOW_WIDTH, UISettings.ACTION_WINDOW_HEIGHT), pygame.SRCALPHA)
