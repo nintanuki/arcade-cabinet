@@ -469,9 +469,9 @@ class Player(pygame.sprite.Sprite):
         controller_brake = False
         for i in range(pygame.joystick.get_count()):
             joy = pygame.joystick.Joystick(i)
-            if joy.get_button(2): # 2 is usually 'X' on Logitech/Xbox layouts
+            if joy.get_button(5): # 5 is usually 'R1' on Logitech/Xbox layouts
                 controller_boost = True
-            if joy.get_button(3): # 3 is usually 'Y' on Logitech/Xbox layouts
+            if joy.get_button(4): # 4 is usually 'L1' on Logitech/Xbox layouts
                 controller_brake = True
 
         boost_pressed = keys[pygame.K_f] or controller_boost

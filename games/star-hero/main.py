@@ -779,6 +779,13 @@ class GameManager:
                     continue
 
                 # Controller input
+                if event.type == pygame.JOYHATMOTION:
+                    # event.value is (x, y). y=1 is Up, y=-1 is Down
+                    if event.value[1] == 1: 
+                        self.adjust_master_volume(0.1, show_overlay=True)
+                    elif event.value[1] == -1:
+                        self.adjust_master_volume(-0.1, show_overlay=True)
+
                 if event.type == pygame.JOYBUTTONDOWN:
                     if self.quit_combo_pressed():
                         self.close_game()
@@ -797,14 +804,6 @@ class GameManager:
                     # Select Button (Toggle Fullscreen)
                     if event.button == 6:
                         pygame.display.toggle_fullscreen()
-
-                    # L1 Button (Decrease Volume)
-                    if event.button == 4:
-                        self.adjust_master_volume(-0.1, show_overlay=True)
-
-                    # R1 Button (Increase Volume)
-                    if event.button == 5:
-                        self.adjust_master_volume(0.1, show_overlay=True)
 
                     # B Button (Launch bomb / detonate active bomb)
                     if event.button == 1 and self.session.game_active:
