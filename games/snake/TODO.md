@@ -1,0 +1,11 @@
+- [ ] F11 or select to full screen
+- [ ] Decide if CRT looks good or not
+- [ ] reset button combo to return to launcher
+- [ ] add music ("Red Sands")
+- [ ] change color scheme, maybe a green snake on a black or monochrome background (CRT will look better)
+- [ ] add controller support
+- [ ] add mute options
+- [ ] add high score option with initials
+- [ ] re-organize with game manager, classes and constants
+- [ ] add pause option
+- [ ] add more sound effects and animation for feedback

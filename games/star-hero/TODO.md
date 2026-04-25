@@ -9,6 +9,8 @@
 * Volume bar overlaps with level display
 
 ### Ideas for Future Changes and Additions
+* Add indicator for when the shield is about to disappear
+* Change boost/time slow to L1 and R1 (which is which?) and move volume to D-Pad
 * Add sound effects for all new powerups and effects
 * Add floating scores
 * Score bonus + message for destroying multiple enemies at once?
