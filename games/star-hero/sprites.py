@@ -457,115 +457,51 @@ class Player(pygame.sprite.Sprite):
 
     def get_input(self):
         """Handles player input for movement and shooting. Called every frame in update()"""
-        # 1. Determine current speed from timed boost state
         keys = pygame.key.get_pressed()
-        current_speed = PlayerSettings.SPEED
+        base  = PlayerSettings.SPEED
+        d     = -1 if self.confused else 1
 
-        # Determine direction: if confused, multiply by -1 to invert
-        direction_mod = -1 if self.confused else 1
-        
-        controller_left_boost = False
-        controller_right_boost = False
-        controller_forward_boost = False
-        controller_brake = False
+        # --- Collect all controller state in one pass ---
+        ctrl_left_boost = ctrl_right_boost = ctrl_forward_boost = False
+        ctrl_brake = ctrl_shoot = False
+        joy_x = joy_y = 0.0
 
         for i in range(pygame.joystick.get_count()):
             joy = pygame.joystick.Joystick(i)
+            ctrl_left_boost    |= joy.get_button(4)  # L1
+            ctrl_right_boost   |= joy.get_button(5)  # R1
+            ctrl_forward_boost |= joy.get_button(3)  # Y
+            ctrl_brake         |= joy.get_button(2)  # X
+            ctrl_shoot         |= joy.get_button(0)
+            x, y = joy.get_axis(0), joy.get_axis(1)
+            if abs(x) > PlayerSettings.JOYSTICK_DEADZONE: joy_x = x
+            if abs(y) > PlayerSettings.JOYSTICK_DEADZONE: joy_y = y
 
-            if joy.get_button(4): # L1
-                controller_left_boost = True
-
-            if joy.get_button(5): # R1
-                controller_right_boost = True
-
-            if joy.get_button(3): # Y
-                controller_forward_boost = True
-
-            if joy.get_button(2): # X
-                controller_brake = True
-
-        brake_pressed = keys[pygame.K_g] or controller_brake
-        boost_pressed = (
-            controller_left_boost or
-            controller_right_boost or
-            controller_forward_boost
-        )
-
-        self.update_meter_state(boost_pressed, brake_pressed)
+        # --- Boost / brake meter ---
+        boost_pressed = ctrl_left_boost or ctrl_right_boost or ctrl_forward_boost
+        self.update_meter_state(boost_pressed, keys[pygame.K_g] or ctrl_brake)
         self.world_speed_multiplier = self.get_world_speed_multiplier()
+        boost_ok = self.boost_active and self.boost_meter > 0
 
-        # Player Movement Input
-        boost_available = self.boost_active and self.boost_meter > 0
+        # --- Movement ---
+        def spd(condition):
+            return base * (PlayerSettings.SPEED_BOOST if boost_ok and condition else 1)
 
-        # Keyboard input (WASD or Arrow Keys)
-        if (keys[pygame.K_w] or keys[pygame.K_UP]):
-            self.rect.y -= (current_speed * direction_mod)
+        if keys[pygame.K_w] or keys[pygame.K_UP]:   self.rect.y -= base * d
+        if keys[pygame.K_s] or keys[pygame.K_DOWN]:  self.rect.y += base * d
+        if keys[pygame.K_a] or keys[pygame.K_LEFT]:  self.rect.x -= spd(ctrl_left_boost)  * d
+        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: self.rect.x += spd(ctrl_right_boost) * d
 
-        if (keys[pygame.K_s] or keys[pygame.K_DOWN]):
-            self.rect.y += (current_speed * direction_mod)
+        if joy_x: self.rect.x += joy_x * spd((joy_x < 0 and ctrl_left_boost) or (joy_x > 0 and ctrl_right_boost)) * d
+        if joy_y: self.rect.y += joy_y * spd(ctrl_forward_boost and joy_y < 0) * d
 
-        left_speed = current_speed
-        right_speed = current_speed
-        forward_speed = current_speed
-
-        if boost_available and controller_left_boost:
-            left_speed *= PlayerSettings.SPEED_BOOST
-
-        if boost_available and controller_right_boost:
-            right_speed *= PlayerSettings.SPEED_BOOST
-
-        if boost_available and controller_forward_boost:
-            forward_speed *= PlayerSettings.SPEED_BOOST
-
-        if (keys[pygame.K_a] or keys[pygame.K_LEFT]):
-            self.rect.x -= (left_speed * direction_mod)
-
-        if (keys[pygame.K_d] or keys[pygame.K_RIGHT]):
-            self.rect.x += (right_speed * direction_mod)
-
-        # Controller input (Left Joystick)
-        for i in range(pygame.joystick.get_count()):
-            joy = pygame.joystick.Joystick(i)
-
-            x_axis = joy.get_axis(0)
-            y_axis = joy.get_axis(1)
-
-            x_speed = current_speed
-            y_speed = current_speed
-
-            if boost_available and x_axis < 0 and controller_left_boost:
-                x_speed *= PlayerSettings.SPEED_BOOST
-
-            if boost_available and x_axis > 0 and controller_right_boost:
-                x_speed *= PlayerSettings.SPEED_BOOST
-
-            if boost_available and y_axis < 0 and controller_forward_boost:
-                y_speed *= PlayerSettings.SPEED_BOOST
-
-            if abs(x_axis) > PlayerSettings.JOYSTICK_DEADZONE:
-                self.rect.x += (x_axis * x_speed * direction_mod)
-
-            if abs(y_axis) > PlayerSettings.JOYSTICK_DEADZONE:
-                self.rect.y += (y_axis * y_speed * direction_mod)
-
-
-        # 3. MANUAL Shooting (Only for standard weapon)
-        # Trigger one shot per button press, not while the button is held.
-        keyboard_shoot_pressed = keys[pygame.K_SPACE]
-        controller_shoot_pressed = False
-        for i in range(pygame.joystick.get_count()):
-            joy = pygame.joystick.Joystick(i)
-            if joy.get_button(0):
-                controller_shoot_pressed = True
-                break
-
-        shoot_pressed = keyboard_shoot_pressed or controller_shoot_pressed
+        # --- Shooting ---
+        shoot_pressed = keys[pygame.K_SPACE] or ctrl_shoot
 
         if self.rainbow_beam_active:
             self.shoot_button_held = shoot_pressed
             return
 
-        # Auto mode allows holding fire, but does not fire on its own.
         if self.rapid_fire_level == 3:
             if shoot_pressed and self.ready:
                 self.trigger_shot()
