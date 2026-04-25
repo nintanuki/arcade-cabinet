@@ -59,7 +59,6 @@ class LauncherCRT:
 		self.create_crt_lines(tv)
 		self.screen.blit(tv, (0, 0))
 
-5
 class ArcadeLauncher:
 	"""Coordinate input, menu rendering, and launching selected games."""
 

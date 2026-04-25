@@ -145,13 +145,23 @@ class Game:
         
         # Game State
         self.game_active = False
+        self.paused = False
         self.start_time = 0
         self.score = 0
         self.font = pygame.font.Font(str(ASSET_DIR / 'font' / 'Pixeltype.ttf'), 50)
 
         # Music
         self.bg_music = pygame.mixer.Sound(str(ASSET_DIR / 'audio' / 'music.wav'))
-        self.bg_music.play(loops=-1)
+        self.music_channel = pygame.mixer.Channel(0)
+        self.music_channel.play(self.bg_music, loops=-1)
+
+        self.pause_sound = pygame.mixer.Sound(str(ASSET_DIR / 'audio' / 'sfx_sounds_pause2_in.wav'))
+        self.pause_sound.set_volume(0.5)
+        self.pause_sound_channel = pygame.mixer.Channel(6)
+
+        self.unpause_sound = pygame.mixer.Sound(str(ASSET_DIR / 'audio' / 'sfx_sounds_pause2_out.wav'))
+        self.unpause_sound.set_volume(0.5)
+        self.unpause_sound_channel = pygame.mixer.Channel(7)
 
         # Groups
         self.player = pygame.sprite.GroupSingle()
@@ -186,6 +196,44 @@ class Game:
         pygame.quit()
         exit()
 
+    def pause(self):
+        """Pause gameplay and wait for resume input."""
+        self.paused = not self.paused
+        while self.paused:
+            if self.quit_combo_pressed():
+                self.close_game()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.close_game()
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_F11:
+                        pygame.display.toggle_fullscreen()
+                    if event.key == pygame.K_ESCAPE:
+                        self.unpause_game()
+
+                if event.type == pygame.JOYBUTTONDOWN:
+                    if self.quit_combo_pressed():
+                        self.close_game()
+                    if event.button == 7:
+                        self.unpause_game()
+                    if event.button == 6:
+                        pygame.display.toggle_fullscreen()
+
+            self.screen.fill((0, 0, 0))
+            pause_text = self.font.render('PAUSED', False, (111, 196, 169))
+            pause_text_rect = pause_text.get_rect(center=(400, 200))
+            self.screen.blit(pause_text, pause_text_rect)
+            pygame.display.update()
+            self.clock.tick(60)
+
+    def unpause_game(self):
+        """Resume gameplay from the pause state."""
+        self.music_channel.unpause()
+        self.unpause_sound_channel.play(self.unpause_sound)
+        self.paused = False
+
     def display_score(self):
         current_time = int(pygame.time.get_ticks() / 1000) - self.start_time
         score_surf = self.font.render(f'Score: {current_time}', False, (64, 64, 64))
@@ -213,6 +261,16 @@ class Game:
                     pygame.display.toggle_fullscreen()
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                     pygame.display.toggle_fullscreen()
+
+                if self.game_active and event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self.music_channel.pause()
+                    self.pause_sound_channel.play(self.pause_sound)
+                    self.pause()
+
+                if self.game_active and event.type == pygame.JOYBUTTONDOWN and event.button == 7:
+                    self.music_channel.pause()
+                    self.pause_sound_channel.play(self.pause_sound)
+                    self.pause()
                 
                 if self.game_active:
                     if event.type == self.obstacle_timer:
