@@ -1,4 +1,5 @@
 ### Issues That Need to be Fixed
+* Volume goes up and down when player enters initials!
 * Confusion beam sound still plays when game is paused
 * Player can hold button down for laser, disable this so they have to press the buttone very time
 * Logic for leaderboard scores and initials uses a lot of code and functions. Put into it's own class?
