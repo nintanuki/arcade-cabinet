@@ -9,6 +9,7 @@
 * Volume bar overlaps with level display
 
 ### Ideas for Future Changes and Additions
+* No sound effect for bombs or when you lose a powerup yet
 * Bombs should only be dropped by red enemies. Because they are not tiered, red enemies need to have different chances for each of their powerups. Commonality should be bombs > hearts > shield
 * Add indicator for when the shield is about to disappear
 * Change boost/time slow to L1 and R1 (which is which?) and move volume to D-Pad
