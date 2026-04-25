@@ -13,6 +13,7 @@ class PlayerSettings:
     WALK_ANIMATION_SPEED: float = 0.1
     JUMP_VELOCITY: int = -20
     INITIAL_POSITION: tuple[int, int] = (80, 300) # Starting position on the ground
+    SPEED_MULTIPLIER: float = 2.0
 
 class AssetPaths:
     BASE_DIR = Path(__file__).resolve().parent

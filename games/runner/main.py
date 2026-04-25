@@ -27,11 +27,53 @@ class Player(pygame.sprite.Sprite):
         self.jump_sound = pygame.mixer.Sound(str(ASSET_DIR / 'audio' / 'jump.mp3'))
         self.jump_sound.set_volume(0.5)
 
+        pygame.joystick.init()
+
+        self.joysticks = []
+        for i in range(pygame.joystick.get_count()):
+            joystick = pygame.joystick.Joystick(i)
+            joystick.init()
+            self.joysticks.append(joystick)
+            print(f"Controller connected: {joystick.get_name()}")
+
     def player_input(self):
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE] and self.rect.bottom >= 300:
+
+        controller_jump = False
+        for joystick_id in range(pygame.joystick.get_count()):
+            joystick = pygame.joystick.Joystick(joystick_id)
+            if joystick.get_button(0):
+                controller_jump = True
+
+        # Allow jumping if space is pressed or controller jump button is pressed, and player is on the ground
+        if (keys[pygame.K_SPACE] or controller_jump) and self.rect.bottom >= 300:
             self.gravity = -20
             self.jump_sound.play()
+
+        # Move left / right
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            self.rect.x -= 5
+
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            self.rect.x += 5
+
+         # Controller left stick
+        for joystick_id in range(pygame.joystick.get_count()):
+            joystick = pygame.joystick.Joystick(joystick_id)
+
+            axis_x = joystick.get_axis(0)  # left stick horizontal
+
+            if axis_x < -0.25:
+                self.rect.x -= 1
+            elif axis_x > 0.25:
+                self.rect.x += 1
+        
+        # Keep player on screen
+        if self.rect.left < 0:
+            self.rect.left = 0
+
+        if self.rect.right > 800:
+            self.rect.right = 800
 
     def apply_gravity(self):
         self.gravity += 1
@@ -84,7 +126,17 @@ class Obstacle(pygame.sprite.Sprite):
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((ScreenSettings.WIDTH, ScreenSettings.HEIGHT))
+
+        pygame.joystick.init()
+
+        self.joysticks = []
+        for i in range(pygame.joystick.get_count()):
+            joystick = pygame.joystick.Joystick(i)
+            joystick.init()
+            self.joysticks.append(joystick)
+            print(f"Controller connected: {joystick.get_name()}")
+
+        self.screen = pygame.display.set_mode((ScreenSettings.RESOLUTION), pygame.SCALED)
         pygame.display.set_caption(ScreenSettings.TITLE)
         self.clock = pygame.time.Clock()
         self.crt = CRT(self.screen) # Now self.screen exists!
@@ -117,6 +169,21 @@ class Game:
         self.obstacle_timer = pygame.USEREVENT + 1
         pygame.time.set_timer(self.obstacle_timer, 1500)
 
+    def quit_combo_pressed(self):
+        """Return True if START + SELECT + L1 + R1 are held on any controller."""
+        required_buttons = (7, 6, 4, 5)  # Start, Select, L1, R1
+
+        for joystick in self.joysticks:
+            if all(joystick.get_button(button) for button in required_buttons):
+                return True
+
+        return False
+
+    def close_game(self):
+        """Close this game so the launcher can reopen."""
+        pygame.quit()
+        exit()
+
     def display_score(self):
         current_time = int(pygame.time.get_ticks() / 1000) - self.start_time
         score_surf = self.font.render(f'Score: {current_time}', False, (64, 64, 64))
@@ -132,16 +199,28 @@ class Game:
 
     def run(self):
         while True:
+            if self.quit_combo_pressed():
+                self.close_game()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
+
+                if event.type == pygame.JOYBUTTONDOWN and event.button == 6:
+                    pygame.display.toggle_fullscreen()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+                    pygame.display.toggle_fullscreen()
                 
                 if self.game_active:
                     if event.type == self.obstacle_timer:
                         self.obstacle_group.add(Obstacle(choice(['fly', 'snail', 'snail', 'snail'])))
                 else:
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    if (
+                        (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
+                        or
+                        (event.type == pygame.JOYBUTTONDOWN and event.button == 0)
+                    ):
                         self.game_active = True
                         self.start_time = int(pygame.time.get_ticks() / 1000)
 
@@ -163,7 +242,7 @@ class Game:
                 
                 # Show score logic here...
                 score_message = self.font.render(f'Your score: {self.score}', False, (111, 196, 169))
-                score_rect = score_message.get_rect(center=(300, 330))
+                score_rect = score_message.get_rect(center=(400, 330))
                 if self.score == 0:
                     msg = self.font.render('Press space to run', False, (111, 196, 169))
                     self.screen.blit(msg, (250, 330))
