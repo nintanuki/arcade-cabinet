@@ -222,7 +222,7 @@ if __name__ == '__main__':
 
 		screen.fill((30,30,30))
 		game.run()
-		#crt.draw()
+		crt.draw()
 			
 		pygame.display.flip()
 		clock.tick(60)

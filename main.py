@@ -304,7 +304,7 @@ class ArcadeLauncher:
 			text_surface = self.option_font.render(label.upper(), False, color)
 			text_rect = text_surface.get_rect(midleft=(MenuSettings.OPTIONS_LEFT_X, option_y))
 			self.screen.blit(text_surface, text_rect)
-			self.menu_option_hitboxes[index] = text_rect.inflate(36, 10)
+			self.menu_option_hitboxes[index] = text_rect.inflate(36, 16)
 
 			if is_selected:
 				cursor_surface = self.option_font.render(MenuSettings.CURSOR_SYMBOL, False, ColorSettings.YELLOW)
