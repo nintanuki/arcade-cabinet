@@ -480,7 +480,8 @@ class Player(pygame.sprite.Sprite):
             if abs(y) > PlayerSettings.JOYSTICK_DEADZONE: joystick_y = y
 
         # --- Update the boost/brake meter based on what's being held ---
-        any_boost_held = left_boost_held or right_boost_held or forward_boost_held
+        keyboard_boost_held = keys[pygame.K_f]
+        any_boost_held = left_boost_held or right_boost_held or forward_boost_held or keyboard_boost_held
         self.update_meter_state(any_boost_held, keys[pygame.K_g] or brake_held)
         self.world_speed_multiplier = self.get_world_speed_multiplier()
 
@@ -496,15 +497,15 @@ class Player(pygame.sprite.Sprite):
         # --- Keyboard movement (WASD / Arrow Keys) ---
         # Vertical movement has no boost, so we always use base_speed
         if keys[pygame.K_w] or keys[pygame.K_UP]:
-            self.rect.y -= base_speed * direction
+            self.rect.y -= boosted_speed(forward_boost_held or keyboard_boost_held) * direction
         if keys[pygame.K_s] or keys[pygame.K_DOWN]:
             self.rect.y += base_speed * direction
 
         # Horizontal movement can be boosted per-direction via L1/R1
         if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            self.rect.x -= boosted_speed(left_boost_held) * direction
+            self.rect.x -= boosted_speed(left_boost_held or keyboard_boost_held) * direction
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            self.rect.x += boosted_speed(right_boost_held) * direction
+            self.rect.x += boosted_speed(right_boost_held or keyboard_boost_held) * direction
 
         # --- Controller left stick movement ---
         # Boost applies to horizontal left/right based on stick direction + button held
