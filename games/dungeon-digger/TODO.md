@@ -143,5 +143,6 @@ These notes capture confirmed progress without changing checkbox status unless a
 - remove allowing A to start the game, must press start
 - replace pokemon and minecraft sounds
 
-# Tutorial Plan
-- since the message window gets busy easily and the player sometimes ignores or misses those messages, the tutorial text should pop up on the action window, in large text with a "press A to continue" prompt. Decide what the messages will be, in what order and what will prompt them.
+# Refactoring notes
+- L1 R1 controls to cycle light source are in main.y, they should be in sprites.py in the player input function
+- Add reset option for keyboard too (ESC?)

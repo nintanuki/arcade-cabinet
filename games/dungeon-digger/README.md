@@ -49,10 +49,11 @@ Some invalid actions do not advance a turn (for example, trying to use an item y
 
 ### Actions
 - Space: Dig (or attempt to unlock door if standing on it with a key)
-- E: Use Key Detector
-- T: Use best available light source
+- F: Use selected light source
 - R: Use Monster Repellent
+- X: Use Key Detector
 - C: Use Invisibility Cloak
+- Q / E: Cycle light source
 
 ### Shop
 - Up/Down or W/S: Move selection
@@ -67,25 +68,26 @@ Some invalid actions do not advance a turn (for example, trying to use an item y
 ## Controls (Controller)
 
 ### Global
-- Start (Button 7): Start / continue / confirm end-screen flow
-- Back/Select (Button 6): Toggle fullscreen
-- L2 trigger axis (platform dependent): Toggle audio mute
+- Start: Start / continue / confirm end-screen flow
+- Back/Select: Toggle fullscreen
+- R2: Toggle audio mute
 
 ### Movement
 - D-pad
 
 ### Actions
-- A (Button 0): Dig
-- B (Button 1): Light
-- X (Button 2): Key Detector
-- Y (Button 3): Monster Repellent
-- LB (Button 4): Invisibility Cloak
+- A: Dig
+- B: Light
+- X: Key Detector
+- Y: Monster Repellent
+- L1 / R1: Cycle light source
+- L2: Invisibility Cloak
 
 ### Shop
 - D-pad Up/Down: Move selection
-- A (Button 0): Buy selected item
-- X (Button 2): Buy 5 selected item
-- Start (Button 7): Continue to next level
+- A: Buy selected item
+- X: Buy 5 selected item
+- Start: Continue to next level
 
 ## Items and Effects
 

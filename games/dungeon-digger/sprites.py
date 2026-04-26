@@ -178,9 +178,9 @@ class Player(pygame.sprite.Sprite):
         # -------- Keyboard action input --------
         elif keys[pygame.K_SPACE]:
             action = 'dig'
-        elif keys[pygame.K_e]:
+        elif keys[pygame.K_x]:
             action = 'detector'
-        elif keys[pygame.K_t]:
+        elif keys[pygame.K_f]:
             action = 'light'
         elif keys[pygame.K_r]:
             action = 'repellent'

@@ -572,6 +572,19 @@ class GameManager:
 
                     self.score_manager.handle_initials_event(event)
 
+                    # Cycle the player's active light source while in gameplay.
+                    if (
+                        self.ui_state == 'playing'
+                        and self.game_active
+                        and not self.is_transitioning
+                        and not self.in_treasure_conversion
+                        and not self.in_shop_phase
+                    ):
+                        if event.key == pygame.K_q:
+                            self.player.cycle_selected_light_source(-1)
+                        elif event.key == pygame.K_e:
+                            self.player.cycle_selected_light_source(1)
+
                 # Controller button input routes.
                 if event.type == pygame.JOYBUTTONDOWN:
                     if self.quit_combo_pressed():
