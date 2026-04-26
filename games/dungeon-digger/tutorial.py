@@ -10,7 +10,7 @@ This module owns every piece of the tutorial feature:
 Anything that needs to change about the tutorial — copy, ordering, when cards
 fire, anti-mash delay, visuals — should live in this file. The rest of the
 codebase only knows about the small public API on TutorialManager:
-    is_blocking, update, on_turn_end, notify, try_dismiss, draw.
+    is_blocking, input_locked, update, on_turn_end, notify, handle_event, draw.
 
 The manager is created at the title screen when the player chooses PLAY
 (skip_tutorial=False). It then lives for the entire run regardless of which
@@ -27,6 +27,7 @@ from settings import (
     AudioSettings,
     ColorSettings,
     FontSettings,
+    InputSettings,
     LightSettings,
     MonsterSettings,
     UISettings,
@@ -187,6 +188,11 @@ class TutorialManager:
 
         self.flow_turns_until_next_card = TutorialSettings.FLOW_CARD_TURN_GAP
 
+        # Held-key lock: armed when a card is dismissed so the same press
+        # doesn't immediately count as a dig. Cleared once the player
+        # releases the key.
+        self._dismiss_input_locked = False
+
     # ---------------- Public API ---------------- #
 
     @property
@@ -233,21 +239,53 @@ class TutorialManager:
         self._show_next_from(self.flow_queue)
         self.flow_turns_until_next_card = TutorialSettings.FLOW_CARD_TURN_GAP
 
-    def try_dismiss(self) -> bool:
-        """Attempt to dismiss the current card.
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Consume a dismiss input if a card is on screen.
+
+        Args:
+            event: A pygame event from the main event pump.
 
         Returns:
-            True if the card was actually dismissed; False if there is no
-            card up or the anti-mash window has not elapsed.
+            True when the event was a dismiss press for the current card —
+            the caller should treat the event as fully handled. False
+            otherwise (no card up, wrong key, or still inside the anti-mash
+            window).
         """
-        if self.current_card is None:
+        if not self.is_blocking:
             return False
-        elapsed = pygame.time.get_ticks() - self.message_shown_at_ms
-        if elapsed < TutorialSettings.DISMISS_DELAY_MS:
+
+        is_keyboard_dismiss = (
+            event.type == pygame.KEYDOWN
+            and event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER)
+        )
+        is_controller_dismiss = (
+            event.type == pygame.JOYBUTTONDOWN
+            and event.button == InputSettings.JOY_BUTTON_A
+        )
+        if not (is_keyboard_dismiss or is_controller_dismiss):
             return False
-        self.current_card = None
-        self.current_text = ""
+
+        if self._try_dismiss():
+            # Arm the held-key lock so the same press doesn't bleed into a dig.
+            self._dismiss_input_locked = True
+        # The press was directed at the tutorial regardless of whether the
+        # anti-mash window had elapsed — report it as consumed so the
+        # caller doesn't double-handle it.
         return True
+
+    @property
+    def input_locked(self) -> bool:
+        """True while the dismiss key is still held after dismissing a card.
+
+        Player.read_input_intent consults this to drop held inputs until the
+        player releases the key.
+        """
+        if not self._dismiss_input_locked:
+            return False
+        if self._dismiss_key_still_held():
+            return True
+        self._dismiss_input_locked = False
+        return False
 
     def notify(self, event: str, **kwargs) -> None:
         """Hook for game-side events.
@@ -395,6 +433,32 @@ class TutorialManager:
         self.current_text = text
         self.shown_ids.add(card.id)
         self.message_shown_at_ms = pygame.time.get_ticks()
+
+    def _try_dismiss(self) -> bool:
+        """Drop the active card if the anti-mash window has elapsed.
+
+        Returns:
+            True if a card was actually dismissed, False otherwise.
+        """
+        if self.current_card is None:
+            return False
+        elapsed = pygame.time.get_ticks() - self.message_shown_at_ms
+        if elapsed < TutorialSettings.DISMISS_DELAY_MS:
+            return False
+        self.current_card = None
+        self.current_text = ""
+        return True
+
+    def _dismiss_key_still_held(self) -> bool:
+        """Return True while any dismiss key/button is currently held."""
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE] or keys[pygame.K_RETURN] or keys[pygame.K_KP_ENTER]:
+            return True
+        if pygame.joystick.get_count() > 0:
+            joystick = pygame.joystick.Joystick(0)
+            if joystick.get_button(InputSettings.JOY_BUTTON_A):
+                return True
+        return False
 
     def _wrap_text(self, text: str, font: pygame.font.Font, max_width: int) -> list[str]:
         """Greedy word-wrap so cards fit inside the panel width."""

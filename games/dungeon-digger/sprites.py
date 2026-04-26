@@ -115,6 +115,40 @@ class Player(pygame.sprite.Sprite):
         new_index = (current_index + direction) % len(owned)
         self.selected_light_source = owned[new_index]
 
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Handle edge-triggered player input (currently just light cycling).
+
+        Polled inputs (move/dig/light/etc.) are read fresh each frame in
+        read_input_intent. Light cycling needs one action per press, so
+        it lives here and is fed by GameManager's main event loop.
+        """
+        if not self._gameplay_input_allowed():
+            return
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+                self.cycle_selected_light_source(-1)
+            elif event.key == pygame.K_e:
+                self.cycle_selected_light_source(1)
+            return
+
+        if event.type == pygame.JOYBUTTONDOWN:
+            if event.button == InputSettings.JOY_BUTTON_L1:
+                self.cycle_selected_light_source(-1)
+            elif event.button == InputSettings.JOY_BUTTON_R1:
+                self.cycle_selected_light_source(1)
+
+    def _gameplay_input_allowed(self) -> bool:
+        """True only when the player is in active gameplay (no menus/transitions)."""
+        game = self.game
+        return (
+            game.ui_state == 'playing'
+            and game.game_active
+            and not game.is_transitioning
+            and not game.in_treasure_conversion
+            and not game.in_shop_phase
+        )
+
     def read_input_intent(self) -> PlayerIntent:
         """
         Read player input and translate it into movement or action intent.
@@ -133,24 +167,12 @@ class Player(pygame.sprite.Sprite):
         delta_y_tiles = 0
         action: PlayerAction | None = None
 
-        # Ignore held tutorial-dismiss inputs until released so the same
-        # A/SPACE press doesn't become an immediate dig.
-        if self.game.tutorial_dismiss_input_locked:
-            keyboard_still_held = (
-                keys[pygame.K_SPACE]
-                or keys[pygame.K_RETURN]
-                or keys[pygame.K_KP_ENTER]
-            )
-
-            controller_still_held = (
-                pygame.joystick.get_count() > 0
-                and pygame.joystick.Joystick(0).get_button(InputSettings.JOY_BUTTON_A)
-            )
-
-            if keyboard_still_held or controller_still_held:
-                return 0, 0, None
-
-            self.game.tutorial_dismiss_input_locked = False
+        # Skip a frame of input while the tutorial is still holding the
+        # dismiss key down — otherwise the press that closed a card would
+        # also count as a dig. The tutorial owns this state so it can
+        # release it on its own.
+        if self.game.tutorial is not None and self.game.tutorial.input_locked:
+            return 0, 0, None
 
         # -------- Keyboard movement input --------
         if keys[pygame.K_UP] or keys[pygame.K_w]:
@@ -243,6 +265,45 @@ class Player(pygame.sprite.Sprite):
         else:
             self.game.log_message("YOU CAN'T GO THAT WAY!")
             self.game.audio.play_boundary_sound()
+
+    def tick_status_effects(self) -> None:
+        """Decrement temporary status timers and surface their fade-out messages.
+
+        Called from GameManager.advance_turn after the player commits an
+        action so the player owns its own per-turn bookkeeping.
+        """
+        # Light source: shrink the radius proportionally each turn so the
+        # circle visibly fades before the source goes out.
+        if self.light_turns_left > 0:
+            self.light_turns_left -= 1
+
+            if self.light_turns_left > 0:
+                radius_per_turn = self.active_light_max_radius / self.active_light_max_duration
+                self.light_radius = radius_per_turn * self.light_turns_left
+            else:
+                self.light_radius = LightSettings.DEFAULT_RADIUS
+                self.game.log_message("YOUR LIGHT FLICKERS OUT...")
+
+        if self.repellent_turns > 0:
+            self.repellent_turns -= 1
+            if self.repellent_turns == 0:
+                self.game.log_message("THE SCENT OF THE REPELLENT FADES AWAY...")
+
+        if self.invisibility_turns > 0:
+            self.invisibility_turns -= 1
+            if self.invisibility_turns == 0:
+                self.game.log_message("THE INVISIBILITY WEARS OFF.")
+                # Cloak (reusable) starts cooling down immediately after
+                # wearing off; scrolls are one-shots and don't.
+                if self.invisibility_from_cloak:
+                    self.invisibility_cooldown_turns = (
+                        ItemSettings.INVISIBILITY_CLOAK_COOLDOWN
+                        + GameSettings.STATUS_EFFECT_TURN_BUFFER
+                    )
+                    self.invisibility_from_cloak = False
+
+        if self.invisibility_cooldown_turns > 0:
+            self.invisibility_cooldown_turns -= 1
 
     def process_turn_action(self) -> None:
         """
@@ -876,14 +937,14 @@ class Door(pygame.sprite.Sprite):
         """Initialize the door sprite with open and closed states."""
         super().__init__(groups)
         self.game = game
-        
+
         # Load and scale both versions of the door
         closed_surf = pygame.image.load(AssetPaths.CLOSED_DOOR).convert_alpha()
         open_surf = pygame.image.load(AssetPaths.OPEN_DOOR).convert_alpha()
-        
+
         self.closed_image = pygame.transform.scale(closed_surf, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
         self.open_image = pygame.transform.scale(open_surf, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
-        
+
         self.image = self.closed_image
         self.rect = self.image.get_rect(topleft = position)
         self.position = pygame.math.Vector2(self.rect.topleft)

@@ -69,9 +69,6 @@ class GameManager:
         self.initials_index = 0
         self.between_level_manager.initialize_state()
 
-        # -------- Tutorial --------
-        self.tutorial_dismiss_input_locked = False
-        
         # Pre-create the fog surface to avoid doing it every frame during rendering.
         self.fog_surface = pygame.Surface((UISettings.ACTION_WINDOW_WIDTH, UISettings.ACTION_WINDOW_HEIGHT), pygame.SRCALPHA)
 
@@ -405,40 +402,9 @@ class GameManager:
 
         self.map_memory.remember_visible_map_info()
 
-        # Handle Light Shrinking
-        if self.player.light_turns_left > 0:
-            self.player.light_turns_left -= 1
-            
-            if self.player.light_turns_left > 0:
-                # Calculate how much radius we have per turn of life
-                # We use the starting radius of the current light source
-                unit_radius = self.player.active_light_max_radius / self.player.active_light_max_duration
-                self.player.light_radius = unit_radius * self.player.light_turns_left
-            else:
-                # It hit zero
-                self.player.light_radius = LightSettings.DEFAULT_RADIUS
-                self.log_message("YOUR LIGHT FLICKERS OUT...")
-
-        # Handle Repellent Duration
-        if self.player.repellent_turns > 0:
-            self.player.repellent_turns -= 1
-            if self.player.repellent_turns == 0:
-                self.log_message("THE SCENT OF THE REPELLENT FADES AWAY...")
-
-        # Handle Invisibility Cloak Duration
-        if self.player.invisibility_turns > 0:
-            self.player.invisibility_turns -= 1
-            if self.player.invisibility_turns == 0:
-                self.log_message("THE INVISIBILITY WEARS OFF.")
-                if self.player.invisibility_from_cloak:
-                    self.player.invisibility_cooldown_turns = (
-                        ItemSettings.INVISIBILITY_CLOAK_COOLDOWN + GameSettings.STATUS_EFFECT_TURN_BUFFER
-                    )
-                    self.player.invisibility_from_cloak = False
-
-        # Handle Invisibility Cloak Cooldown
-        if self.player.invisibility_cooldown_turns > 0:
-            self.player.invisibility_cooldown_turns -= 1
+        # All temporary status timers (light radius, repellent, invisibility,
+        # cloak cooldown) belong to the player and tick themselves.
+        self.player.tick_status_effects()
 
         # Check NPC adjacency: trigger interaction when player moves to a tile adjacent to an NPC.
         if self.player.is_moving:
@@ -549,13 +515,11 @@ class GameManager:
                     if event.key == pygame.K_F11:
                         pygame.display.toggle_fullscreen()
 
-                    # Tutorial dismissal short-circuits all other keyboard
-                    # handlers while a card is up. SPACE is the advertised
-                    # dismiss key; ENTER is also accepted.
+                    # While a tutorial card is up it consumes ALL keyboard
+                    # input — even non-dismiss keys — so the player can't
+                    # accidentally play the game through the overlay.
                     if self.is_tutorial_blocking:
-                        if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER):
-                            if self.tutorial.try_dismiss():
-                                self.tutorial_dismiss_input_locked = True
+                        self.tutorial.handle_event(event)
                         continue
 
                     if self.ui_state == 'title':
@@ -572,18 +536,9 @@ class GameManager:
 
                     self.score_manager.handle_initials_event(event)
 
-                    # Cycle the player's active light source while in gameplay.
-                    if (
-                        self.ui_state == 'playing'
-                        and self.game_active
-                        and not self.is_transitioning
-                        and not self.in_treasure_conversion
-                        and not self.in_shop_phase
-                    ):
-                        if event.key == pygame.K_q:
-                            self.player.cycle_selected_light_source(-1)
-                        elif event.key == pygame.K_e:
-                            self.player.cycle_selected_light_source(1)
+                    # Light-source cycling lives on the player; gameplay-state
+                    # gating is handled inside Player.handle_event.
+                    self.player.handle_event(event)
 
                 # Controller button input routes.
                 if event.type == pygame.JOYBUTTONDOWN:
@@ -593,12 +548,10 @@ class GameManager:
                     if event.button == InputSettings.JOY_BUTTON_BACK:
                         pygame.display.toggle_fullscreen()
 
-                    # Tutorial dismissal short-circuits all gameplay button
-                    # handlers while a card is up.
+                    # Tutorial overlay consumes ALL controller buttons while
+                    # a card is on screen.
                     if self.is_tutorial_blocking:
-                        if event.button == InputSettings.JOY_BUTTON_A:
-                            if self.tutorial.try_dismiss():
-                                self.tutorial_dismiss_input_locked = True
+                        self.tutorial.handle_event(event)
                         continue
 
                     if self.in_shop_phase:
@@ -607,18 +560,8 @@ class GameManager:
                     if event.button in (InputSettings.JOY_BUTTON_START, InputSettings.JOY_BUTTON_A):
                         self.handle_start_press()
 
-                    # Cycle the player's active light source while in gameplay.
-                    if (
-                        self.ui_state == 'playing'
-                        and self.game_active
-                        and not self.is_transitioning
-                        and not self.in_treasure_conversion
-                        and not self.in_shop_phase
-                    ):
-                        if event.button == InputSettings.JOY_BUTTON_L1:
-                            self.player.cycle_selected_light_source(-1)
-                        elif event.button == InputSettings.JOY_BUTTON_R1:
-                            self.player.cycle_selected_light_source(1)
+                    # Light-source cycling lives on the player.
+                    self.player.handle_event(event)
 
                     self.score_manager.handle_initials_event(event)
 
