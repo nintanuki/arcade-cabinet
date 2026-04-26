@@ -72,41 +72,42 @@ class Audio:
         Sound Effects
         Divide by 2 on initialize and update as they are too loud compared to the music
         """
-        self.laser_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'laser.wav'))
+
+        self.laser_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'laser.ogg'))
         self.laser_sound.set_volume(self._half_effective_volume())
         self.channel_3 = pygame.mixer.Channel(3)
 
-        self.hyper_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'hyper.wav'))
+        self.hyper_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'hyper.ogg'))
         self.hyper_sound.set_volume(self._half_effective_volume())
         self.channel_10 = pygame.mixer.Channel(10)
-        
-        self.explosion_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'explosion.wav'))
+
+        self.explosion_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'explosion.ogg'))
         self.explosion_sound.set_volume(self._half_effective_volume())
         self.channel_2 = pygame.mixer.Channel(2)
 
         # Low Health Alarms share channel
-        self.low_health_alarm1 = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_alarm_loop2.wav'))
+        self.low_health_alarm1 = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_alarm_loop2.ogg'))
         self.low_health_alarm1.set_volume(self._half_effective_volume())
-        self.low_health_alarm2 = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_alarm_loop1.wav'))
+        self.low_health_alarm2 = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_alarm_loop1.ogg'))
         self.low_health_alarm2.set_volume(self._half_effective_volume())
         self.channel_4 = pygame.mixer.Channel(4)
 
-        self.ufo_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sound_bling.wav'))
+        self.ufo_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sound_bling.ogg'))
         self.ufo_sound.set_volume(self._half_effective_volume())
         self.channel_5 = pygame.mixer.Channel(5)
 
-        self.pause_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sounds_pause2_in.wav'))
+        self.pause_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sounds_pause2_in.ogg'))
         self.pause_sound.set_volume(self._half_effective_volume())
         self.channel_6 = pygame.mixer.Channel(6)
 
-        self.unpause_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sounds_pause2_out.wav'))
+        self.unpause_sound = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sounds_pause2_out.ogg'))
         self.unpause_sound.set_volume(self._half_effective_volume())
         self.channel_7 = pygame.mixer.Channel(7)
 
         # Powerup SFX (for now all three are sharing channel 8)
-        self.powerup_twin = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sounds_powerup1.wav'))
-        self.powerup_weapon = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sounds_powerup2.wav'))
-        self.powerup_heart = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_coin_cluster4.wav'))
+        self.powerup_twin = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sounds_powerup1.ogg'))
+        self.powerup_weapon = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_sounds_powerup2.ogg'))
+        self.powerup_heart = pygame.mixer.Sound(os.path.join(AudioSettings.AUDIO_DIR, 'sfx_coin_cluster4.ogg'))
         self.channel_8 = pygame.mixer.Channel(8)
 
         self.powerup_twin.set_volume(self._half_effective_volume())

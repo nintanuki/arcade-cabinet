@@ -208,7 +208,7 @@ class AudioSettings:
     MUSIC_DIR = os.path.join(BASE_DIR, 'music')
     AUDIO_DIR = os.path.join(BASE_DIR, 'audio')
     BGM_PLAYLIST = [
-        'star_hero.mp3'
+        'star_hero.ogg'
     ]
 
 class AssetPaths:
