@@ -96,6 +96,7 @@ CARDS: dict[str, Card] = {
     # ---- Action effects (use cards). The {N} token is replaced at fire time. ----
     "use_light": Card("use_light", "YOUR LIGHT WILL FADE MORE EVERY TURN.", QUEUE_BURST),
     "use_light_tip2": Card("use_light_tip2", "MORE LIGHT WILL ATTRACT MORE MONSTERS.", QUEUE_BURST),
+    "pickup_light_cycle": Card("pickup_light_cycle", "PRESS L1 OR R1 TO CYCLE LIGHT SOURCES.", QUEUE_BURST),
     "use_repellent": Card("use_repellent", "MONSTERS WILL FLEE FOR {N} TURNS.", QUEUE_BURST),
     "use_cloak": Card("use_cloak", "YOU ARE INVISIBLE FOR {N} TURNS.", QUEUE_BURST),
     "use_scroll": Card("use_scroll", "YOU ARE INVISIBLE FOR {N} TURNS.", QUEUE_BURST),
@@ -276,6 +277,18 @@ class TutorialManager:
         """
         if event == "item_picked_up":
             item = kwargs.get("item")
+
+            # Context-sensitive interrupts for picking up any
+            light_sources = {"MATCH", "TORCH", "LANTERN"}
+            # If the player picks up a light source and has already discovered another one
+            # show the light cycle card.
+            if item in light_sources:
+                already_discovered_light_sources = (
+                    self.game.player.discovered_items.intersection(light_sources) - {item}
+                )
+                if already_discovered_light_sources:
+                    self._push_card_id("pickup_light_cycle")
+
             for card_id in PICKUP_CARDS.get(item, ()):
                 self._push_card_id(card_id)
             return
