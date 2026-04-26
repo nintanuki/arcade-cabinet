@@ -444,8 +444,8 @@ class AssetPaths:
     # Audio
     SOUND_DIR = os.path.join(BASE_DIR, 'sound')
     MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_movement_footstepsloop4_slow.wav')
-    DIG_SOUND = os.path.join(SOUND_DIR, 'minecraft_digging_dirt_sound_effect.mp3')
-    BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'pokemon_wall_bump_sound_effect.mp3')
+    DIG_SOUND = os.path.join(SOUND_DIR, 'dig_sound_effect.mp3')
+    BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'wall_bump_sound_effect.mp3')
     KEY_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_single1.wav')
     SCREAM_SOUND = os.path.join(SOUND_DIR, 'wilhelm_scream.wav')
     MONSTER_CHASE_SOUND = os.path.join(SOUND_DIR, 'sfx_sound_nagger1.wav')
