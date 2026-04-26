@@ -141,6 +141,7 @@ These notes capture confirmed progress without changing checkbox status unless a
 - Figure out how the tutorial will work
 - With the addition of the "tutorial" dungeon and easier levels loaded at start, more dirt tiles = more treasure meaning the player can buy the $10,000 invisibility cloak by level 2! Make it more expensive? The game is also more boring now that it starts with less "challenging" maps, just lots of digging in open space with low threat of monsters.
 - remove allowing A to start the game, must press start
+- replace pokemon and minecraft sounds
 
 # Tutorial Plan
 - since the message window gets busy easily and the player sometimes ignores or misses those messages, the tutorial text should pop up on the action window, in large text with a "press A to continue" prompt. Decide what the messages will be, in what order and what will prompt them.
