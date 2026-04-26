@@ -1,9 +1,5 @@
 # Keep shared configuration grouped in namespaced classes for predictable imports.
 import os
-import pygame
-
-# TODO: Reorganize settings into domain-focused modules (display, input, gameplay, UI, audio, assets, debug)
-# to reduce the size of this single constants file.
 
 
 class ColorSettings:
@@ -77,22 +73,6 @@ class ColorSettings:
     MESSAGE_CONTROL_A = GREEN
     MESSAGE_DOOR = TAN
 
-
-def color_with_alpha(color_name: str, alpha: int) -> pygame.Color:
-    # TODO: If we want settings to remain constants-only, move this helper to a utility module
-    # (for example render_utils.py) and keep this file purely declarative.
-    """Create a pygame color with an explicit alpha component.
-
-    Args:
-        color_name (str): Any pygame-compatible color name or value.
-        alpha (int): Alpha channel value in the 0-255 range.
-
-    Returns:
-        pygame.Color: Color value with the requested transparency.
-    """
-    color = pygame.Color(color_name)
-    color.a = alpha
-    return color
 
 class ScreenSettings:
     """Class to hold all the settings related to the screen."""
@@ -237,6 +217,32 @@ class WindowSettings:
         "(B BUTTON ON CONTROLLER / F ON KEYBOARD)"]
     TYPING_SPEED = 0.25 # Characters advanced per frame in typewriter animation.
 
+class TutorialSettings:
+    """Layout, timing, and copy values for the tutorial card overlay."""
+
+    # Anti-mash window: same key that just dismissed a card cannot also dig
+    # on the same press.
+    DISMISS_DELAY_MS = 500
+    # Number of full turns to wait between flow-queue cards so they don't all
+    # fire on a single dig.
+    FLOW_CARD_TURN_GAP = 2
+
+    # Darken the action window behind the card so text reads cleanly.
+    WORLD_DARKEN_ALPHA = 170
+    # Card panel background opacity.
+    PANEL_ALPHA = 220
+    PANEL_BORDER_RADIUS = 8
+    PANEL_PADDING_X = 24
+    PANEL_PADDING_Y = 18
+
+    TEXT_LINE_GAP = 10
+    PROMPT_GAP = 14
+    PROMPT_TEXT = "PRESS A OR SPACE TO CONTINUE"
+    BODY_FONT_SIZE = 14
+    # The dismiss prompt reuses FontSettings.MESSAGE_SIZE directly at the
+    # call site so HUD text stays one source of truth.
+
+
 class PlayerSettings:
     """Player-specific tuning values."""
 
@@ -289,15 +295,27 @@ class LightSettings:
     DEFAULT_RADIUS = 0    # Start each run with no active light source.
     BASE_RADIUS = 2
     BASE_DURATION = 3
-    
+
     MATCH_RADIUS = BASE_RADIUS * 1
     MATCH_DURATION = BASE_DURATION * 1
-    
+
     TORCH_RADIUS = BASE_RADIUS * 1.5
     TORCH_DURATION = BASE_DURATION * 1.5
-    
+
     LANTERN_RADIUS = BASE_RADIUS * 3
     LANTERN_DURATION = BASE_DURATION * 3
+
+    # Best-first order used to auto-pick a default light source after pickups.
+    SOURCE_PRIORITY = ('LANTERN', 'TORCH', 'MATCH')
+    # Cycle order for L1/R1 (and Q/E) so the player walks weakest-to-strongest.
+    SOURCE_CYCLE_ORDER = ('MATCH', 'TORCH', 'LANTERN')
+    # (radius, duration) per source. Mirrors the *_RADIUS/_DURATION pairs above
+    # so Player.process_turn_action can look both up with one dict access.
+    SOURCE_STATS = {
+        'MATCH': (MATCH_RADIUS, MATCH_DURATION),
+        'TORCH': (TORCH_RADIUS, TORCH_DURATION),
+        'LANTERN': (LANTERN_RADIUS, LANTERN_DURATION),
+    }
 
 class ItemSettings:
     """Item inventory, spawn, scoring, and shop economy configuration."""

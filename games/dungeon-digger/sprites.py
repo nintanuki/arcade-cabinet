@@ -3,20 +3,10 @@ import random
 import os
 from typing import Literal
 from settings import *
+from render_utils import color_with_alpha
 
 PlayerAction = Literal['move', 'dig', 'detector', 'light', 'repellent', 'cloak']
 PlayerIntent = tuple[int, int, PlayerAction | None]
-
-# Ordered priority for auto-selecting a default light source (best-first).
-LIGHT_SOURCE_PRIORITY: tuple[str, ...] = ('LANTERN', 'TORCH', 'MATCH')
-# Ordered cycle for L1/R1 toggling through owned light sources.
-LIGHT_SOURCE_CYCLE_ORDER: tuple[str, ...] = ('MATCH', 'TORCH', 'LANTERN')
-
-LIGHT_SOURCE_STATS = {
-    'MATCH': (LightSettings.MATCH_RADIUS, LightSettings.MATCH_DURATION),
-    'TORCH': (LightSettings.TORCH_RADIUS, LightSettings.TORCH_DURATION),
-    'LANTERN': (LightSettings.LANTERN_RADIUS, LightSettings.LANTERN_DURATION),
-}
 
 class Player(pygame.sprite.Sprite):
     """Represent the player entity, inventory state, and turn actions."""
@@ -98,10 +88,10 @@ class Player(pygame.sprite.Sprite):
         Called after any inventory change that could affect light sources.
         - If the player owns no light sources, selection becomes None.
         - If the current selection is depleted (or unset), pick the best
-          owned source per LIGHT_SOURCE_PRIORITY (LANTERN > TORCH > MATCH).
+          owned source per LightSettings.SOURCE_PRIORITY (LANTERN > TORCH > MATCH).
         - Otherwise leave the manual selection alone.
         """
-        owned = self._owned_light_sources(LIGHT_SOURCE_PRIORITY)
+        owned = self._owned_light_sources(LightSettings.SOURCE_PRIORITY)
         if not owned:
             self.selected_light_source = None
         elif self.selected_light_source not in owned:
@@ -113,7 +103,7 @@ class Player(pygame.sprite.Sprite):
         Args:
             direction (int): +1 for next (R1), -1 for previous (L1).
         """
-        owned = self._owned_light_sources(LIGHT_SOURCE_CYCLE_ORDER)
+        owned = self._owned_light_sources(LightSettings.SOURCE_CYCLE_ORDER)
         if not owned:
             return
         if self.selected_light_source not in owned:
@@ -280,7 +270,7 @@ class Player(pygame.sprite.Sprite):
             name = self.selected_light_source
 
             if name and self.inventory.get(name, 0) > 0:
-                radius, duration = LIGHT_SOURCE_STATS[name]
+                radius, duration = LightSettings.SOURCE_STATS[name]
                 self.inventory[name] -= 1
 
                 # Preserve source max values for per-turn radius decay.
@@ -445,7 +435,7 @@ class Player(pygame.sprite.Sprite):
             self.game.notify_tutorial('item_picked_up', item=found_item)
 
             # Pick up a new light source -> auto-select if none was active.
-            if found_item in LIGHT_SOURCE_PRIORITY:
+            if found_item in LightSettings.SOURCE_PRIORITY:
                 self.refresh_light_selection()
 
             if found_item in ["MAP", "MAGIC MAP"]:

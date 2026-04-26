@@ -2,6 +2,7 @@ import pygame
 import random
 import colorsys
 from settings import *
+from render_utils import color_with_alpha
 
 class RenderManager:
     """Draw gameplay, overlays, and menu/state-specific UI screens."""

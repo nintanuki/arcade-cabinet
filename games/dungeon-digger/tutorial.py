@@ -30,16 +30,18 @@ from settings import (
     LightSettings,
     MonsterSettings,
     UISettings,
-    color_with_alpha,
     ItemSettings,
     GameSettings,
+    TutorialSettings,
 )
+from render_utils import color_with_alpha
 
 
-# Card lifecycle queues.
+# Internal dispatch markers for which queue a card belongs to. Kept as
+# module-level strings (not in settings) because they're enum-like
+# classifiers, not tunable values.
 QUEUE_BURST = "burst"
 QUEUE_FLOW = "flow"
-FLOW_CARD_TURN_GAP = 2 # Number of turns between showing flow cards.
 
 
 @dataclass(frozen=True)
@@ -152,22 +154,6 @@ USE_CARDS: dict[str, tuple[str, ...]] = {
 }
 
 
-# -------------------------------------------------------------------------
-# Tunables (move to settings.py later if you want them centralized).
-# -------------------------------------------------------------------------
-DISMISS_DELAY_MS = 500
-WORLD_DARKEN_ALPHA = 170          # 0=invisible overlay, 255=fully opaque.
-PANEL_ALPHA = 220
-PANEL_BORDER_RADIUS = 8
-PANEL_PADDING_X = 24
-PANEL_PADDING_Y = 18
-TEXT_LINE_GAP = 10
-PROMPT_TEXT = "PRESS A OR SPACE TO CONTINUE"
-PROMPT_GAP = 14                    # Vertical gap between body text and prompt.
-BODY_FONT_SIZE = 14
-PROMPT_FONT_SIZE = FontSettings.MESSAGE_SIZE
-
-
 class TutorialManager:
     """Holds tutorial state and renders the action-window card overlay."""
 
@@ -189,8 +175,8 @@ class TutorialManager:
         self.message_shown_at_ms: int = 0
 
         # Pre-build the body and prompt fonts once.
-        self._body_font = pygame.font.Font(FontSettings.FONT, BODY_FONT_SIZE)
-        self._prompt_font = pygame.font.Font(FontSettings.FONT, PROMPT_FONT_SIZE)
+        self._body_font = pygame.font.Font(FontSettings.FONT, TutorialSettings.BODY_FONT_SIZE)
+        self._prompt_font = pygame.font.Font(FontSettings.FONT, FontSettings.MESSAGE_SIZE)
 
         # Boot sequence: welcome, then move, then the rest of the main flow
         # paced one per turn.
@@ -199,7 +185,7 @@ class TutorialManager:
         for card_id in ("dig", "door", "key_hint", "treasure_hint", "dark_warning", "good_luck"):
             self._push_card_id(card_id)
 
-        self.flow_turns_until_next_card = FLOW_CARD_TURN_GAP
+        self.flow_turns_until_next_card = TutorialSettings.FLOW_CARD_TURN_GAP
 
     # ---------------- Public API ---------------- #
 
@@ -245,7 +231,7 @@ class TutorialManager:
             return
 
         self._show_next_from(self.flow_queue)
-        self.flow_turns_until_next_card = FLOW_CARD_TURN_GAP
+        self.flow_turns_until_next_card = TutorialSettings.FLOW_CARD_TURN_GAP
 
     def try_dismiss(self) -> bool:
         """Attempt to dismiss the current card.
@@ -257,7 +243,7 @@ class TutorialManager:
         if self.current_card is None:
             return False
         elapsed = pygame.time.get_ticks() - self.message_shown_at_ms
-        if elapsed < DISMISS_DELAY_MS:
+        if elapsed < TutorialSettings.DISMISS_DELAY_MS:
             return False
         self.current_card = None
         self.current_text = ""
@@ -327,20 +313,23 @@ class TutorialManager:
 
         # Step 1: darken the world inside the action window.
         darken = pygame.Surface(action_rect.size, pygame.SRCALPHA)
-        darken.fill(color_with_alpha(ColorSettings.OVERLAY_BACKGROUND, WORLD_DARKEN_ALPHA))
+        darken.fill(color_with_alpha(ColorSettings.OVERLAY_BACKGROUND, TutorialSettings.WORLD_DARKEN_ALPHA))
         screen.blit(darken, action_rect.topleft)
 
         # Step 2: render the body text (wrap to fit the panel width).
-        max_text_width = action_rect.width - (PANEL_PADDING_X * 2) - 16
+        max_text_width = action_rect.width - (TutorialSettings.PANEL_PADDING_X * 2) - 16
         body_lines = self._wrap_text(self.current_text, self._body_font, max_text_width)
         body_surfs = [
             self._body_font.render(line, False, ColorSettings.TEXT_DEFAULT) for line in body_lines
         ]
-        prompt_surf = self._prompt_font.render(PROMPT_TEXT, False, ColorSettings.TEXT_PROMPT)
+        prompt_surf = self._prompt_font.render(TutorialSettings.PROMPT_TEXT, False, ColorSettings.TEXT_PROMPT)
 
-        body_height = sum(s.get_height() for s in body_surfs) + TEXT_LINE_GAP * max(0, len(body_surfs) - 1)
-        panel_inner_height = body_height + PROMPT_GAP + prompt_surf.get_height()
-        panel_height = panel_inner_height + (PANEL_PADDING_Y * 2)
+        body_height = (
+            sum(s.get_height() for s in body_surfs)
+            + TutorialSettings.TEXT_LINE_GAP * max(0, len(body_surfs) - 1)
+        )
+        panel_inner_height = body_height + TutorialSettings.PROMPT_GAP + prompt_surf.get_height()
+        panel_height = panel_inner_height + (TutorialSettings.PANEL_PADDING_Y * 2)
         panel_width = action_rect.width - 64
 
         panel_rect = pygame.Rect(0, 0, panel_width, panel_height)
@@ -348,25 +337,25 @@ class TutorialManager:
 
         # Step 3: draw the card panel (opaque-ish so text reads cleanly).
         panel_surface = pygame.Surface(panel_rect.size, pygame.SRCALPHA)
-        panel_surface.fill(color_with_alpha(ColorSettings.OVERLAY_BACKGROUND, PANEL_ALPHA))
+        panel_surface.fill(color_with_alpha(ColorSettings.OVERLAY_BACKGROUND, TutorialSettings.PANEL_ALPHA))
         pygame.draw.rect(
             panel_surface,
             ColorSettings.BORDER_DEFAULT,
             panel_surface.get_rect(),
             2,
-            PANEL_BORDER_RADIUS,
+            TutorialSettings.PANEL_BORDER_RADIUS,
         )
         screen.blit(panel_surface, panel_rect.topleft)
 
         # Step 4: blit body text centered vertically inside the panel.
-        cursor_y = panel_rect.top + PANEL_PADDING_Y
+        cursor_y = panel_rect.top + TutorialSettings.PANEL_PADDING_Y
         for surf in body_surfs:
             line_rect = surf.get_rect(center=(panel_rect.centerx, cursor_y + surf.get_height() // 2))
             screen.blit(surf, line_rect)
-            cursor_y += surf.get_height() + TEXT_LINE_GAP
+            cursor_y += surf.get_height() + TutorialSettings.TEXT_LINE_GAP
 
         # Step 5: blit the prompt below the body.
-        prompt_y = panel_rect.bottom - PANEL_PADDING_Y - prompt_surf.get_height()
+        prompt_y = panel_rect.bottom - TutorialSettings.PANEL_PADDING_Y - prompt_surf.get_height()
         prompt_rect = prompt_surf.get_rect(center=(panel_rect.centerx, prompt_y + prompt_surf.get_height() // 2))
         screen.blit(prompt_surf, prompt_rect)
 
