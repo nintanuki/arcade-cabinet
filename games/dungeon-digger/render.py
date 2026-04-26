@@ -183,6 +183,13 @@ class RenderManager:
         if not self.game.in_shop_phase:
             self.screen.blit(dungeon_name_surf, dungeon_name_rect)
 
+        # Persistent green AUDIO MUTED indicator at the top-right of the
+        # action window, opposite the HIGH SCORE label.
+        if AudioSettings.MUTE:
+            mute_surf = hud_font.render("AUDIO MUTED", False, ColorSettings.GREEN)
+            mute_rect = mute_surf.get_rect(topright=(UISettings.MUTE_RIGHT_X, UISettings.MUTE_Y))
+            self.screen.blit(mute_surf, mute_rect)
+
     def draw_fog_of_war(self):
         """
         Build a soft-edged light reveal over a fully dark dungeon.

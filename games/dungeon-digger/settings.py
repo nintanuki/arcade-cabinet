@@ -155,6 +155,11 @@ class UISettings:
     LEVEL_Y = ScreenSettings.HEIGHT - 34
     DUNGEON_NAME_Y = LEVEL_Y + 15
 
+    # AUDIO MUTED indicator anchored to the top-right of the action window,
+    # opposite the HIGH SCORE label. Used as a topright anchor when blitting.
+    MUTE_RIGHT_X = ACTION_WINDOW_X + ACTION_WINDOW_WIDTH
+    MUTE_Y = SCORE_Y
+
 
 class RenderSettings:
     """Constants for title, overlay, and between-screen render timing/layout."""
@@ -269,7 +274,7 @@ class InputSettings:
     JOY_BUTTON_QUIT_COMBO = (7, 6, 4, 5)
 
     JOY_AXIS_L2 = 4
-    JOY_AXIS_R2 = 2
+    JOY_AXIS_R2 = 5
     JOY_TRIGGER_THRESHOLD = 0.5
 
 class NPCSettings:

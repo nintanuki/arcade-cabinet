@@ -570,14 +570,16 @@ class GameManager:
                 if event.type == pygame.JOYHATMOTION:
                     self.score_manager.handle_initials_event(event)
 
-                # Controller R2 trigger mute toggle (edge-triggered).
+                # Controller R2 trigger mute toggle (edge-triggered). L2 is
+                # reserved for the invisibility cloak. Mute state is surfaced
+                # via the persistent green MUTE indicator drawn by
+                # RenderManager, not via the in-game message log.
                 if event.type == pygame.JOYAXISMOTION and event.axis == InputSettings.JOY_AXIS_R2:
                     trigger_pressed = event.value > InputSettings.JOY_TRIGGER_THRESHOLD
                     if trigger_pressed and not self.r2_trigger_is_pressed:
-                        is_muted = self.audio.toggle_mute(
+                        self.audio.toggle_mute(
                             resume_music=self.game_active and not self.is_transitioning
                         )
-                        self.log_message("AUDIO MUTED." if is_muted else "AUDIO UNMUTED.")
                     self.r2_trigger_is_pressed = trigger_pressed
 
             # -------- Per-frame update --------
