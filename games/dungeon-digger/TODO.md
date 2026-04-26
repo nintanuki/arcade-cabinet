@@ -146,3 +146,4 @@ These notes capture confirmed progress without changing checkbox status unless a
 # Refactoring notes
 - L1 R1 controls to cycle light source are in main.y, they should be in sprites.py in the player input function
 - Add reset option for keyboard too (ESC?)
+- Remove controls in "welcome message" now that you have a tutorial, add something more dramatic

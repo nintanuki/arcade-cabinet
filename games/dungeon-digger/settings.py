@@ -231,11 +231,10 @@ class WindowSettings:
     LINE_HEIGHT = 22
     TEXT_PADDING = 16
     WELCOME_MESSAGE = [
-        "B - LIGHT A TORCH OR LANTERN",
-        "A - DIG AND UNLOCK DOORS",
-        "X - USE KEY DETECTOR",
-        "Y - USE MONSTER REPELLENT",
-        "L2 - USE INVISIBILITY CLOAK"]
+        "IT'S PITCH BLACK",
+        "YOU CAN'T SEE A THING",
+        "MAYBE YOU SHOULD LIGHT A TORCH?",
+        "(B BUTTON ON CONTROLLER / F ON KEYBOARD)"]
     TYPING_SPEED = 0.25 # Characters advanced per frame in typewriter animation.
 
 class PlayerSettings:
@@ -371,7 +370,9 @@ class ItemSettings:
         # Items not listed here default to quantity 1.
     }
 
-    NORMAL_INITIAL_INVENTORY = {}
+    NORMAL_INITIAL_INVENTORY = {
+        'TORCH': 1,
+    }
 
     TEST_INITIAL_INVENTORY = {
         'INVISIBILITY CLOAK': 1,
@@ -443,30 +444,30 @@ class AssetPaths:
 
     # Audio
     SOUND_DIR = os.path.join(BASE_DIR, 'sound')
-    MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_movement_footstepsloop4_slow.wav')
-    DIG_SOUND = os.path.join(SOUND_DIR, 'dig_sound_effect.mp3')
-    BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'wall_bump_sound_effect.mp3')
-    KEY_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_single1.wav')
-    SCREAM_SOUND = os.path.join(SOUND_DIR, 'wilhelm_scream.wav')
-    MONSTER_CHASE_SOUND = os.path.join(SOUND_DIR, 'sfx_sound_nagger1.wav')
-    COIN_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_cluster3.wav')
-    LIGHT_SOUND = os.path.join(SOUND_DIR, 'Torch Whoosh Sound Effect.mp3')
-    MATCH_LIGHT_SOUND = os.path.join(SOUND_DIR, 'Lighting A Match Sound Effect.mp3')
-    VANISH_SOUND = os.path.join(SOUND_DIR, 'Vanish Sound Effect.mp3')
-    SHORT_SPRAY_SOUND = os.path.join(SOUND_DIR, 'short_spray.mp3')
-    LONG_SPRAY_SOUND = os.path.join(SOUND_DIR, 'long_spray.mp3')
-    FOUND_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop3.wav')
-    HOT_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop7.wav')
-    WARM_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop6.wav')
-    MENU_MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_move2.wav')
-    MENU_SELECT_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_select3.wav')
+    MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_movement_footstepsloop4_slow.ogg')
+    DIG_SOUND = os.path.join(SOUND_DIR, 'dig_sound_effect.ogg')
+    BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'wall_bump_sound_effect.ogg')
+    KEY_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_single1.ogg')
+    SCREAM_SOUND = os.path.join(SOUND_DIR, 'wilhelm_scream.ogg')
+    MONSTER_CHASE_SOUND = os.path.join(SOUND_DIR, 'sfx_sound_nagger1.ogg')
+    COIN_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_cluster3.ogg')
+    LIGHT_SOUND = os.path.join(SOUND_DIR, 'Torch Whoosh Sound Effect.ogg')
+    MATCH_LIGHT_SOUND = os.path.join(SOUND_DIR, 'Lighting A Match Sound Effect.ogg')
+    VANISH_SOUND = os.path.join(SOUND_DIR, 'Vanish Sound Effect.ogg')
+    SHORT_SPRAY_SOUND = os.path.join(SOUND_DIR, 'short_spray.ogg')
+    LONG_SPRAY_SOUND = os.path.join(SOUND_DIR, 'long_spray.ogg')
+    FOUND_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop3.ogg')
+    HOT_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop7.ogg')
+    WARM_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop6.ogg')
+    MENU_MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_move2.ogg')
+    MENU_SELECT_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_select3.ogg')
 
     # Music
     MUSIC_DIR = os.path.join(BASE_DIR, 'music')
     NORMAL_MUSIC_TRACKS = [
-        os.path.join(MUSIC_DIR, 'Goblins_Den_(Regular).wav'),
+        os.path.join(MUSIC_DIR, 'Goblins_Den_(Regular).ogg'),
     ]
-    CHASE_MUSIC = os.path.join(MUSIC_DIR, 'Goblins_Dance_(Battle).wav')
+    CHASE_MUSIC = os.path.join(MUSIC_DIR, 'Goblins_Dance_(Battle).ogg')
     MUSIC_TRACKS = NORMAL_MUSIC_TRACKS
 
 class DebugSettings:
