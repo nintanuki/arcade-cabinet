@@ -449,12 +449,11 @@ class AssetPaths:
 
     # Music
     MUSIC_DIR = os.path.join(BASE_DIR, 'music')
-    MUSIC_TRACKS = [
-        os.path.join(MUSIC_DIR, 'Goof Troop SNES - Illusion.mp3'),
-        os.path.join(MUSIC_DIR, 'Goof Troop SNES - Lose My Way.mp3'),
-        os.path.join(MUSIC_DIR, 'The Magical Quest Starring Mickey Mouse - Dark Forest.mp3'),
-        os.path.join(MUSIC_DIR, 'Kirby\'s Adventure - Vegetable Valley 3.mp3'),
+    NORMAL_MUSIC_TRACKS = [
+        os.path.join(MUSIC_DIR, 'Goblins_Den_(Regular).wav'),
     ]
+    CHASE_MUSIC = os.path.join(MUSIC_DIR, 'Goblins_Dance_(Battle).wav')
+    MUSIC_TRACKS = NORMAL_MUSIC_TRACKS
 
 class DebugSettings:
     """Settings related to debugging features."""
@@ -462,4 +461,4 @@ class DebugSettings:
     MUTE = False # Force mute all sound output during testing.
     NO_FOG = False # Disable fog rendering for visibility debugging.
     SPAWN_LOG = True # Print spawn/item placement summary during dungeon setup.
-    USE_TEST_INITIAL_INVENTORY = True # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.
+    USE_TEST_INITIAL_INVENTORY = False # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.

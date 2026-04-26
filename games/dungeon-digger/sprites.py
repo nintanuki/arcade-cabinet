@@ -594,6 +594,7 @@ class Monster(pygame.sprite.Sprite):
 
         if player_is_invisible:
             self.is_chasing = False
+            self.game.audio.play_normal_music()
             if random.random() > MonsterSettings.IDLE_CHANCE:
                 self.move_randomly_one_tile()
             return
@@ -601,6 +602,7 @@ class Monster(pygame.sprite.Sprite):
         # If the monster is repelled, it will try to move away from the player instead of towards them.
         if is_repelled:
             self.is_chasing = False
+            self.game.audio.play_normal_music()
             chase_step_x, chase_step_y = self._choose_primary_chase_step(delta_pixels_x, delta_pixels_y)
             step_x = -chase_step_x
             step_y = -chase_step_y
@@ -615,14 +617,17 @@ class Monster(pygame.sprite.Sprite):
         # - otherwise use the current chase radius + line of sight rules
         if not player_has_light:
             self.is_chasing = False
+            self.game.audio.play_normal_music()
 
         elif is_adjacent or (manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player()):
             if not self.is_chasing:
                 self.is_chasing = True
                 self.game.audio.play_monster_chase_sound()
+                self.game.audio.play_chase_music()
                 self._log_chase_warning(manhattan_distance)
         else:
             self.is_chasing = False
+            self.game.audio.play_normal_music()
 
         # If the monster is chasing, it still has a 20% chance to hesitate.
         if self.is_chasing:

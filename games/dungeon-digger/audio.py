@@ -31,6 +31,7 @@ class AudioManager:
 
         # Track last played song to avoid back-to-back repeats.
         self._last_bgm_track = None
+        self._music_mode = "normal"
 
         # Initialize Music
         self.play_random_bgm()
@@ -91,7 +92,7 @@ class AudioManager:
             return
 
         # Exclude the last played track so the same song never repeats back-to-back.
-        available = [t for t in AssetPaths.MUSIC_TRACKS if t != self._last_bgm_track]
+        available = [t for t in AssetPaths.NORMAL_MUSIC_TRACKS if t != self._last_bgm_track]
         if not available:
             available = AssetPaths.MUSIC_TRACKS
         track = random.choice(available)
@@ -105,6 +106,31 @@ class AudioManager:
         except pygame.error as e:
             # Gracefully handle unsupported or missing audio assets.
             print(f"Could not load music track {track}: {e}")
+
+    def play_chase_music(self) -> None:
+        """Switch to battle music while a monster is chasing."""
+        if AudioSettings.MUTE or AudioSettings.MUTE_MUSIC:
+            return
+
+        if self._music_mode == "chase":
+            return
+
+        self._music_mode = "chase"
+        pygame.mixer.music.load(AssetPaths.CHASE_MUSIC)
+        pygame.mixer.music.set_volume(AudioSettings.MUSIC_VOLUME)
+        pygame.mixer.music.play(loops=-1)
+
+
+    def play_normal_music(self) -> None:
+        """Return to normal background music."""
+        if AudioSettings.MUTE or AudioSettings.MUTE_MUSIC:
+            return
+
+        if self._music_mode == "normal":
+            return
+
+        self._music_mode = "normal"
+        self.play_random_bgm()
 
     def stop_music(self) -> None:
         """Stop the currently playing background track."""
