@@ -39,6 +39,7 @@ from settings import (
 # Card lifecycle queues.
 QUEUE_BURST = "burst"
 QUEUE_FLOW = "flow"
+FLOW_CARD_TURN_GAP = 2 # Number of turns between showing flow cards.
 
 
 @dataclass(frozen=True)
@@ -197,6 +198,8 @@ class TutorialManager:
         for card_id in ("dig", "door", "key_hint", "treasure_hint", "dark_warning", "good_luck"):
             self._push_card_id(card_id)
 
+        self.flow_turns_until_next_card = FLOW_CARD_TURN_GAP
+
     # ---------------- Public API ---------------- #
 
     @property
@@ -225,13 +228,23 @@ class TutorialManager:
         Drains an interrupt first if one was queued during the just-ended turn,
         otherwise drains one paced flow card.
         """
+        # Interrupts (burst) always take precedence over the regular flow
         if self.current_card is not None:
             return
+        # Context-sensitive cards interrupt immediately.
         if self.burst_queue:
             self._show_next_from(self.burst_queue)
             return
-        if self.flow_queue:
-            self._show_next_from(self.flow_queue)
+        # If no interrupts, show the next flow card if it's time.
+        if not self.flow_queue:
+            return
+        # Check the turn gap timer; only show the next card if it's elapsed
+        if self.flow_turns_until_next_card > 0:
+            self.flow_turns_until_next_card -= 1
+            return
+
+        self._show_next_from(self.flow_queue)
+        self.flow_turns_until_next_card = FLOW_CARD_TURN_GAP
 
     def try_dismiss(self) -> bool:
         """Attempt to dismiss the current card.
