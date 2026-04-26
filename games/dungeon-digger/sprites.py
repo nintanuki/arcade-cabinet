@@ -229,6 +229,7 @@ class Player(pygame.sprite.Sprite):
                 self.game.log_message("YOU MOVED EAST.")
 
             self.game.audio.play_move_sound()
+            self.game.notify_tutorial('moved')
             self.game.advance_turn()
         else:
             self.game.log_message("YOU CAN'T GO THAT WAY!")
@@ -280,6 +281,9 @@ class Player(pygame.sprite.Sprite):
 
                 # Move selection to the next-best owned source if this one ran out.
                 self.refresh_light_selection()
+                self.game.notify_tutorial(
+                    'item_used', kind='light', name=name, duration=int(duration)
+                )
                 self.game.advance_turn()
             else:
                 self.game.log_message("YOU HAVE NO LIGHT SOURCES!")
@@ -287,6 +291,7 @@ class Player(pygame.sprite.Sprite):
         elif action == 'detector':
             if self.inventory.get('KEY DETECTOR', 0) > 0:
                 self.activate_key_detector()
+                self.game.notify_tutorial('item_used', kind='detector')
                 self.game.advance_turn()
             else:
                 self.game.log_message("YOU DON'T HAVE A KEY DETECTOR!")
@@ -297,6 +302,9 @@ class Player(pygame.sprite.Sprite):
                 self.repellent_turns = MonsterSettings.REPELLENT_DURATION + GameSettings.STATUS_EFFECT_TURN_BUFFER
                 self.game.log_message("YOU SPRAY THE REPELLENT.")
                 self.game.audio.play_repellent_sound(self.inventory['MONSTER REPELLENT'])
+                self.game.notify_tutorial(
+                    'item_used', kind='repellent', duration=MonsterSettings.REPELLENT_DURATION
+                )
                 self.game.advance_turn()
             else:
                 self.game.log_message("YOU HAVE NO MONSTER REPELLENT LEFT!")
@@ -316,6 +324,9 @@ class Player(pygame.sprite.Sprite):
                 self.invisibility_from_cloak = True
                 self.game.log_message("YOU WRAP YOURSELF IN THE INVISIBILITY CLOAK.")
                 self.game.audio.play_vanish_sound()
+                self.game.notify_tutorial(
+                    'item_used', kind='cloak', duration=ItemSettings.INVISIBILITY_CLOAK_DURATION
+                )
                 self.game.advance_turn()
             else:
                 self.inventory['INVISIBILITY SCROLL'] -= 1
@@ -325,6 +336,9 @@ class Player(pygame.sprite.Sprite):
                 self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + GameSettings.STATUS_EFFECT_TURN_BUFFER
                 self.invisibility_from_cloak = False
                 self.game.log_message("YOU READ THE INVISIBILITY SCROLL.")
+                self.game.notify_tutorial(
+                    'item_used', kind='scroll', duration=ItemSettings.INVISIBILITY_CLOAK_DURATION
+                )
                 self.game.audio.play_vanish_sound()
                 self.game.advance_turn()
 
@@ -359,6 +373,7 @@ class Player(pygame.sprite.Sprite):
 
         tile_state["is_dug"] = True
         self.game.audio.play_dig_sound()
+        self.game.notify_tutorial('dug')
         self.game.map_memory.remember_visible_map_info()
         found_item, amount = self.dungeon.get_item_at_tile(tile_grid_pos)
 
@@ -408,6 +423,7 @@ class Player(pygame.sprite.Sprite):
             self.inventory[found_item] = self.inventory.get(found_item, 0) + amount
             # Track discovery so UI can display known items.
             self.discovered_items.add(found_item)
+            self.game.notify_tutorial('item_picked_up', item=found_item)
 
             # Pick up a new light source -> auto-select if none was active.
             if found_item in LIGHT_SOURCE_PRIORITY:
@@ -622,6 +638,13 @@ class Monster(pygame.sprite.Sprite):
         else:
             self.game.log_message("YOU HEAR A MONSTER NEARBY!")
 
+    def _stop_chasing(self) -> None:
+        """Drop chase state and resume normal music; fire tutorial hook on transition."""
+        if self.is_chasing:
+            self.game.notify_tutorial('monster_lost_sight')
+        self.is_chasing = False
+        self.game.audio.play_normal_music()
+
     def resolve_turn(self) -> None:
         """
         Determine the monster's behavior for a single turn.
@@ -651,16 +674,14 @@ class Monster(pygame.sprite.Sprite):
         is_adjacent = manhattan_distance <= 1
 
         if player_is_invisible:
-            self.is_chasing = False
-            self.game.audio.play_normal_music()
+            self._stop_chasing()
             if random.random() > MonsterSettings.IDLE_CHANCE:
                 self.move_randomly_one_tile()
             return
 
         # If the monster is repelled, it will try to move away from the player instead of towards them.
         if is_repelled:
-            self.is_chasing = False
-            self.game.audio.play_normal_music()
+            self._stop_chasing()
             chase_step_x, chase_step_y = self._choose_primary_chase_step(delta_pixels_x, delta_pixels_y)
             step_x = -chase_step_x
             step_y = -chase_step_y
@@ -674,8 +695,7 @@ class Monster(pygame.sprite.Sprite):
         # - if the player has no light, monsters never chase regardless of distance
         # - otherwise use the current chase radius + line of sight rules
         if not player_has_light:
-            self.is_chasing = False
-            self.game.audio.play_normal_music()
+            self._stop_chasing()
 
         elif is_adjacent or (manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player()):
             if not self.is_chasing:
@@ -683,9 +703,9 @@ class Monster(pygame.sprite.Sprite):
                 self.game.audio.play_monster_chase_sound()
                 self.game.audio.play_chase_music()
                 self._log_chase_warning(manhattan_distance)
+                self.game.notify_tutorial('monster_spotted')
         else:
-            self.is_chasing = False
-            self.game.audio.play_normal_music()
+            self._stop_chasing()
 
         # If the monster is chasing, it still has a 20% chance to hesitate.
         if self.is_chasing:

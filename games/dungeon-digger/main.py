@@ -11,6 +11,7 @@ from mapmemory import MapMemory
 from render import RenderManager
 from crt import CRT
 from managers import ScoreLeaderboardManager, BetweenLevelManager
+from tutorial import TutorialManager, default_duration_for as tutorial_default_duration
 
 class GameManager:
     """Coordinate game state, flow, rendering phases, and input orchestration."""
@@ -51,6 +52,11 @@ class GameManager:
         self.pending_level_load = False
         self.message_success_border_until = 0
         self.r2_trigger_is_pressed = False
+
+        # Tutorial system. Constructed lazily in start_gameplay_from_title when
+        # the player chooses PLAY. Stays None for SKIP TUTORIAL runs.
+        self.tutorial: TutorialManager | None = None
+
         self.ui_state = 'title'
         self.title_menu_index = 0
         self.npcs: list = []
@@ -146,6 +152,12 @@ class GameManager:
             self.pending_level_index = 1
             player_progress = self.capture_player_progress()
             self.load_level(player_progress)
+        # Activate the tutorial system only when the player chose PLAY. It
+        # then runs for the entire session and is level-agnostic.
+        if not skip_tutorial:
+            self.tutorial = TutorialManager(self)
+        else:
+            self.tutorial = None
         self.ui_state = 'playing'
         self.game_active = True
         self.audio.play_random_bgm()
@@ -322,6 +334,7 @@ class GameManager:
 
             self.player.inventory[found_item] = self.player.inventory.get(found_item, 0) + amount
             self.player.discovered_items.add(found_item)
+            self.notify_tutorial('item_picked_up', item=found_item)
 
             # Pick up a light source from an NPC -> auto-select if none active.
             if found_item in ('LANTERN', 'TORCH', 'MATCH'):
@@ -448,6 +461,11 @@ class GameManager:
 
         self.check_player_caught_by_monster()
 
+        # Let the tutorial decide whether to surface its next card now that
+        # the world has settled for this turn.
+        if self.tutorial is not None:
+            self.tutorial.on_turn_end()
+
     def check_player_caught_by_monster(self) -> bool:
         """Return True and end the game if any monster occupies the player's tile."""
         if not self.game_active:
@@ -482,6 +500,20 @@ class GameManager:
         """The central hub for all game objects to send text to the UI."""
         self.message_log.add_message(text, type_speed=type_speed)
 
+    def notify_tutorial(self, event: str, **kwargs) -> None:
+        """Forward a game-side event to the tutorial system if it exists.
+
+        No-op when the tutorial isn't active (SKIP TUTORIAL run, or already
+        torn down). Game-side call sites can call this unconditionally.
+        """
+        if self.tutorial is not None:
+            self.tutorial.notify(event, **kwargs)
+
+    @property
+    def is_tutorial_blocking(self) -> bool:
+        """True while a tutorial card is on screen and gameplay must freeze."""
+        return self.tutorial is not None and self.tutorial.is_blocking
+
     # -------------------------
     # MAIN LOOP
     # -------------------------
@@ -514,6 +546,14 @@ class GameManager:
                     if event.key == pygame.K_F11:
                         pygame.display.toggle_fullscreen()
 
+                    # Tutorial dismissal short-circuits all other keyboard
+                    # handlers while a card is up. SPACE is the advertised
+                    # dismiss key; ENTER is also accepted.
+                    if self.is_tutorial_blocking:
+                        if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER):
+                            self.tutorial.try_dismiss()
+                        continue
+
                     if self.ui_state == 'title':
                         if event.key in (pygame.K_UP, pygame.K_w):
                             self.handle_title_menu_move(-1)
@@ -535,6 +575,13 @@ class GameManager:
 
                     if event.button == InputSettings.JOY_BUTTON_BACK:
                         pygame.display.toggle_fullscreen()
+
+                    # Tutorial dismissal short-circuits all gameplay button
+                    # handlers while a card is up.
+                    if self.is_tutorial_blocking:
+                        if event.button == InputSettings.JOY_BUTTON_A:
+                            self.tutorial.try_dismiss()
+                        continue
 
                     if self.in_shop_phase:
                         self.between_level_manager.handle_shop_event(event)
@@ -584,11 +631,26 @@ class GameManager:
 
             # -------- Per-frame update --------
             self.message_log.update()
+            # Let the tutorial drain its burst queue when nothing is on screen
+            # (handles the boot sequence and back-to-back chains).
+            if self.tutorial is not None:
+                self.tutorial.update()
             if self.ui_state == 'playing' and self.game_active:
-                if not self.is_transitioning and not self.is_busy and not self.in_treasure_conversion and not self.in_shop_phase:
+                if (
+                    not self.is_transitioning
+                    and not self.is_busy
+                    and not self.in_treasure_conversion
+                    and not self.in_shop_phase
+                    and not self.is_tutorial_blocking
+                ):
                     self.all_sprites.update()
 
-                if not self.is_transitioning and not self.in_treasure_conversion and not self.in_shop_phase:
+                if (
+                    not self.is_transitioning
+                    and not self.in_treasure_conversion
+                    and not self.in_shop_phase
+                    and not self.is_tutorial_blocking
+                ):
                     # Always advance movement animation to complete in-flight motion.
                     # TODO: Replace hasattr('animate') with a protocol/base class for animatable sprites.
                     for sprite in self.all_sprites:
@@ -614,6 +676,8 @@ class GameManager:
                 self.render.draw_level_transition()
                 self.render.draw_treasure_conversion()
                 self.render.draw_shop_menu()
+                if self.tutorial is not None:
+                    self.tutorial.draw(self.screen)
 
             if self.ui_state == 'title':
                 self.render.draw_title_screen()
