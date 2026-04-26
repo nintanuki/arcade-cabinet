@@ -4,6 +4,8 @@ import os
 from typing import Literal
 from settings import *
 from render_utils import color_with_alpha
+import coords
+import loot
 
 PlayerAction = Literal['move', 'dig', 'detector', 'light', 'repellent', 'cloak']
 PlayerIntent = tuple[int, int, PlayerAction | None]
@@ -241,12 +243,12 @@ class Player(pygame.sprite.Sprite):
             delta_y_tiles (int): Vertical tile step, usually -1, 0, or 1.
         """
         delta_x_tiles, delta_y_tiles = self._normalize_cardinal_step(delta_x_tiles, delta_y_tiles)
-        current_col, current_row = self.game.screen_to_grid(self.position.x, self.position.y)
+        current_col, current_row = coords.screen_to_grid(self.position.x, self.position.y)
         target_col = current_col + delta_x_tiles
         target_row = current_row + delta_y_tiles
 
         if self.dungeon.is_walkable(target_col, target_row):
-            target_x, target_y = self.game.grid_to_screen(target_col, target_row)
+            target_x, target_y = coords.grid_to_screen(target_col, target_row)
             self.target_pos = pygame.math.Vector2(target_x, target_y)
             self.is_moving = True
 
@@ -429,7 +431,7 @@ class Player(pygame.sprite.Sprite):
                 self.game.audio.play_boundary_sound()
             return
 
-        tile_grid_pos = self.game.screen_to_grid(self.position.x, self.position.y)
+        tile_grid_pos = coords.screen_to_grid(self.position.x, self.position.y)
         tile_state = self.dungeon.tile_data.get(tile_grid_pos)
 
         # Guard against invalid tile state to avoid runtime failure.
@@ -452,60 +454,11 @@ class Player(pygame.sprite.Sprite):
             found_item = None
             amount = 0
 
-        # Build a display-friendly item label for quantity messages.
         if found_item:
-            display_name = found_item
-
-            if amount > 1:
-                if found_item == "TORCH":
-                    display_name = "TORCHES"
-                elif found_item == "MATCH":
-                    display_name = "MATCHES"
-                elif found_item.endswith("Y"):
-                    display_name = found_item[:-1] + "IES"
-                elif not found_item.endswith("S"):
-                    display_name = found_item + "S"
-
-            if found_item in ItemSettings.TREASURE_SCORE_VALUES:
-                self.game.score_manager.add_score(found_item, amount)
-
-            if amount > 1:
-                self.game.log_message(f"YOU FOUND {amount} {display_name}!")
-            elif found_item == "MONSTER REPELLENT":
-                self.game.log_message("YOU FOUND A CAN OF MONSTER REPELLENT!")
-            else:
-                article = 'AN' if found_item[0] in 'AEIOU' else 'A'
-                self.game.log_message(f"YOU FOUND {article} {found_item}!")
-
-            if found_item == "KEY":
-                self.game.audio.play_key_sound()
-
-            if found_item == "GOLD COINS" or found_item in ["RUBY", "SAPPHIRE", "EMERALD", "DIAMOND"]:
-                # Reuse coin SFX for all treasure pickups.
-                self.game.audio.play_coin_sound()
-
-            if found_item == "MAGIC MAP" and self.inventory.get("MAP", 0) > 0:
-                self.inventory["MAP"] -= 1
-                if self.inventory["MAP"] <= 0:
-                    self.inventory.pop("MAP", None)
-
-            # Increment inventory stack for discovered item.
-            self.inventory[found_item] = self.inventory.get(found_item, 0) + amount
-            # Track discovery so UI can display known items.
-            self.discovered_items.add(found_item)
-            self.game.notify_tutorial('item_picked_up', item=found_item)
-
-            # Pick up a new light source -> auto-select if none was active.
-            if found_item in LightSettings.SOURCE_PRIORITY:
-                self.refresh_light_selection()
-
-            if found_item in ["MAP", "MAGIC MAP"]:
-                self.game.map_memory.reveal_full_terrain_memory()
+            loot.resolve_pickup(self.game, found_item, amount)
         else:
             self.game.log_message("NOTHING BUT DIRT HERE.")
         self.game.advance_turn()
-
-        # TODO: Refactor item pluralization/inventory mutation into a dedicated loot-resolution helper.
 
     def activate_key_detector(self) -> None:
         """
@@ -514,7 +467,7 @@ class Player(pygame.sprite.Sprite):
         The detector uses Manhattan distance in grid space and gives stronger
         feedback as the player gets closer.
         """
-        player_grid_pos = self.game.screen_to_grid(self.position.x, self.position.y)
+        player_grid_pos = coords.screen_to_grid(self.position.x, self.position.y)
         key_grid_pos = self.dungeon.key_grid_pos
         distance = self.dungeon.manhattan_distance(player_grid_pos, key_grid_pos)
 
@@ -818,12 +771,12 @@ class Monster(pygame.sprite.Sprite):
             delta_pixels_x (int): Pixel movement in the x direction.
             delta_pixels_y (int): Pixel movement in the y direction.
         """
-        current_col, current_row = self.game.screen_to_grid(self.position.x, self.position.y)
+        current_col, current_row = coords.screen_to_grid(self.position.x, self.position.y)
         target_col = current_col + (delta_pixels_x // GridSettings.TILE_SIZE)
         target_row = current_row + (delta_pixels_y // GridSettings.TILE_SIZE)
 
         if self.dungeon.is_walkable(target_col, target_row):
-            target_x, target_y = self.game.grid_to_screen(target_col, target_row)
+            target_x, target_y = coords.grid_to_screen(target_col, target_row)
             self.target_pos = pygame.math.Vector2(target_x, target_y)
             self.is_moving = True
 
@@ -837,8 +790,8 @@ class Monster(pygame.sprite.Sprite):
         Returns:
             bool: True if no walls block the view, False otherwise.
         """
-        m_col, m_row = self.game.screen_to_grid(self.position.x, self.position.y)
-        p_col, p_row = self.game.screen_to_grid(self.game.player.position.x, self.game.player.position.y)
+        m_col, m_row = coords.screen_to_grid(self.position.x, self.position.y)
+        p_col, p_row = coords.screen_to_grid(self.game.player.position.x, self.game.player.position.y)
 
         # Check if they are in the same column
         if m_col == p_col:

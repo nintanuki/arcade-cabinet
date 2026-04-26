@@ -2,6 +2,7 @@ import pygame
 import colorsys
 import math
 from settings import UISettings, FontSettings, WindowSettings, ColorSettings
+import coords
 
 class MessageLog:
     """Render and animate the scrolling in-game message log."""
@@ -411,7 +412,7 @@ class MapWindow:
 
         # Draw player marker while lit, or always with magic map.
         if self.game.map_memory.should_draw_player_on_minimap():
-            p_col, p_row = self.game.screen_to_grid(self.game.player.position.x, self.game.player.position.y)
+            p_col, p_row = coords.screen_to_grid(self.game.player.position.x, self.game.player.position.y)
             pygame.draw.rect(surface, ColorSettings.MINIMAP_PLAYER, 
                              (start_x + (p_col * mini_tile_size), 
                               start_y + (p_row * mini_tile_size), 

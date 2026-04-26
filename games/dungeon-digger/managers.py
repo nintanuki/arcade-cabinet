@@ -310,8 +310,8 @@ class BetweenLevelManager:
         if pygame.time.get_ticks() < self.game.transition_end_time:
             return
 
-        player_progress = self.game.capture_player_progress()
-        self.game.load_level(player_progress)
+        player_progress = self.game.level_loader.capture_player_progress()
+        self.game.level_loader.load_level(player_progress)
         self.game.audio.play_random_bgm()
         self.game.pending_level_load = False
         self.game.transition_label = ""

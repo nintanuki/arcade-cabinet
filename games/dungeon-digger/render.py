@@ -3,6 +3,7 @@ import random
 import colorsys
 from settings import *
 from render_utils import color_with_alpha
+import coords
 
 class RenderManager:
     """Draw gameplay, overlays, and menu/state-specific UI screens."""
@@ -82,7 +83,7 @@ class RenderManager:
         # Draw map tiles in row-major order.
         for row in range(UISettings.ROWS):
             for col in range(UISettings.COLS):
-                x, y = self.game.grid_to_screen(col, row)
+                x, y = coords.grid_to_screen(col, row)
                 cell_type = self.dungeon.get_map_cell(col, row)
 
                 if cell_type == "x":

@@ -1,4 +1,5 @@
 from settings import UISettings
+import coords
 
 class MapMemory:
     """Track and expose the player's remembered minimap terrain and entities."""
@@ -83,7 +84,7 @@ class MapMemory:
         if not self.player_has_active_light_source():
             return False
 
-        player_grid_pos = self.game.screen_to_grid(
+        player_grid_pos = coords.screen_to_grid(
             self.game.player.position.x,
             self.game.player.position.y
         )
@@ -123,7 +124,7 @@ class MapMemory:
                     else:
                         self.seen_tiles[grid_pos] = " "
 
-        door_grid_pos = self.game.screen_to_grid(self.game.door.position.x, self.game.door.position.y)
+        door_grid_pos = coords.screen_to_grid(self.game.door.position.x, self.game.door.position.y)
         self.last_seen_door_pos = door_grid_pos
 
     def _remember_visible_tiles(self):
@@ -147,7 +148,7 @@ class MapMemory:
     def _remember_visible_entities(self):
         """Persist door and monster positions according to map type."""
         # Persist door once it has been observed.
-        door_grid_pos = self.game.screen_to_grid(self.game.door.position.x, self.game.door.position.y)
+        door_grid_pos = coords.screen_to_grid(self.game.door.position.x, self.game.door.position.y)
         if self.player_can_see_grid_pos(door_grid_pos):
             self.last_seen_door_pos = door_grid_pos
 
@@ -168,7 +169,7 @@ class MapMemory:
         visible_positions = set()
 
         for monster in self.game.monsters:
-            monster_grid_pos = self.game.screen_to_grid(
+            monster_grid_pos = coords.screen_to_grid(
                 monster.position.x,
                 monster.position.y
             )
@@ -190,7 +191,7 @@ class MapMemory:
         if not self.player_has_active_light_source():
             return False
 
-        player_grid_pos = self.game.screen_to_grid(
+        player_grid_pos = coords.screen_to_grid(
             self.game.player.position.x,
             self.game.player.position.y
         )
