@@ -239,7 +239,7 @@ class ScoreLeaderboardManager:
             return
 
         if event.type == pygame.JOYBUTTONDOWN:
-            if event.button == InputSettings.JOY_BUTTON_CONFIRM:
+            if event.button == InputSettings.JOY_BUTTON_A:
                 self.submit_initials_entry()
             return
 
@@ -593,7 +593,7 @@ class BetweenLevelManager:
             return
 
         if event.type == pygame.JOYBUTTONDOWN:
-            if event.button == InputSettings.JOY_BUTTON_CONFIRM:
+            if event.button == InputSettings.JOY_BUTTON_A:
                 selected_option = options[self.game.shop_selected_index]
                 if selected_option == "CONTINUE":
                     self.complete_shop_phase()
@@ -601,7 +601,7 @@ class BetweenLevelManager:
                     self.buy_shop_item(selected_option)
                 return
 
-            if event.button == InputSettings.JOY_BUTTON_BULK_PURCHASE:
+            if event.button == InputSettings.JOY_BUTTON_X:
                 selected_option = options[self.game.shop_selected_index]
                 if selected_option == "CONTINUE":
                     self.complete_shop_phase()

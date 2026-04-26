@@ -259,7 +259,7 @@ class InventoryWindow:
         # Base sidebar text anchors.
         start_x = UISettings.SIDEBAR_X + WindowSettings.TEXT_PADDING
         start_y = UISettings.SIDEBAR_Y + WindowSettings.TEXT_PADDING
-        
+
         # Inventory header.
         header_surf = self.font.render("INVENTORY", False, ColorSettings.TEXT_TITLE)
         surface.blit(header_surf, (start_x, start_y))
@@ -267,6 +267,12 @@ class InventoryWindow:
         visual_row = 0
         # TODO: Move inventory spacing literals (-1, +25) to WindowSettings constants.
         tight_line_height = WindowSettings.LINE_HEIGHT - 1
+
+        # Reserve a small gutter on every row for the active-light marker so
+        # labels stay aligned whether or not the marker is drawn.
+        marker_gutter_surf = self.font.render("> ", False, ColorSettings.TEXT_SELECTOR)
+        marker_gutter_width = marker_gutter_surf.get_width()
+        active_light_source = self.game.player.selected_light_source
 
         # Iterate inventory rows while tracking only visible entries.
         for item, count in self.game.player.inventory.items():
@@ -280,18 +286,23 @@ class InventoryWindow:
                 # Render label using item-specific color.
                 label_text = f"{item}: "
                 label_surf = self.font.render(label_text, False, item_color)
-                
+
                 # Render quantity; zero-count values use error color.
                 num_color = ColorSettings.TEXT_ERROR if count <= 0 else FontSettings.DEFAULT_COLOR
                 num_surf = self.font.render(str(count), False, num_color)
 
                 # Compute row y-position.
                 y_pos = start_y + 25 + (visual_row * tight_line_height)
-                
-                # Draw label and quantity in one row.
-                surface.blit(label_surf, (start_x, y_pos))
-                surface.blit(num_surf, (start_x + label_surf.get_width(), y_pos))
-                
+
+                # Mark the row whose item is the active B-button light source.
+                if item == active_light_source:
+                    surface.blit(marker_gutter_surf, (start_x, y_pos))
+
+                # Draw label and quantity in one row, shifted past the gutter.
+                label_x = start_x + marker_gutter_width
+                surface.blit(label_surf, (label_x, y_pos))
+                surface.blit(num_surf, (label_x + label_surf.get_width(), y_pos))
+
                 visual_row += 1
 
 class MapWindow:

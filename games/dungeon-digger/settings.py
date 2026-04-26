@@ -230,7 +230,7 @@ class WindowSettings:
         "A - DIG AND UNLOCK DOORS",
         "X - USE KEY DETECTOR",
         "Y - USE MONSTER REPELLENT",
-        "L1 - USE INVISIBILITY CLOAK"]
+        "L2 - USE INVISIBILITY CLOAK"]
     TYPING_SPEED = 0.25 # Characters advanced per frame in typewriter animation.
 
 class PlayerSettings:
@@ -251,16 +251,25 @@ class MonsterSettings:
     ANIMATION_SPEED = 1 # Pixels advanced per frame during sprite interpolation.
 
 class InputSettings:
-    """Controller button and axis mappings used by gameplay and menus."""
+    """Controller button and axis mappings used by gameplay and menus.
 
-    JOY_BUTTON_FULLSCREEN = 6
+    Constants are named after the physical button on the controller, not the
+    action it performs. The only exception is JOY_BUTTON_QUIT_COMBO, which is
+    a special multi-button chord rather than a single button.
+    """
+
+    JOY_BUTTON_A = 0
+    JOY_BUTTON_B = 1
+    JOY_BUTTON_X = 2
+    JOY_BUTTON_Y = 3
+    JOY_BUTTON_L1 = 4
+    JOY_BUTTON_R1 = 5
+    JOY_BUTTON_BACK = 6
     JOY_BUTTON_START = 7
-    JOY_BUTTON_CONFIRM = 0
-    JOY_BUTTON_BULK_PURCHASE = 2
     JOY_BUTTON_QUIT_COMBO = (7, 6, 4, 5)
 
-    JOY_AXIS_L2 = 2
-    JOY_AXIS_R2 = 4
+    JOY_AXIS_L2 = 4
+    JOY_AXIS_R2 = 2
     JOY_TRIGGER_THRESHOLD = 0.5
 
 class NPCSettings:
@@ -393,7 +402,7 @@ class AudioSettings:
 
     MUTE = False
     MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
-    MUSIC_VOLUME = 0.2  # Background music volume in the range [0.0, 1.0].
+    MUSIC_VOLUME = 1  # Background music volume in the range [0.0, 1.0].
 
 class AssetPaths:
     """Resolved asset paths for sprites, audio, and music content."""
@@ -461,4 +470,4 @@ class DebugSettings:
     MUTE = False # Force mute all sound output during testing.
     NO_FOG = False # Disable fog rendering for visibility debugging.
     SPAWN_LOG = True # Print spawn/item placement summary during dungeon setup.
-    USE_TEST_INITIAL_INVENTORY = False # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.
+    USE_TEST_INITIAL_INVENTORY = True # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.

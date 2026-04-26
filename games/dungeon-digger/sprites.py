@@ -7,6 +7,17 @@ from settings import *
 PlayerAction = Literal['move', 'dig', 'detector', 'light', 'repellent', 'cloak']
 PlayerIntent = tuple[int, int, PlayerAction | None]
 
+# Ordered priority for auto-selecting a default light source (best-first).
+LIGHT_SOURCE_PRIORITY: tuple[str, ...] = ('LANTERN', 'TORCH', 'MATCH')
+# Ordered cycle for L1/R1 toggling through owned light sources.
+LIGHT_SOURCE_CYCLE_ORDER: tuple[str, ...] = ('MATCH', 'TORCH', 'LANTERN')
+
+LIGHT_SOURCE_STATS = {
+    'MATCH': (LightSettings.MATCH_RADIUS, LightSettings.MATCH_DURATION),
+    'TORCH': (LightSettings.TORCH_RADIUS, LightSettings.TORCH_DURATION),
+    'LANTERN': (LightSettings.LANTERN_RADIUS, LightSettings.LANTERN_DURATION),
+}
+
 class Player(pygame.sprite.Sprite):
     """Represent the player entity, inventory state, and turn actions."""
 
@@ -55,6 +66,12 @@ class Player(pygame.sprite.Sprite):
         self.active_light_max_radius = 0
         self.active_light_max_duration = 0
 
+        # Light source the B button will activate. None until the player picks
+        # one up; auto-selects the best owned source on inventory changes, and
+        # can be cycled manually with L1/R1.
+        self.selected_light_source: str | None = None
+        self.refresh_light_selection()
+
         # -------- Animation state --------
         self.target_pos = pygame.math.Vector2(position)
         self.is_moving = False
@@ -70,6 +87,43 @@ class Player(pygame.sprite.Sprite):
             # Keep vertical priority to match keyboard input ordering.
             delta_x_tiles = 0
         return delta_x_tiles, delta_y_tiles
+
+    def _owned_light_sources(self, order: tuple[str, ...]) -> list[str]:
+        """Return the subset of light sources the player currently has, in the given order."""
+        return [name for name in order if self.inventory.get(name, 0) > 0]
+
+    def refresh_light_selection(self) -> None:
+        """Ensure selected_light_source points to an owned source.
+
+        Called after any inventory change that could affect light sources.
+        - If the player owns no light sources, selection becomes None.
+        - If the current selection is depleted (or unset), pick the best
+          owned source per LIGHT_SOURCE_PRIORITY (LANTERN > TORCH > MATCH).
+        - Otherwise leave the manual selection alone.
+        """
+        owned = self._owned_light_sources(LIGHT_SOURCE_PRIORITY)
+        if not owned:
+            self.selected_light_source = None
+        elif self.selected_light_source not in owned:
+            self.selected_light_source = owned[0]
+
+    def cycle_selected_light_source(self, direction: int) -> None:
+        """Cycle the B-button light selection through owned sources.
+
+        Args:
+            direction (int): +1 for next (R1), -1 for previous (L1).
+        """
+        owned = self._owned_light_sources(LIGHT_SOURCE_CYCLE_ORDER)
+        if not owned:
+            return
+        if self.selected_light_source not in owned:
+            self.selected_light_source = owned[0]
+            return
+        if len(owned) == 1:
+            return
+        current_index = owned.index(self.selected_light_source)
+        new_index = (current_index + direction) % len(owned)
+        self.selected_light_source = owned[new_index]
 
     def read_input_intent(self) -> PlayerIntent:
         """
@@ -129,15 +183,15 @@ class Player(pygame.sprite.Sprite):
 
             # Controller actions
             if action is None:
-                if joystick.get_button(0):
+                if joystick.get_button(InputSettings.JOY_BUTTON_A):
                     action = 'dig'
-                elif joystick.get_button(1):
+                elif joystick.get_button(InputSettings.JOY_BUTTON_B):
                     action = 'light'
-                elif joystick.get_button(2):
+                elif joystick.get_button(InputSettings.JOY_BUTTON_X):
                     action = 'detector'
-                elif joystick.get_button(3):
+                elif joystick.get_button(InputSettings.JOY_BUTTON_Y):
                     action = 'repellent'
-                elif joystick.get_button(4):
+                elif joystick.get_axis(InputSettings.JOY_AXIS_L2) > InputSettings.JOY_TRIGGER_THRESHOLD:
                     action = 'cloak'
 
         delta_x_tiles, delta_y_tiles = self._normalize_cardinal_step(delta_x_tiles, delta_y_tiles)
@@ -199,26 +253,23 @@ class Player(pygame.sprite.Sprite):
             # Turn advancement is handled inside dig_current_tile().
 
         elif action == 'light':
-            # Select the best available light source by priority.
-            light_source = None
-            if self.inventory.get('LANTERN', 0) > 0:
-                light_source = ('LANTERN', LightSettings.LANTERN_RADIUS, LightSettings.LANTERN_DURATION)
-            elif self.inventory.get('TORCH', 0) > 0:
-                light_source = ('TORCH', LightSettings.TORCH_RADIUS, LightSettings.TORCH_DURATION)
-            elif self.inventory.get('MATCH', 0) > 0:
-                light_source = ('MATCH', LightSettings.MATCH_RADIUS, LightSettings.MATCH_DURATION)
+            # Use the player's currently selected light source. Defensive
+            # refresh in case the selection went stale (e.g. depleted between
+            # presses).
+            self.refresh_light_selection()
+            name = self.selected_light_source
 
-            if light_source:
-                name, radius, duration = light_source
+            if name and self.inventory.get(name, 0) > 0:
+                radius, duration = LIGHT_SOURCE_STATS[name]
                 self.inventory[name] -= 1
-                
+
                 # Preserve source max values for per-turn radius decay.
                 self.active_light_max_radius = radius
                 self.active_light_max_duration = duration
                 self.light_radius = radius
                 # Add one turn buffer so effects include the activation turn.
                 self.light_turns_left = duration + GameSettings.STATUS_EFFECT_TURN_BUFFER
-                
+
                 if self.inventory.get("MAGIC MAP", 0) > 0:
                     self.game.map_memory.remember_visible_map_info()
                 self.game.log_message(f"YOU LIGHT A {name.upper()}!")
@@ -226,6 +277,9 @@ class Player(pygame.sprite.Sprite):
                     self.game.audio.play_match_light_sound()
                 else:
                     self.game.audio.play_light_sound()
+
+                # Move selection to the next-best owned source if this one ran out.
+                self.refresh_light_selection()
                 self.game.advance_turn()
             else:
                 self.game.log_message("YOU HAVE NO LIGHT SOURCES!")
@@ -354,6 +408,10 @@ class Player(pygame.sprite.Sprite):
             self.inventory[found_item] = self.inventory.get(found_item, 0) + amount
             # Track discovery so UI can display known items.
             self.discovered_items.add(found_item)
+
+            # Pick up a new light source -> auto-select if none was active.
+            if found_item in LIGHT_SOURCE_PRIORITY:
+                self.refresh_light_selection()
 
             if found_item in ["MAP", "MAGIC MAP"]:
                 self.game.map_memory.reveal_full_terrain_memory()

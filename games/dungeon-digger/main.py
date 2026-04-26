@@ -50,7 +50,7 @@ class GameManager:
         self.transition_end_time = 0
         self.pending_level_load = False
         self.message_success_border_until = 0
-        self.l2_trigger_is_pressed = False
+        self.r2_trigger_is_pressed = False
         self.ui_state = 'title'
         self.title_menu_index = 0
         self.npcs: list = []
@@ -323,6 +323,10 @@ class GameManager:
             self.player.inventory[found_item] = self.player.inventory.get(found_item, 0) + amount
             self.player.discovered_items.add(found_item)
 
+            # Pick up a light source from an NPC -> auto-select if none active.
+            if found_item in ('LANTERN', 'TORCH', 'MATCH'):
+                self.player.refresh_light_selection()
+
             if found_item in ["MAP", "MAGIC MAP"]:
                 self.map_memory.reveal_full_terrain_memory()
 
@@ -529,14 +533,27 @@ class GameManager:
                     if self.quit_combo_pressed():
                         self.close_game()
 
-                    if event.button == InputSettings.JOY_BUTTON_FULLSCREEN:
+                    if event.button == InputSettings.JOY_BUTTON_BACK:
                         pygame.display.toggle_fullscreen()
 
                     if self.in_shop_phase:
                         self.between_level_manager.handle_shop_event(event)
 
-                    if event.button in (InputSettings.JOY_BUTTON_START, InputSettings.JOY_BUTTON_CONFIRM):
+                    if event.button in (InputSettings.JOY_BUTTON_START, InputSettings.JOY_BUTTON_A):
                         self.handle_start_press()
+
+                    # Cycle the player's active light source while in gameplay.
+                    if (
+                        self.ui_state == 'playing'
+                        and self.game_active
+                        and not self.is_transitioning
+                        and not self.in_treasure_conversion
+                        and not self.in_shop_phase
+                    ):
+                        if event.button == InputSettings.JOY_BUTTON_L1:
+                            self.player.cycle_selected_light_source(-1)
+                        elif event.button == InputSettings.JOY_BUTTON_R1:
+                            self.player.cycle_selected_light_source(1)
 
                     self.score_manager.handle_initials_event(event)
 
@@ -553,15 +570,15 @@ class GameManager:
                 if event.type == pygame.JOYHATMOTION:
                     self.score_manager.handle_initials_event(event)
 
-                # Controller trigger mute toggle (edge-triggered).
-                if event.type == pygame.JOYAXISMOTION and event.axis in (InputSettings.JOY_AXIS_L2, InputSettings.JOY_AXIS_R2):
+                # Controller R2 trigger mute toggle (edge-triggered).
+                if event.type == pygame.JOYAXISMOTION and event.axis == InputSettings.JOY_AXIS_R2:
                     trigger_pressed = event.value > InputSettings.JOY_TRIGGER_THRESHOLD
-                    if trigger_pressed and not self.l2_trigger_is_pressed:
+                    if trigger_pressed and not self.r2_trigger_is_pressed:
                         is_muted = self.audio.toggle_mute(
                             resume_music=self.game_active and not self.is_transitioning
                         )
                         self.log_message("AUDIO MUTED." if is_muted else "AUDIO UNMUTED.")
-                    self.l2_trigger_is_pressed = trigger_pressed
+                    self.r2_trigger_is_pressed = trigger_pressed
 
             # -------- Per-frame update --------
             self.message_log.update()
