@@ -68,6 +68,9 @@ class GameManager:
         self.initials_entry = "AAA"
         self.initials_index = 0
         self.between_level_manager.initialize_state()
+
+        # -------- Tutorial --------
+        self.tutorial_dismiss_input_locked = False
         
         # Pre-create the fog surface to avoid doing it every frame during rendering.
         self.fog_surface = pygame.Surface((UISettings.ACTION_WINDOW_WIDTH, UISettings.ACTION_WINDOW_HEIGHT), pygame.SRCALPHA)
@@ -551,7 +554,8 @@ class GameManager:
                     # dismiss key; ENTER is also accepted.
                     if self.is_tutorial_blocking:
                         if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER):
-                            self.tutorial.try_dismiss()
+                            if self.tutorial.try_dismiss():
+                                self.tutorial_dismiss_input_locked = True
                         continue
 
                     if self.ui_state == 'title':
@@ -580,7 +584,8 @@ class GameManager:
                     # handlers while a card is up.
                     if self.is_tutorial_blocking:
                         if event.button == InputSettings.JOY_BUTTON_A:
-                            self.tutorial.try_dismiss()
+                            if self.tutorial.try_dismiss():
+                                self.tutorial_dismiss_input_locked = True
                         continue
 
                     if self.in_shop_phase:

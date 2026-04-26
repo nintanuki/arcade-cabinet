@@ -143,6 +143,25 @@ class Player(pygame.sprite.Sprite):
         delta_y_tiles = 0
         action: PlayerAction | None = None
 
+        # Ignore held tutorial-dismiss inputs until released so the same
+        # A/SPACE press doesn't become an immediate dig.
+        if self.game.tutorial_dismiss_input_locked:
+            keyboard_still_held = (
+                keys[pygame.K_SPACE]
+                or keys[pygame.K_RETURN]
+                or keys[pygame.K_KP_ENTER]
+            )
+
+            controller_still_held = (
+                pygame.joystick.get_count() > 0
+                and pygame.joystick.Joystick(0).get_button(InputSettings.JOY_BUTTON_A)
+            )
+
+            if keyboard_still_held or controller_still_held:
+                return 0, 0, None
+
+            self.game.tutorial_dismiss_input_locked = False
+
         # -------- Keyboard movement input --------
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             delta_y_tiles = -1
