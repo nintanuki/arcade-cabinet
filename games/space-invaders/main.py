@@ -8,7 +8,95 @@ from laser import Laser
 
 
 ASSET_DIR = Path(__file__).resolve().parent
- 
+ARCADE_ROOT = ASSET_DIR.parent.parent
+
+# Controller button mapping shared with the rest of the arcade so the same
+# physical buttons keep the same meaning across every game.
+A_BUTTON = 0
+SELECT_BUTTON = 6
+START_BUTTON = 7
+L1_BUTTON = 4
+R1_BUTTON = 5
+QUIT_COMBO_BUTTONS = (START_BUTTON, SELECT_BUTTON, L1_BUTTON, R1_BUTTON)
+
+
+def refresh_joysticks():
+	"""Reinitialize all currently connected joysticks.
+
+	Returns:
+		list[pygame.joystick.Joystick]: Initialized joystick handles.
+	"""
+	connected = []
+	for index in range(pygame.joystick.get_count()):
+		joystick = pygame.joystick.Joystick(index)
+		if not joystick.get_init():
+			joystick.init()
+		connected.append(joystick)
+	return connected
+
+
+def quit_combo_pressed(connected_joysticks):
+	"""Check whether the L1+R1+START+SELECT exit combo is held on any controller.
+
+	Args:
+		connected_joysticks (list[pygame.joystick.Joystick]): Currently cached joysticks.
+
+	Returns:
+		bool: True when the four buttons are simultaneously held on any pad.
+	"""
+	for joystick in connected_joysticks:
+		try:
+			if all(joystick.get_button(button) for button in QUIT_COMBO_BUTTONS):
+				return True
+		except pygame.error:
+			continue
+	return False
+
+
+def close_game():
+	"""Shut down pygame and exit the process so the launcher reopens."""
+	pygame.quit()
+	sys.exit()
+
+
+def load_pause_font(size=20):
+	"""Load the shared Pixeled font used for the pause overlay.
+
+	Args:
+		size (int): Font height in pixels.
+
+	Returns:
+		pygame.font.Font: A ready-to-render font instance, with sensible fallbacks.
+	"""
+	candidate_paths = (
+		ASSET_DIR / 'font' / 'Pixeled.ttf',
+		ARCADE_ROOT / 'font' / 'Pixeled.ttf',
+	)
+	for font_path in candidate_paths:
+		try:
+			return pygame.font.Font(str(font_path), size)
+		except (FileNotFoundError, OSError):
+			continue
+	return pygame.font.SysFont(None, size)
+
+
+def load_optional_sound(sound_path):
+	"""Load a sound file when present, returning ``None`` for missing assets.
+
+	Args:
+		sound_path (Path): Filesystem location of the candidate sound.
+
+	Returns:
+		pygame.mixer.Sound | None: Loaded sound, or ``None`` when unavailable.
+	"""
+	try:
+		if sound_path.exists():
+			return pygame.mixer.Sound(str(sound_path))
+	except pygame.error:
+		return None
+	return None
+
+
 class Game:
 	def __init__(self):
 		# Player setup
@@ -200,29 +288,146 @@ class CRT:
 		self.create_crt_lines()
 		screen.blit(self.tv,(0,0))
 
+def render_pause_overlay(screen, screen_width, screen_height, pause_font):
+	"""Render the centered ``PAUSED`` overlay across an active Space Invaders frame.
+
+	Args:
+		screen (pygame.Surface): Active display surface.
+		screen_width (int): Width of the playfield in pixels.
+		screen_height (int): Height of the playfield in pixels.
+		pause_font (pygame.font.Font): Font used for the pause label.
+	"""
+	# Translucent backdrop keeps the pause text readable on the busy alien
+	# field underneath without fully obscuring the run state.
+	overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+	overlay.fill((0, 0, 0, 140))
+	screen.blit(overlay, (0, 0))
+
+	pause_text = pause_font.render('PAUSED', False, 'white')
+	pause_rect = pause_text.get_rect(center=(screen_width // 2, screen_height // 2))
+	screen.blit(pause_text, pause_rect)
+
+
+def run_pause_loop(screen, clock, frozen_frame, pause_overlay_renderer, joysticks_ref, pause_sound, unpause_sound):
+	"""Block the main loop until the player resumes, exits, or quits.
+
+	The pause loop only redraws a snapshot of the frame captured when pause
+	began so alien movement, lasers, and collision checks do not advance
+	while the player is paused.
+
+	Args:
+		screen (pygame.Surface): Active display surface used for repainting.
+		clock (pygame.time.Clock): Frame timer to keep the pause loop responsive.
+		frozen_frame (pygame.Surface): Snapshot of the frame to redisplay each tick.
+		pause_overlay_renderer (Callable[[], None]): Draws the PAUSED overlay on top.
+		joysticks_ref (list): Mutable reference to the cached joystick list.
+		pause_sound (pygame.mixer.Sound | None): Pause-in sound, played on entry when present.
+		unpause_sound (pygame.mixer.Sound | None): Pause-out sound, played on resume when present.
+	"""
+	if pause_sound is not None:
+		pause_sound.play()
+
+	while True:
+		if quit_combo_pressed(joysticks_ref):
+			close_game()
+
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				close_game()
+			if event.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
+				# Keep the cached list current so the quit combo keeps working.
+				joysticks_ref[:] = refresh_joysticks()
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_F11:
+					pygame.display.toggle_fullscreen()
+				elif event.key == pygame.K_ESCAPE:
+					close_game()
+				elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+					if unpause_sound is not None:
+						unpause_sound.play()
+					return
+			if event.type == pygame.JOYBUTTONDOWN:
+				if event.button == SELECT_BUTTON:
+					pygame.display.toggle_fullscreen()
+				elif event.button == START_BUTTON:
+					if unpause_sound is not None:
+						unpause_sound.play()
+					return
+
+		# Repaint the frozen pre-pause frame each tick so the screen stays
+		# alive (and the overlay survives fullscreen transitions) without
+		# advancing alien movement or laser timing.
+		screen.blit(frozen_frame, (0, 0))
+		pause_overlay_renderer()
+		pygame.display.flip()
+		clock.tick(60)
+
+
 if __name__ == '__main__':
 	pygame.init()
+	pygame.joystick.init()
 	screen_width = 600
 	screen_height = 600
-	screen = pygame.display.set_mode((screen_width,screen_height))
+	# pygame.SCALED keeps the playfield centered and uniformly scaled when
+	# pygame.display.toggle_fullscreen() flips into fullscreen mode.
+	screen = pygame.display.set_mode((screen_width,screen_height), pygame.SCALED)
+	pygame.display.set_caption('Space Invaders')
 	clock = pygame.time.Clock()
 	game = Game()
 	crt = CRT()
+	pause_font = load_pause_font(20)
+
+	joysticks = refresh_joysticks()
+
+	# TODO: pause sound assets are added by the user; the playback hook below
+	# guards against a missing file so the game keeps running until then.
+	pause_sound = load_optional_sound(ASSET_DIR / 'audio' / 'sfx_sounds_pause2_in.wav')
+	unpause_sound = load_optional_sound(ASSET_DIR / 'audio' / 'sfx_sounds_pause2_out.wav')
 
 	ALIENLASER = pygame.USEREVENT + 1
 	pygame.time.set_timer(ALIENLASER,800)
 
+	def draw_pause_overlay():
+		"""Draw the PAUSED label on top of the current display surface."""
+		render_pause_overlay(screen, screen_width, screen_height, pause_font)
+
+	def enter_pause():
+		"""Snapshot the current frame and run the pause loop until resume/exit.
+
+		Capturing the frame here means alien movement, lasers, and obstacle
+		blocks all keep their pre-pause state; the loop simply redraws the
+		snapshot each tick instead of stepping the simulation.
+		"""
+		frozen_frame = screen.copy()
+		run_pause_loop(screen, clock, frozen_frame, draw_pause_overlay, joysticks, pause_sound, unpause_sound)
+
 	while True:
+		if quit_combo_pressed(joysticks):
+			close_game()
+
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				pygame.quit()
-				sys.exit()
+				close_game()
+			if event.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
+				joysticks = refresh_joysticks()
 			if event.type == ALIENLASER:
 				game.alien_shoot()
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_F11:
+					pygame.display.toggle_fullscreen()
+				elif event.key == pygame.K_ESCAPE:
+					close_game()
+				elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+					enter_pause()
+			if event.type == pygame.JOYBUTTONDOWN:
+				if event.button == SELECT_BUTTON:
+					pygame.display.toggle_fullscreen()
+				elif event.button == START_BUTTON:
+					enter_pause()
 
 		screen.fill((30,30,30))
 		game.run()
 		crt.draw()
-			
+
 		pygame.display.flip()
 		clock.tick(60)

@@ -419,8 +419,9 @@ class GameManager:
         """Update the name entry buffer in response to one keyboard event.
 
         Accepts A-Z, 0-9, and space (auto-uppercased), backspace to delete
-        the trailing character, Enter to commit, and Escape to step back
-        via handle_back_press. Everything else is ignored.
+        the trailing character (or step back when the buffer is empty),
+        Enter to commit, and Escape to exit the game. Everything else is
+        ignored.
 
         Args:
             event: pygame.KEYDOWN event for the name entry screen.
@@ -431,12 +432,19 @@ class GameManager:
             if self.name_entry_buffer:
                 self.name_entry_buffer = self.name_entry_buffer[:-1]
                 self.audio.play('menu_move')
+            else:
+                # Empty buffer + Backspace steps back to the slot picker.
+                # Without this, the keyboard had no "back" affordance now that
+                # ESC always exits the game.
+                self.handle_back_press()
             return
         if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
             self.commit_name_entry()
             return
         if event.key == pygame.K_ESCAPE:
-            self.handle_back_press()
+            # ESC during name entry still exits to the launcher to keep the
+            # exit shortcut consistent with every other game state.
+            self.close_game()
             return
         # event.unicode is the keystroke's typed character with shift /
         # caps applied. Filter against the SaveManager whitelist and cap
@@ -752,8 +760,16 @@ class GameManager:
             elif event.key == pygame.K_RIGHT:
                 self.handle_confirm_move(1)
 
-        # Esc steps one screen back through the save-flow menu hierarchy.
+        # ESC always exits the game and returns to the arcade launcher,
+        # matching the L1+R1+START+SELECT controller combo. Save-flow menus
+        # still step backward via the controller B button (handled in
+        # _handle_joybuttondown) and via the BACKSPACE key below.
         if event.key == pygame.K_ESCAPE:
+            self.close_game()
+
+        # BACKSPACE preserves the previous "step back through save-flow menus"
+        # behavior on the keyboard now that ESC exits the game outright.
+        if event.key == pygame.K_BACKSPACE:
             self.handle_back_press()
 
         # Delete (or X) on the load picker opens the delete-confirm dialog.

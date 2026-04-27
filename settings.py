@@ -117,6 +117,5 @@ class GameSettings:
 
     NO_CONTROLLER_SUPPORT_GAMES = {
         "Jezz Ball",
-        "Space Invaders",
         "Air Hockey",
     }

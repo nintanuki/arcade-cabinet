@@ -338,6 +338,10 @@ class SessionStateManager:
                     if event.key == pygame.K_F11:
                         pygame.display.toggle_fullscreen()
                     if event.key == pygame.K_ESCAPE:
+                        # ESC always exits the game and returns to the launcher,
+                        # matching the L1+R1+START+SELECT controller combo.
+                        game.close_game()
+                    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                         self.unpause_game()
                     if event.key == pygame.K_m:
                         game.toggle_debug_mute()
@@ -814,6 +818,12 @@ class GameManager:
                     if event.key == pygame.K_F11:
                         pygame.display.toggle_fullscreen()
                     if event.key == pygame.K_ESCAPE:
+                        # ESC always exits the game and returns to the launcher,
+                        # matching the L1+R1+START+SELECT controller combo.
+                        self.close_game()
+                    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and self.session.game_active:
+                        # ENTER pauses an active run. The game-over branch below
+                        # still maps RETURN to "play again" / submit-initials.
                         self.audio.channel_0.pause()
                         self.audio.channel_1.pause()
                         self.audio.channel_6.play(self.audio.pause_sound)

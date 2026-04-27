@@ -57,7 +57,8 @@ py star-hero/main.py
 - Hold `G`: Brake (slows world speed while meter is available)
 - `B`: Launch bomb / detonate active bomb
 - `F11`: Toggle fullscreen
-- `Esc`: Pause/unpause
+- `Enter`: Pause/unpause
+- `Esc`: Quit to arcade launcher
 - `+` / `-`: Increase or decrease volume
 
 ### Controller (Logitech-style mapping)

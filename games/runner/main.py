@@ -58,9 +58,17 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             horizontal_input += 1
 
-         # Controller left stick
+         # Controller D-pad takes priority over the analog stick because it
+         # gives a clean digital signal; the analog stick fills in when the
+         # D-pad is centered.
         for joystick_id in range(pygame.joystick.get_count()):
             joystick = pygame.joystick.Joystick(joystick_id)
+
+            if joystick.get_numhats() > 0:
+                hat_x, _ = joystick.get_hat(0)
+                if hat_x != 0:
+                    horizontal_input = float(hat_x)
+                    break
 
             axis_x = joystick.get_axis(0)  # left stick horizontal
 
@@ -213,6 +221,10 @@ class Game:
                     if event.key == pygame.K_F11:
                         pygame.display.toggle_fullscreen()
                     if event.key == pygame.K_ESCAPE:
+                        # ESC always exits to the launcher to match the
+                        # L1+R1+START+SELECT controller combo.
+                        self.close_game()
+                    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                         self.unpause_game()
 
                 if event.type == pygame.JOYBUTTONDOWN:
@@ -264,7 +276,19 @@ class Game:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                     pygame.display.toggle_fullscreen()
 
-                if self.game_active and event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                # ESC always exits the game and returns to the launcher,
+                # matching the L1+R1+START+SELECT controller combo.
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self.close_game()
+
+                # ENTER pauses an active run; matches the START button on the
+                # controller. Only takes effect during gameplay so the title
+                # screen still uses Space/Enter to start a new run below.
+                if (
+                    self.game_active
+                    and event.type == pygame.KEYDOWN
+                    and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
+                ):
                     self.music_channel.pause()
                     self.pause_sound_channel.play(self.pause_sound)
                     self.pause()

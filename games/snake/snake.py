@@ -5,13 +5,24 @@ from pygame.math import Vector2
 
 
 ASSET_DIR = Path(__file__).resolve().parent
+ARCADE_ROOT = ASSET_DIR.parent.parent
 SELECT_BUTTON = 6
+START_BUTTON = 7
+L1_BUTTON = 4
+R1_BUTTON = 5
+A_BUTTON = 0
+QUIT_COMBO_BUTTONS = (START_BUTTON, SELECT_BUTTON, L1_BUTTON, R1_BUTTON)
 LEFT_STICK_HORIZONTAL_AXIS = 0
 LEFT_STICK_VERTICAL_AXIS = 1
 AXIS_DEADZONE = 0.6
 
 
 def refresh_joysticks():
+	"""Reinitialize all currently-connected joysticks.
+
+	Returns:
+		list[pygame.joystick.Joystick]: Initialized joystick handles.
+	"""
 	joysticks = []
 	for index in range(pygame.joystick.get_count()):
 		joystick = pygame.joystick.Joystick(index)
@@ -20,7 +31,38 @@ def refresh_joysticks():
 	return joysticks
 
 
+def quit_combo_pressed(joysticks):
+	"""Check whether the L1+R1+START+SELECT exit combo is held on any controller.
+
+	Args:
+		joysticks (list[pygame.joystick.Joystick]): Connected joysticks to inspect.
+
+	Returns:
+		bool: True when the four buttons are held simultaneously on any pad.
+	"""
+	for joystick in joysticks:
+		try:
+			if all(joystick.get_button(button) for button in QUIT_COMBO_BUTTONS):
+				return True
+		except pygame.error:
+			# A device disconnect can race with the polling call.
+			continue
+	return False
+
+
+def close_game():
+	"""Close pygame and exit the process so the launcher reopens cleanly."""
+	pygame.quit()
+	sys.exit()
+
+
 def set_snake_direction(snake, direction):
+	"""Update snake heading while preventing 180-degree reversals.
+
+	Args:
+		snake (SNAKE): Active snake instance whose direction may change.
+		direction (Vector2): Requested unit-length heading.
+	"""
 	if direction.y and snake.direction.y != -direction.y:
 		snake.direction = direction
 	elif direction.x and snake.direction.x != -direction.x:
@@ -28,6 +70,14 @@ def set_snake_direction(snake, direction):
 
 
 def controller_direction(joysticks):
+	"""Resolve a heading from the dominant axis on the active analog stick.
+
+	Args:
+		joysticks (list[pygame.joystick.Joystick]): Connected joysticks to poll.
+
+	Returns:
+		Vector2 | None: Heading vector, or ``None`` when no stick is engaged.
+	"""
 	strongest_axis_value = 0.0
 	selected_direction = None
 
@@ -50,15 +100,63 @@ def controller_direction(joysticks):
 	return selected_direction
 
 
-def toggle_fullscreen(is_fullscreen):
-	global screen
-	window_size = (cell_number * cell_size,cell_number * cell_size)
-	if is_fullscreen:
-		screen = pygame.display.set_mode(window_size)
-		return False
+def toggle_fullscreen():
+	"""Toggle fullscreen using pygame's SCALED-aware path.
 
-	screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
-	return True
+	The previous implementation reset the display via ``set_mode`` with the
+	plain ``FULLSCREEN`` flag, which left the gameplay rendered in a
+	720p-sized region in the top-left of the monitor. ``toggle_fullscreen``
+	keeps the SCALED renderer's letterboxed scaling intact so the playfield
+	fills the screen uniformly.
+	"""
+	pygame.display.toggle_fullscreen()
+
+
+def hat_direction(hat_value):
+	"""Convert a D-pad hat reading into a snake heading vector.
+
+	Args:
+		hat_value (tuple[int, int]): Pygame ``JOYHATMOTION`` ``(x, y)`` reading.
+
+	Returns:
+		Vector2 | None: Resulting heading, or ``None`` when the hat is centered.
+	"""
+	hat_x, hat_y = hat_value
+	# Pygame reports y=1 for up and y=-1 for down; the playfield uses screen
+	# coordinates where down is positive, so we flip the sign on Y.
+	if hat_y == 1:
+		return Vector2(0, -1)
+	if hat_y == -1:
+		return Vector2(0, 1)
+	if hat_x == 1:
+		return Vector2(1, 0)
+	if hat_x == -1:
+		return Vector2(-1, 0)
+	return None
+
+
+def load_pause_font(size=32):
+	"""Load the shared Pixeled font used for pause overlays across the arcade.
+
+	Falling back to a system font keeps the game playable even if the shared
+	asset is missing on a stripped-down install.
+
+	Args:
+		size (int): Font height in pixels.
+
+	Returns:
+		pygame.font.Font: A ready-to-render font instance.
+	"""
+	candidate_paths = (
+		ARCADE_ROOT / 'font' / 'Pixeled.ttf',
+		ASSET_DIR / 'Font' / 'PoetsenOne-Regular.ttf',
+	)
+	for font_path in candidate_paths:
+		try:
+			return pygame.font.Font(str(font_path), size)
+		except (FileNotFoundError, OSError):
+			continue
+	return pygame.font.SysFont(None, size)
 
 class SNAKE:
 	def __init__(self):
@@ -235,10 +333,99 @@ pygame.init()
 pygame.joystick.init()
 cell_size = 40
 cell_number = 20
+# Keep SCALED on the initial display so pygame.display.toggle_fullscreen()
+# scales the playfield uniformly instead of leaving the gameplay rendered in
+# the top-left corner during fullscreen.
 screen = pygame.display.set_mode((cell_number * cell_size,cell_number * cell_size), pygame.SCALED)
 clock = pygame.time.Clock()
 apple = pygame.image.load(str(ASSET_DIR / 'Graphics' / 'apple.png')).convert_alpha()
 game_font = pygame.font.Font(str(ASSET_DIR / 'Font' / 'PoetsenOne-Regular.ttf'), 25)
+pause_font = load_pause_font(32)
+
+# TODO: pause sound assets are added by the user; the playback hook below
+# guards against a missing file so the game keeps running until then.
+PAUSE_SOUND_PATH = ASSET_DIR / 'Sound' / 'sfx_sounds_pause2_in.wav'
+UNPAUSE_SOUND_PATH = ASSET_DIR / 'Sound' / 'sfx_sounds_pause2_out.wav'
+
+
+def load_optional_sound(sound_path):
+	"""Load a sound file, returning None when the asset is missing.
+
+	Args:
+		sound_path (Path): Filesystem location of the candidate sound.
+
+	Returns:
+		pygame.mixer.Sound | None: Loaded sound, or ``None`` when unavailable.
+	"""
+	try:
+		if sound_path.exists():
+			return pygame.mixer.Sound(str(sound_path))
+	except pygame.error:
+		# Mixer can refuse to load malformed assets; treat that as missing.
+		return None
+	return None
+
+
+pause_sound = load_optional_sound(PAUSE_SOUND_PATH)
+unpause_sound = load_optional_sound(UNPAUSE_SOUND_PATH)
+
+
+def play_optional_sound(sound):
+	"""Play a sound when one is available; do nothing otherwise."""
+	if sound is not None:
+		sound.play()
+
+
+def render_pause_overlay():
+	"""Draw a centered PAUSED label above the current snake field."""
+	pause_text = pause_font.render('PAUSED', True, (56, 74, 12))
+	pause_rect = pause_text.get_rect(center=(cell_number * cell_size // 2, cell_number * cell_size // 2))
+	# Soft tinted backdrop so the pause label remains readable on the
+	# bright grass tiles.
+	overlay = pygame.Surface((cell_number * cell_size, cell_number * cell_size), pygame.SRCALPHA)
+	overlay.fill((0, 0, 0, 110))
+	screen.blit(overlay, (0, 0))
+	screen.blit(pause_text, pause_rect)
+
+
+def run_pause_loop():
+	"""Block updates with a PAUSED overlay until the player resumes or quits."""
+	# Reassign the module-level joysticks list when controllers are added or
+	# removed so the quit-combo check keeps working through the pause window.
+	global joysticks
+	play_optional_sound(pause_sound)
+	while True:
+		if quit_combo_pressed(joysticks):
+			close_game()
+
+		for pause_event in pygame.event.get():
+			if pause_event.type == pygame.QUIT:
+				close_game()
+			if pause_event.type == pygame.JOYDEVICEADDED or pause_event.type == pygame.JOYDEVICEREMOVED:
+				joysticks = refresh_joysticks()
+			if pause_event.type == pygame.KEYDOWN:
+				if pause_event.key == pygame.K_F11:
+					toggle_fullscreen()
+				elif pause_event.key == pygame.K_ESCAPE:
+					close_game()
+				elif pause_event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+					play_optional_sound(unpause_sound)
+					return
+			if pause_event.type == pygame.JOYBUTTONDOWN:
+				if pause_event.button == SELECT_BUTTON:
+					toggle_fullscreen()
+				elif pause_event.button == START_BUTTON:
+					play_optional_sound(unpause_sound)
+					return
+
+		# Repaint the last frame plus the pause overlay each tick so the
+		# screen stays alive (and the overlay stays visible during fullscreen
+		# transitions) without advancing snake state.
+		screen.fill((175, 215, 70))
+		main_game.draw_elements()
+		render_pause_overlay()
+		pygame.display.update()
+		clock.tick(60)
 
 SCREEN_UPDATE = pygame.USEREVENT
 pygame.time.set_timer(SCREEN_UPDATE,150)
@@ -246,13 +433,15 @@ pygame.time.set_timer(SCREEN_UPDATE,150)
 main_game = MAIN()
 joysticks = refresh_joysticks()
 controller_axis_engaged = False
-is_fullscreen = False
+hat_engaged = False
 
 while True:
+	if quit_combo_pressed(joysticks):
+		close_game()
+
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
-			pygame.quit()
-			sys.exit()
+			close_game()
 		if event.type == pygame.JOYDEVICEADDED or event.type == pygame.JOYDEVICEREMOVED:
 			joysticks = refresh_joysticks()
 		if event.type == SCREEN_UPDATE:
@@ -266,9 +455,29 @@ while True:
 				set_snake_direction(main_game.snake, Vector2(0,1))
 			if event.key == pygame.K_LEFT:
 				set_snake_direction(main_game.snake, Vector2(-1,0))
+			if event.key == pygame.K_F11:
+				# Use pygame.display.toggle_fullscreen so the SCALED window
+				# stretches uniformly instead of leaving the playfield in the
+				# top-left corner of a native-resolution fullscreen surface.
+				toggle_fullscreen()
+			if event.key == pygame.K_ESCAPE:
+				close_game()
+			if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+				run_pause_loop()
 		if event.type == pygame.JOYBUTTONDOWN:
 			if event.button == SELECT_BUTTON:
-				is_fullscreen = toggle_fullscreen(is_fullscreen)
+				toggle_fullscreen()
+			if event.button == START_BUTTON:
+				run_pause_loop()
+		if event.type == pygame.JOYHATMOTION:
+			# Edge-trigger D-pad input: only steer once per push so the snake
+			# does not whip back and forth while the hat is held.
+			direction = hat_direction(event.value)
+			if direction is None:
+				hat_engaged = False
+			elif not hat_engaged:
+				set_snake_direction(main_game.snake, direction)
+				hat_engaged = True
 
 	analog_direction = controller_direction(joysticks)
 	if analog_direction is None:

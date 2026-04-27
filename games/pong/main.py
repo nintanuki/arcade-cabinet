@@ -56,7 +56,10 @@ def quit_combo_pressed(connected_joysticks: list[pygame.joystick.Joystick]) -> b
 
 
 def controller_vertical_direction(connected_joysticks: list[pygame.joystick.Joystick]) -> int:
-    """Read left-stick vertical input and return a normalized direction.
+    """Read paddle direction from the D-pad first and the left stick second.
+
+    The D-pad gives a clean digital signal so it takes priority; the left
+    analog stick acts as a fallback when the D-pad is centered.
 
     Args:
         connected_joysticks (list[pygame.joystick.Joystick]): Joysticks to inspect.
@@ -66,6 +69,15 @@ def controller_vertical_direction(connected_joysticks: list[pygame.joystick.Joys
     """
     for joystick in connected_joysticks:
         try:
+            if joystick.get_numhats() > 0:
+                _, hat_y = joystick.get_hat(0)
+                # Pygame reports y=1 for up and y=-1 for down; the paddle uses
+                # screen-space coordinates where down is positive, so we flip Y.
+                if hat_y == 1:
+                    return -1
+                if hat_y == -1:
+                    return 1
+
             axis_value = joystick.get_axis(LEFT_STICK_VERTICAL_AXIS)
         except pygame.error:
             continue
@@ -101,6 +113,43 @@ paused = False
 up_pressed = False
 down_pressed = False
 
+
+def load_optional_sound(sound_path: Path) -> 'pygame.mixer.Sound | None':
+    """Load a sound file when present, returning ``None`` for missing assets.
+
+    Args:
+        sound_path (Path): Filesystem location of the candidate sound.
+
+    Returns:
+        pygame.mixer.Sound | None: Loaded sound, or ``None`` when unavailable.
+    """
+    try:
+        if sound_path.exists():
+            return pygame.mixer.Sound(str(sound_path))
+    except pygame.error:
+        return None
+    return None
+
+
+# TODO: pause sound assets are added by the user; the playback hook below
+# guards against a missing file so the game keeps running until then.
+pause_sound = load_optional_sound(ASSET_DIR / 'audio' / 'sfx_sounds_pause2_in.wav')
+unpause_sound = load_optional_sound(ASSET_DIR / 'audio' / 'sfx_sounds_pause2_out.wav')
+
+
+def play_pause_transition(was_paused: bool) -> None:
+    """Play the appropriate pause transition sound when entering/leaving pause.
+
+    Args:
+        was_paused (bool): True if the game was paused before the toggle.
+    """
+    if was_paused:
+        if unpause_sound is not None:
+            unpause_sound.play()
+    else:
+        if pause_sound is not None:
+            pause_sound.play()
+
 # Game objects
 player = Player(str(ASSET_DIR / 'graphics' / 'paddle.png'), SCREEN_WIDTH - 20, SCREEN_HEIGHT / 2, 5)
 opponent = Opponent(str(ASSET_DIR / 'graphics' / 'paddle.png'), 20, SCREEN_WIDTH / 2, 5)
@@ -132,10 +181,16 @@ while True:
             if event.mod & pygame.KMOD_ALT and event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
                 pygame.display.toggle_fullscreen()
                 full_screen = not full_screen
-            if event.key == pygame.K_F11:
+            elif event.key == pygame.K_F11:
                 pygame.display.toggle_fullscreen()
                 full_screen = not full_screen
-            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+            elif event.key == pygame.K_ESCAPE:
+                # ESC always exits the game and returns to the launcher,
+                # matching the L1+R1+START+SELECT controller combo.
+                pygame.quit()
+                sys.exit()
+            elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                play_pause_transition(paused)
                 paused = not paused
             if event.key == pygame.K_UP:
                 up_pressed = True
@@ -153,6 +208,7 @@ while True:
 
         if event.type == pygame.JOYBUTTONDOWN:
             if event.button == START_BUTTON:
+                play_pause_transition(paused)
                 paused = not paused
             elif event.button == SELECT_BUTTON:
                 pygame.display.toggle_fullscreen()

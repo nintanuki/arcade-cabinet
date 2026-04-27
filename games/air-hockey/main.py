@@ -308,11 +308,26 @@ class Game:
                         self.audio.channel_0.unpause()
                         self.audio.channel_4.play(self.audio.unpause_sound)
                         self.paused = False
+                    elif event.key == pygame.K_ESCAPE:
+                        # ESC always exits to the launcher to match the
+                        # L1+R1+START+SELECT controller combo.
+                        pygame.quit()
+                        sys.exit()
+                    elif event.key == pygame.K_F11:
+                        pygame.display.toggle_fullscreen()
+                        self.full_screen = not self.full_screen
+                if event.type == pygame.JOYBUTTONDOWN:
+                    if event.button == 7:
+                        self.audio.channel_0.unpause()
+                        self.audio.channel_4.play(self.audio.unpause_sound)
+                        self.paused = False
+                    elif event.button == 6:
+                        pygame.display.toggle_fullscreen()
+                        self.full_screen = not self.full_screen
             if self.quit_combo_pressed():
                 pygame.quit()
                 sys.exit()
 
-            # TODO(bug): Controller START does not unpause once inside this pause loop.
             self.screen.fill(WHITE)
             self.draw_dotted_line()
             pygame.draw.rect(self.screen, BLUE, self.player_goal)
@@ -454,6 +469,12 @@ class Game:
                 if event.type == pygame.JOYBUTTONDOWN:
                     if event.button == 0:
                         self.is_spiking = True
+                    elif event.button == 7:
+                        # START button pauses gameplay; mirrors the keyboard
+                        # ENTER binding and the rest of the arcade.
+                        self.audio.channel_0.pause()
+                        self.audio.channel_3.play(self.audio.pause_sound)
+                        self.pause()
                 if event.type == pygame.JOYBUTTONUP:
                     if event.button == 0:
                         self.is_spiking = False
@@ -472,6 +493,11 @@ class Game:
                     if event.key == pygame.K_F11:
                         pygame.display.toggle_fullscreen()
                         self.full_screen = not self.full_screen
+                    if event.key == pygame.K_ESCAPE:
+                        # ESC always exits the game and returns to the
+                        # launcher, matching the L1+R1+START+SELECT combo.
+                        pygame.quit()
+                        sys.exit()
                     if event.key == pygame.K_RETURN:
                         self.audio.channel_0.pause()
                         self.audio.channel_3.play(self.audio.pause_sound)

@@ -917,8 +917,16 @@ class GameManager:
             event: Key press event to interpret.
         """
         if event.key == pygame.K_ESCAPE:
+            # ESC always exits the game and returns to the launcher, matching
+            # the L1+R1+START+SELECT controller combo.
             self.running = False
-        elif self.game_state == GameState.TITLE:
+            return
+        if event.key == pygame.K_F11:
+            # F11 toggles fullscreen from any screen so it parallels the
+            # controller SELECT button which is also global.
+            self._toggle_fullscreen()
+            return
+        if self.game_state == GameState.TITLE:
             if event.key in (pygame.K_LEFT, pygame.K_UP, pygame.K_a, pygame.K_w):
                 self._cycle_input_mode(-1)
             elif event.key in (pygame.K_RIGHT, pygame.K_DOWN, pygame.K_d, pygame.K_s):

@@ -641,10 +641,10 @@ class RenderManager:
         # they're in even if they navigated here without intent.
         if self.game.ui_state == 'slot_select_new':
             header_text = "NEW GAME - SELECT SLOT"
-            controls_text = "ENTER: SELECT     ESC: BACK"
+            controls_text = "ENTER: SELECT     BACKSPACE: BACK"
         else:
             header_text = "LOAD GAME - SELECT SLOT"
-            controls_text = "ENTER: LOAD     X / DEL: DELETE     ESC: BACK"
+            controls_text = "ENTER: LOAD     X / DEL: DELETE     BACKSPACE: BACK"
 
         title_surf = title_font.render(header_text, False, ColorSettings.TEXT_TITLE)
         title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, RenderSettings.SLOT_SELECT_TITLE_Y))
