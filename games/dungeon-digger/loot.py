@@ -71,10 +71,10 @@ def resolve_pickup(game, name: str | None, amount: int) -> None:
     game.log_message(message_for_pickup(name, amount))
 
     if name == "KEY":
-        game.audio.play_key_sound()
+        game.audio.play('key')
     elif name == "GOLD COINS" or name in ("RUBY", "SAPPHIRE", "EMERALD", "DIAMOND"):
         # All treasure types share the coin SFX.
-        game.audio.play_coin_sound()
+        game.audio.play('coin')
 
     # Magic map subsumes any regular map already in the inventory.
     if name == "MAGIC MAP" and player.inventory.get("MAP", 0) > 0:

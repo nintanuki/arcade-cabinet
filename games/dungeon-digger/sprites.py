@@ -261,12 +261,12 @@ class Player(pygame.sprite.Sprite):
             elif delta_x_tiles == 1:
                 self.game.log_message("YOU MOVED EAST.")
 
-            self.game.audio.play_move_sound()
+            self.game.audio.play('move')
             self.game.notify_tutorial('moved')
             self.game.advance_turn()
         else:
             self.game.log_message("YOU CAN'T GO THAT WAY!")
-            self.game.audio.play_boundary_sound()
+            self.game.audio.play('boundary')
 
     def tick_status_effects(self) -> None:
         """Decrement temporary status timers and surface their fade-out messages.
@@ -347,9 +347,9 @@ class Player(pygame.sprite.Sprite):
                     self.game.map_memory.remember_visible_map_info()
                 self.game.log_message(f"YOU LIGHT A {name.upper()}!")
                 if name == 'MATCH':
-                    self.game.audio.play_match_light_sound()
+                    self.game.audio.play('match_light')
                 else:
-                    self.game.audio.play_light_sound()
+                    self.game.audio.play('light')
 
                 # Move selection to the next-best owned source if this one ran out.
                 self.refresh_light_selection()
@@ -395,7 +395,7 @@ class Player(pygame.sprite.Sprite):
                 self.invisibility_turns = ItemSettings.INVISIBILITY_CLOAK_DURATION + GameSettings.STATUS_EFFECT_TURN_BUFFER
                 self.invisibility_from_cloak = True
                 self.game.log_message("YOU WRAP YOURSELF IN THE INVISIBILITY CLOAK.")
-                self.game.audio.play_vanish_sound()
+                self.game.audio.play('vanish')
                 self.game.notify_tutorial(
                     'item_used', kind='cloak', duration=ItemSettings.INVISIBILITY_CLOAK_DURATION
                 )
@@ -411,7 +411,7 @@ class Player(pygame.sprite.Sprite):
                 self.game.notify_tutorial(
                     'item_used', kind='scroll', duration=ItemSettings.INVISIBILITY_CLOAK_DURATION
                 )
-                self.game.audio.play_vanish_sound()
+                self.game.audio.play('vanish')
                 self.game.advance_turn()
 
     def dig_current_tile(self) -> None:
@@ -428,7 +428,7 @@ class Player(pygame.sprite.Sprite):
                 self.game.intermission.handle_door_unlock()
             else:
                 self.game.log_message("THE DOOR IS LOCKED. YOU NEED A KEY!")
-                self.game.audio.play_boundary_sound()
+                self.game.audio.play('boundary')
             return
 
         tile_grid_pos = coords.screen_to_grid(self.position.x, self.position.y)
@@ -444,7 +444,7 @@ class Player(pygame.sprite.Sprite):
             return
 
         tile_state["is_dug"] = True
-        self.game.audio.play_dig_sound()
+        self.game.audio.play('dig')
         self.game.notify_tutorial('dug')
         self.game.map_memory.remember_visible_map_info()
         found_item, amount = self.dungeon.get_item_at_tile(tile_grid_pos)
@@ -473,13 +473,13 @@ class Player(pygame.sprite.Sprite):
 
         if distance == ItemSettings.DETECTOR_DISTANCE_FOUND:
             self.game.log_message("THE KEY DETECTOR IS GOING WILD!")
-            self.game.audio.play_found_detector_sound()
+            self.game.audio.play('detector_found')
         elif distance == ItemSettings.DETECTOR_DISTANCE_HOT:
             self.game.log_message("THE KEY DETECTOR BEEPS RAPIDLY!")
-            self.game.audio.play_hot_detector_sound()
+            self.game.audio.play('detector_hot')
         elif distance <= ItemSettings.DETECTOR_DISTANCE_STEADY:
             self.game.log_message("THE KEY DETECTOR GIVES A STEADY PULSE...")
-            self.game.audio.play_warm_detector_sound()
+            self.game.audio.play('detector_warm')
         elif distance <= ItemSettings.DETECTOR_DISTANCE_SLOW:
             self.game.log_message("THE KEY DETECTOR BEEPS SLOWLY...")
         elif distance <= ItemSettings.DETECTOR_DISTANCE_FAINT:
@@ -723,7 +723,7 @@ class Monster(pygame.sprite.Sprite):
         elif is_adjacent or (manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player()):
             if not self.is_chasing:
                 self.is_chasing = True
-                self.game.audio.play_monster_chase_sound()
+                self.game.audio.play('monster_chase')
                 self.game.audio.play_chase_music()
                 self._log_chase_warning(manhattan_distance)
                 self.game.notify_tutorial('monster_spotted')

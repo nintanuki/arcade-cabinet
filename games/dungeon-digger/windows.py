@@ -1,6 +1,4 @@
 import pygame
-import colorsys
-import math
 from settings import UISettings, FontSettings, WindowSettings, ColorSettings
 import coords
 
@@ -215,42 +213,6 @@ class InventoryWindow:
         self.game = game
         self.font = pygame.font.Font(FontSettings.FONT, FontSettings.MESSAGE_SIZE)
 
-    def _rainbow_color(self) -> tuple[int, int, int]:
-        """Return a dynamic rainbow color for special inventory items.
-
-        Returns:
-            tuple[int, int, int]: RGB color tuple.
-        """
-        hue = (pygame.time.get_ticks() * 0.0002) % 1.0
-        red, green, blue = colorsys.hsv_to_rgb(hue, 0.9, 1.0)
-        return int(red * 255), int(green * 255), int(blue * 255)
-
-    def _cloak_glow_color(self) -> tuple[int, int, int]:
-        """Return a pulsing glow color for the invisibility cloak label.
-
-        Returns:
-            tuple[int, int, int]: RGB color tuple.
-        """
-        pulse = (math.sin(pygame.time.get_ticks() * 0.01) + 1.0) / 2.0
-        min_color = pygame.Color(ColorSettings.CLOAK_GLOW_MIN)
-        max_color = pygame.Color(ColorSettings.CLOAK_GLOW_MAX)
-        return (
-            int(min_color.r + (max_color.r - min_color.r) * pulse),
-            int(min_color.g + (max_color.g - min_color.g) * pulse),
-            int(min_color.b + (max_color.b - min_color.b) * pulse),
-        )
-
-    def _get_item_label_color(self, item: str) -> tuple[int, int, int] | str:
-        """Select a display color for an inventory item label.
-
-        Args:
-            item (str): Inventory item name.
-
-        Returns:
-            tuple[int, int, int] | str: Pygame-compatible color.
-        """
-        return FontSettings.DEFAULT_COLOR
-
     def draw(self, surface):
         """Render the player's discovered inventory and counts.
 
@@ -282,11 +244,10 @@ class InventoryWindow:
             discovered = item in self.game.player.discovered_items
 
             if has_it or discovered:
-                item_color = self._get_item_label_color(item)
-
-                # Render label using item-specific color.
+                # Item labels render in the default text color; quantity is
+                # colored separately below.
                 label_text = f"{item}: "
-                label_surf = self.font.render(label_text, False, item_color)
+                label_surf = self.font.render(label_text, False, FontSettings.DEFAULT_COLOR)
 
                 # Render quantity; zero-count values use error color.
                 num_color = ColorSettings.TEXT_ERROR if count <= 0 else FontSettings.DEFAULT_COLOR

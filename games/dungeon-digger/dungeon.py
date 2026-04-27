@@ -60,22 +60,6 @@ class DungeonLevel:
             if len(row) != UISettings.COLS:
                 raise ValueError(f"{self.dungeon_name} has wrong column count.")
 
-    def load_random_dungeon(self) -> None:
-        """
-        Select a dungeon blueprint and normalize it into a usable grid.
-
-        This converts the raw dungeon definition into a consistent internal
-        format so the rest of the game can treat diggable terrain uniformly.
-        It also validates the dungeon dimensions early so malformed maps fail
-        fast during setup.
-
-        Raises:
-            ValueError: If the selected dungeon does not match the expected
-                row or column count.
-        """
-        dungeon_name = random.choice(list(DUNGEONS.keys()))
-        self.load_dungeon(dungeon_name)
-
     def setup_tile_map(self, monster_count: int | None = None) -> None:
         """
         Build mutable per-tile state on top of the static dungeon layout.
@@ -179,71 +163,50 @@ class DungeonLevel:
         return grid_pos
 
     def get_item_at_tile(self, grid_pos: tuple[int, int]) -> tuple[str | None, int]:
-        """
-        Determine what item is revealed when a tile is dug.
+        """Determine what item is revealed when a tile is dug.
 
-        Pre-placed map items take priority. If no fixed item is stored at the
-        tile, a random reward is rolled using the configured spawn chances and
-        quantities.
+        Pre-placed fixed items (KEY, MAP) take priority. If no fixed item is
+        stored at the tile, fall through to a weighted random roll.
 
         Args:
-            grid_pos (tuple[int, int]): The tile position being dug.
+            grid_pos: The tile being dug.
 
         Returns:
-            tuple[str | None, int]: A pair of (item_name, amount). Returns
-                (None, 0) when no item is found.
+            (item_name, amount). (None, 0) when nothing was found.
         """
-        # Resolve fixed item placements before random loot rolls.
         fixed_item = self.tile_data[grid_pos]["item"]
         if fixed_item:
             if fixed_item in ItemSettings.LEVEL_SCOPED_ITEMS:
                 self.level_unique_items_found.add(fixed_item)
             return fixed_item, 1
-        
-        # Roll random loot from configured weights, excluding already-found level-unique items.
-        eligible_items: list[tuple[str, float]] = []
-        for item, chance in ItemSettings.SPAWN_CHANCE.items():
-            if item in ItemSettings.LEVEL_SCOPED_ITEMS and item in self.level_unique_items_found:
-                continue
-            eligible_items.append((item, chance))
-
-        total_chance = sum(chance for _, chance in eligible_items)
-        if total_chance <= 0:
-            return None, 0
-
-        roll = random.random()
-        cumulative_chance = 0
-
-        # Traverse weighted distribution cumulatively until roll threshold is reached.
-        for item, chance in eligible_items:
-            cumulative_chance += chance
-            if roll < cumulative_chance:
-                # Determine quantity range for selected item.
-                min_qty, max_qty = ItemSettings.SPAWN_QUANTITIES.get(item, (1, 1))
-                amount = random.randint(min_qty, max_qty)
-                if item in ItemSettings.LEVEL_SCOPED_ITEMS:
-                    self.level_unique_items_found.add(item)
-                return item, amount
-                
-        return None, 0
+        return self.roll_random_loot()
 
     def roll_random_loot(self) -> tuple[str | None, int]:
-        """Roll a random loot drop using the same distribution as tile digging."""
-        eligible_items: list[tuple[str, float]] = []
-        for item, chance in ItemSettings.SPAWN_CHANCE.items():
-            if item in ItemSettings.LEVEL_SCOPED_ITEMS and item in self.level_unique_items_found:
-                continue
-            eligible_items.append((item, chance))
+        """Roll one weighted random loot drop.
 
-        total_chance = sum(chance for _, chance in eligible_items)
+        Used both for digging an empty tile and for NPC gifts. Level-scoped
+        items (KEY, MAP, MAGIC MAP, KEY DETECTOR) drop from the eligible
+        pool once they've already appeared this level.
+
+        Returns:
+            (item_name, amount). (None, 0) when the eligible pool is empty.
+        """
+        eligible = [
+            (item, chance)
+            for item, chance in ItemSettings.SPAWN_CHANCE.items()
+            if not (item in ItemSettings.LEVEL_SCOPED_ITEMS
+                    and item in self.level_unique_items_found)
+        ]
+        total_chance = sum(chance for _, chance in eligible)
         if total_chance <= 0:
             return None, 0
 
+        # Walk the weighted CDF until we cross the random roll.
         roll = random.random()
-        cumulative_chance = 0
-        for item, chance in eligible_items:
-            cumulative_chance += chance
-            if roll < cumulative_chance:
+        cumulative = 0.0
+        for item, chance in eligible:
+            cumulative += chance
+            if roll < cumulative:
                 min_qty, max_qty = ItemSettings.SPAWN_QUANTITIES.get(item, (1, 1))
                 amount = random.randint(min_qty, max_qty)
                 if item in ItemSettings.LEVEL_SCOPED_ITEMS:

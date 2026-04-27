@@ -501,7 +501,7 @@ class IntermissionFlow:
         stock = self.game.shop_stock.get(item_name)
         if stock is not None and stock <= 0:
             self.game.log_message("THAT ITEM IS OUT OF STOCK.")
-            self.game.audio.play_boundary_sound()
+            self.game.audio.play('boundary')
             return
 
         purchase_quantity = quantity
@@ -517,14 +517,14 @@ class IntermissionFlow:
 
         if current_gold < total_price:
             self.game.log_message("YOU CAN'T AFFORD THAT.")
-            self.game.audio.play_boundary_sound()
+            self.game.audio.play('boundary')
             return
 
         self.game.player.inventory["GOLD COINS"] = current_gold - total_price
         self.game.player.inventory[item_name] = self.game.player.inventory.get(item_name, 0) + purchase_quantity
         self.game.player.discovered_items.add(item_name)
         self.game.log_message(self.format_purchase_message(item_name, purchase_quantity))
-        self.game.audio.play_coin_sound()
+        self.game.audio.play('coin')
 
         if item_name == "INVISIBILITY CLOAK":
             self.game.player.inventory.pop("INVISIBILITY SCROLL", None)

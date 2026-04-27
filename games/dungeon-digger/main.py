@@ -3,15 +3,12 @@ import sys
 
 from settings import *
 from audio import AudioManager
-from sprites import Player, Monster, Door, NPC
 from windows import MessageLog, InventoryWindow, MapWindow
 from dungeon import DungeonLevel
-from dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER, get_monster_count_for_dungeon
-from minimap_memory import MinimapMemory
-from render import RenderManager
+from dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER
 from crt import CRT
 from managers import ScoreLeaderboardManager, IntermissionFlow
-from tutorial import TutorialManager, default_duration_for as tutorial_default_duration
+from tutorial import TutorialManager
 import coords
 import loot
 from level_loader import LevelLoader
@@ -179,7 +176,7 @@ class GameManager:
         Args:
             skip_tutorial: When True, advance past level 0 (The Arena) to level 1.
         """
-        self.audio.play_menu_select_sound()
+        self.audio.play('menu_select')
         if skip_tutorial and len(self.level_order) > 1:
             self.current_level_index = 1
             self.pending_level_index = 1
@@ -201,7 +198,7 @@ class GameManager:
         new_index = (self.title_menu_index + direction) % options_count
         if new_index != self.title_menu_index:
             self.title_menu_index = new_index
-            self.audio.play_menu_move_sound()
+            self.audio.play('menu_move')
 
     def handle_start_press(self) -> None:
         """Handle Start/Enter based on top-level UI state."""
@@ -309,7 +306,7 @@ class GameManager:
         for monster in self.monsters:
             if self.player.position == monster.position:
                 self.log_message("YOU WERE CAUGHT BY THE MONSTER!")
-                self.audio.play_scream_sound()
+                self.audio.play('scream')
                 self.finish_game("loss")
                 return True
 
@@ -338,11 +335,6 @@ class GameManager:
         """
         if self.tutorial is not None:
             self.tutorial.notify(event, **kwargs)
-
-    @property
-    def is_tutorial_blocking(self) -> bool:
-        """True while a tutorial card is on screen and gameplay must freeze."""
-        return self.tutorial is not None and self.tutorial.is_blocking
 
     # -------------------------
     # MAIN LOOP
@@ -379,7 +371,7 @@ class GameManager:
 
         # While a tutorial card is up it consumes ALL keyboard input so the
         # player can't accidentally play through the overlay.
-        if self.is_tutorial_blocking:
+        if (self.tutorial is not None and self.tutorial.is_blocking):
             self.tutorial.handle_event(event)
             return
 
@@ -411,7 +403,7 @@ class GameManager:
         if event.button == InputSettings.JOY_BUTTON_BACK:
             pygame.display.toggle_fullscreen()
 
-        if self.is_tutorial_blocking:
+        if (self.tutorial is not None and self.tutorial.is_blocking):
             self.tutorial.handle_event(event)
             return
 
@@ -463,7 +455,7 @@ class GameManager:
             self.is_transitioning
             or self.in_treasure_conversion
             or self.in_shop_phase
-            or self.is_tutorial_blocking
+            or (self.tutorial is not None and self.tutorial.is_blocking)
         ):
             return
 
