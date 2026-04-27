@@ -33,7 +33,6 @@ class AudioManager:
         self._last_bgm_track = None
         self._music_mode = "normal"
 
-        # Initialize Music
         self.play_random_bgm()
 
         self.move_sound = self._load_sound(AssetPaths.MOVE_SOUND)
@@ -64,7 +63,7 @@ class AudioManager:
         """Load one sound effect from disk.
 
         Args:
-            path (str): File path to the sound asset.
+            path: File path to the sound asset.
 
         Returns:
             pygame.mixer.Sound: Loaded sound object.

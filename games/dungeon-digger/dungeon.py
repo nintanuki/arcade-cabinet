@@ -17,7 +17,7 @@ class DungeonLevel:
         the dungeon.
 
         Args:
-            scaled_dirt_tiles (list): Pre-scaled dirt tile surfaces used when
+            scaled_dirt_tiles: Pre-scaled dirt tile surfaces used when
                 building tile_data for diggable tiles.
         """
         self.scaled_dirt_tiles = scaled_dirt_tiles
@@ -53,7 +53,6 @@ class DungeonLevel:
                 normalized_row.append(" " if cell == "." else cell)
             self.current_grid.append(normalized_row)
 
-        # Validate map dimensions early to catch malformed layouts.
         if len(self.current_grid) != UISettings.ROWS:
             raise ValueError(f"{self.dungeon_name} has wrong row count.")
         for row in self.current_grid:
@@ -227,11 +226,11 @@ class DungeonLevel:
         code can safely query the map without doing separate boundary checks.
 
         Args:
-            col (int): Grid column.
-            row (int): Grid row.
+            col: Grid column.
+            row: Grid row.
 
         Returns:
-            str: The raw map symbol at that location. Returns "x" for walls and
+            The raw map symbol at that location. Returns "x" for walls and
                 out-of-bounds positions.
         """
         if 0 <= row < len(self.current_grid) and 0 <= col < len(self.current_grid[row]):
@@ -243,11 +242,11 @@ class DungeonLevel:
         Check whether an entity can occupy a grid position.
 
         Args:
-            col (int): Grid column.
-            row (int): Grid row.
+            col: Grid column.
+            row: Grid row.
 
         Returns:
-            bool: True if the tile is not a wall. False for walls and
+            True if the tile is not a wall. False for walls and
                 out-of-bounds positions.
         """
         return self.get_map_cell(col, row) != "x"
@@ -256,11 +255,11 @@ class DungeonLevel:
         """Check whether the tile can be dug by the player.
 
         Args:
-            col (int): Grid column.
-            row (int): Grid row.
+            col: Grid column.
+            row: Grid row.
 
         Returns:
-            bool: True when the tile is diggable dirt.
+            True when the tile is diggable dirt.
         """
         return self.get_map_cell(col, row) == " "
 

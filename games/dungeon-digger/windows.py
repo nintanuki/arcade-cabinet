@@ -68,10 +68,10 @@ class MessageLog:
         """Return whether a character should count as part of a word.
 
         Args:
-            char (str): Character to classify.
+            char: Character to classify.
 
         Returns:
-            bool: True for alphanumeric characters and underscores.
+            True for alphanumeric characters and underscores.
         """
         return char.isalnum() or char == "_"
 
@@ -86,9 +86,9 @@ class MessageLog:
         """Find a highlight token that starts at a text index.
 
         Args:
-            text (str): Original mixed-case text.
-            upper_text (str): Uppercased version of the same text.
-            index (int): Candidate start index.
+            text: Original mixed-case text.
+            upper_text: Uppercased version of the same text.
+            index: Candidate start index.
 
         Returns:
             tuple[str, str] | None: Matched term and color, or None.
@@ -135,10 +135,10 @@ class MessageLog:
 
         Args:
             surface: Target surface for drawing.
-            text (str): Text line to render.
-            x (int): Start x pixel position.
-            y (int): Baseline y pixel position.
-            default_color (str): Color used for non-highlighted text.
+            text: Text line to render.
+            x: Start x pixel position.
+            y: Baseline y pixel position.
+            default_color: Color used for non-highlighted text.
         """
         effective_default_color = self._default_color_for_message(text, default_color)
         draw_x = x
@@ -152,23 +152,20 @@ class MessageLog:
         Queue a new active message and start its typewriter animation.
 
         Args:
-            text (str): Message text to display.
-            type_speed (float | None): Optional characters-per-frame override.
+            text: Message text to display.
+            type_speed: Optional characters-per-frame override.
         """
-        # Persist the previous active message before starting a new one.
         if self.full_text:
+            # Move the just-finished active message into history; cap history length.
             self.messages.append(self.full_text)
             if len(self.messages) > WindowSettings.MAX_MESSAGES:
                 self.messages.pop(0)
 
-        # Initialize typewriter state for the incoming message.
         self.full_text = text
         self.active_message = ""
         self.char_index = 0
         self.current_type_speed = type_speed if type_speed is not None else self.type_speed
         self.is_typing = True
-
-        # TODO: Refactor message formatting/highlighting rules into a dedicated text presentation utility.
 
     def draw(self, surface):
         """Render current message history and active typewriter text.
@@ -176,18 +173,15 @@ class MessageLog:
         Args:
             surface: Target surface for the message window.
         """
-        # Compute text anchor inside message window.
         start_x = UISettings.LOG_X + WindowSettings.TEXT_PADDING
         start_y = UISettings.LOG_Y + WindowSettings.TEXT_PADDING
 
-        # Draw historical lines.
         for index, message in enumerate(self.messages):
             y_pos = start_y + (index * WindowSettings.LINE_HEIGHT)
             self._draw_colored_line(surface, message, start_x, y_pos, FontSettings.DEFAULT_COLOR)
 
-        # Draw active typewriter line.
         if self.full_text:
-            # Place active line directly below message history.
+            # The in-progress line renders directly below history.
             y_pos = start_y + (len(self.messages) * WindowSettings.LINE_HEIGHT)
             self._draw_colored_line(surface, self.active_message, start_x, y_pos, FontSettings.LAST_MESSAGE_COLOR)
 
@@ -228,7 +222,6 @@ class InventoryWindow:
         surface.blit(header_surf, (start_x, start_y))
 
         visual_row = 0
-        # TODO: Move inventory spacing literals (-1, +25) to WindowSettings constants.
         tight_line_height = WindowSettings.LINE_HEIGHT - 1
 
         # Reserve a small gutter on every row for the active-light marker so
@@ -322,8 +315,6 @@ class MapWindow:
                         mini_tile_size - 1,
                         mini_tile_size - 1
                     )
-
-                    # TODO: Replace minimap cell inset literal (-1) and line inset literal (1) with UI constants.
 
                     remembered = self.game.map_memory.seen_tiles[grid_pos]
 

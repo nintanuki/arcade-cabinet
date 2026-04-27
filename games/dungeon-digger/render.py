@@ -42,7 +42,7 @@ class RenderManager:
         """Return the minimap border color based on map ownership state.
 
         Returns:
-            tuple[int, int, int]: RGB color used for map window border.
+            RGB color used for map window border.
         """
         if self.game.map_memory.player_has_magic_map():
             return self._rainbow_color()
@@ -54,7 +54,7 @@ class RenderManager:
         """Return the inventory border color based on key ownership.
 
         Returns:
-            tuple[int, int, int]: RGB color for inventory window border.
+            RGB color for inventory window border.
         """
         if self.game.player.inventory.get("KEY", 0) > 0:
             return ColorSettings.BORDER_KEY_ACTIVE
@@ -64,7 +64,7 @@ class RenderManager:
         """Return the message-log border color from current game outcome/state.
 
         Returns:
-            tuple[int, int, int]: RGB color for message window border.
+            RGB color for message window border.
         """
         if not self.game.game_active and self.game.game_result == "loss":
             return ColorSettings.BORDER_MESSAGE_FAILURE
@@ -79,7 +79,6 @@ class RenderManager:
         Loops through the screen and draws the dirt tiles with grey outlines.
         Draws the dirt tiles only within the Action Window boundaries.
         """
-        # TODO: Refactor tile/fog composition into dedicated rendering passes if rendering complexity grows.
         # Draw map tiles in row-major order.
         for row in range(UISettings.ROWS):
             for col in range(UISettings.COLS):

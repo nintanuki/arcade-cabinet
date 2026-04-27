@@ -22,7 +22,7 @@ class Player(pygame.sprite.Sprite):
 
         Args:
             game: The active GameManager instance that coordinates the game.
-            position (tuple[int, int]): The player's starting screen position.
+            position: The player's starting screen position.
             groups: Sprite groups this player should be added to.
         """
         super().__init__(groups)
@@ -103,7 +103,7 @@ class Player(pygame.sprite.Sprite):
         """Cycle the B-button light selection through owned sources.
 
         Args:
-            direction (int): +1 for next (R1), -1 for previous (L1).
+            direction: +1 for next (R1), -1 for previous (L1).
         """
         owned = self._owned_light_sources(LightSettings.SOURCE_CYCLE_ORDER)
         if not owned:
@@ -159,7 +159,7 @@ class Player(pygame.sprite.Sprite):
         for the current frame.
 
         Returns:
-            PlayerIntent: A tuple of (delta_x_tiles, delta_y_tiles, action).
+            A tuple of (delta_x_tiles, delta_y_tiles, action).
             Movement deltas are -1, 0, or 1.
             action is one of 'move', 'dig', 'detector', 'light',
             'repellent', or None.
@@ -239,8 +239,8 @@ class Player(pygame.sprite.Sprite):
         If the target tile is blocked, it logs a boundary message instead.
 
         Args:
-            delta_x_tiles (int): Horizontal tile step, usually -1, 0, or 1.
-            delta_y_tiles (int): Vertical tile step, usually -1, 0, or 1.
+            delta_x_tiles: Horizontal tile step, usually -1, 0, or 1.
+            delta_y_tiles: Vertical tile step, usually -1, 0, or 1.
         """
         delta_x_tiles, delta_y_tiles = self._normalize_cardinal_step(delta_x_tiles, delta_y_tiles)
         current_col, current_row = coords.screen_to_grid(self.position.x, self.position.y)
@@ -512,7 +512,6 @@ class Player(pygame.sprite.Sprite):
 
         if self.is_repelled():
             pulse_ratio = self._get_pulse_ratio()
-            # TODO: Move repellent pulse alpha range literals (80, 80) into UI/animation constants.
             border_alpha = 80 + int(80 * pulse_ratio)
             return ColorSettings.BORDER_REPELLED, border_alpha
 
@@ -533,7 +532,6 @@ class Player(pygame.sprite.Sprite):
 
         if is_repelled:
             pulse_ratio = self._get_pulse_ratio()
-            # TODO: Move repellent tint alpha range literals (70, 40) into UI/animation constants.
             tint_alpha = 70 + int(40 * pulse_ratio)
             tint_surface = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
             tint_surface.fill(color_with_alpha(ColorSettings.REPELLED_TINT, tint_alpha))
@@ -589,7 +587,7 @@ class Monster(pygame.sprite.Sprite):
 
         Args:
             game: The active GameManager instance.
-            position (tuple[int, int]): Starting screen position.
+            position: Starting screen position.
             groups: Sprite groups this monster belongs to.
         """
         super().__init__(groups)
@@ -620,11 +618,11 @@ class Monster(pygame.sprite.Sprite):
         """Return a one-tile movement vector toward the player.
 
         Args:
-            delta_pixels_x (float): Horizontal delta from monster to player.
-            delta_pixels_y (float): Vertical delta from monster to player.
+            delta_pixels_x: Horizontal delta from monster to player.
+            delta_pixels_y: Vertical delta from monster to player.
 
         Returns:
-            tuple[int, int]: Pixel step aligned to one cardinal direction.
+            Pixel step aligned to one cardinal direction.
         """
         step_x = 0
         step_y = 0
@@ -768,8 +766,8 @@ class Monster(pygame.sprite.Sprite):
         is walkable, and starts movement animation if valid.
 
         Args:
-            delta_pixels_x (int): Pixel movement in the x direction.
-            delta_pixels_y (int): Pixel movement in the y direction.
+            delta_pixels_x: Pixel movement in the x direction.
+            delta_pixels_y: Pixel movement in the y direction.
         """
         current_col, current_row = coords.screen_to_grid(self.position.x, self.position.y)
         target_col = current_col + (delta_pixels_x // GridSettings.TILE_SIZE)
@@ -788,7 +786,7 @@ class Monster(pygame.sprite.Sprite):
         Walls block line of sight.
 
         Returns:
-            bool: True if no walls block the view, False otherwise.
+            True if no walls block the view, False otherwise.
         """
         m_col, m_row = coords.screen_to_grid(self.position.x, self.position.y)
         p_col, p_row = coords.screen_to_grid(self.game.player.position.x, self.game.player.position.y)
@@ -841,7 +839,7 @@ class NPC(pygame.sprite.Sprite):
 
         Args:
             game: Active game manager instance.
-            position (tuple[int, int]): Starting screen position.
+            position: Starting screen position.
             groups: Sprite groups this NPC belongs to.
         """
         super().__init__(groups)
@@ -881,7 +879,6 @@ class NPC(pygame.sprite.Sprite):
     def update(self) -> None:
         """No-op update hook kept for sprite-group compatibility."""
         pass
-
 
 class Door(pygame.sprite.Sprite):
     """Represent the level door sprite and open/closed visual states."""

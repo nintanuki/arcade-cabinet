@@ -20,9 +20,8 @@ class GameManager:
         """Initialize runtime systems, persistent state, and the first dungeon level.
 
         Args:
-            start_fullscreen (bool): Whether to launch directly in fullscreen mode.
+            start_fullscreen: Whether to launch directly in fullscreen mode.
         """
-        # Initialize Pygame and set up the display
         pygame.init()
         self.screen = pygame.display.set_mode((ScreenSettings.RESOLUTION), pygame.SCALED)
         pygame.display.set_caption('Dungeon Digger')
@@ -30,7 +29,6 @@ class GameManager:
             pygame.display.toggle_fullscreen()
         self.clock = pygame.time.Clock()
 
-        # -------- Core subsystem initialization --------
         self.setup_controllers()
         self.load_assets()
         self.dungeon = DungeonLevel(self.scaled_dirt_tiles)
@@ -84,9 +82,8 @@ class GameManager:
         # -------- Rendering facade --------
         self.render = None
 
-        # Loader needs dungeon + all_sprites alive (already constructed above).
+        # LevelLoader needs dungeon + all_sprites alive — both built above.
         self.level_loader = LevelLoader(self)
-        # Load the first level once every subsystem is ready.
         self.level_loader.load_level()
         self.audio.stop_music()
 
@@ -155,7 +152,7 @@ class GameManager:
         """Return the configured level number for the current level index.
 
         Returns:
-            int: Current configured level number.
+            Current configured level number.
         """
         if not self.level_numbers:
             return self.current_level_index
@@ -166,7 +163,7 @@ class GameManager:
         """Report whether a level transition card is currently active.
 
         Returns:
-            bool: True while transition timing is in progress.
+            True while transition timing is in progress.
         """
         return pygame.time.get_ticks() < self.transition_end_time
 

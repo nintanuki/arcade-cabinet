@@ -24,7 +24,7 @@ class MinimapMemory:
         """Return whether the player owns the magic map.
 
         Returns:
-            bool: True when magic map inventory count is positive.
+            True when magic map inventory count is positive.
         """
         return self.game.player.inventory.get("MAGIC MAP", 0) > 0
 
@@ -32,7 +32,7 @@ class MinimapMemory:
         """Return whether the player owns the regular map.
 
         Returns:
-            bool: True when regular map inventory count is positive.
+            True when regular map inventory count is positive.
         """
         return self.game.player.inventory.get("MAP", 0) > 0
 
@@ -40,7 +40,7 @@ class MinimapMemory:
         """Return whether either map variant is owned.
 
         Returns:
-            bool: True when regular or magic map is present.
+            True when regular or magic map is present.
         """
         return self.player_has_regular_map() or self.player_has_magic_map()
 
@@ -48,7 +48,7 @@ class MinimapMemory:
         """Return whether the player currently emits light.
 
         Returns:
-            bool: True when light radius is greater than zero.
+            True when light radius is greater than zero.
         """
         return self.game.player.light_radius > 0
 
@@ -56,7 +56,7 @@ class MinimapMemory:
         """Return whether map memory should update this turn.
 
         Returns:
-            bool: True when light is active or magic map is owned.
+            True when light is active or magic map is owned.
         """
         return self.player_has_active_light_source() or self.player_has_magic_map()
 
@@ -64,7 +64,7 @@ class MinimapMemory:
         """Return whether the player marker should render on the minimap.
 
         Returns:
-            bool: True when marker visibility conditions are met.
+            True when marker visibility conditions are met.
         """
         return self.player_has_active_light_source() or self.player_has_magic_map()
     
@@ -75,7 +75,7 @@ class MinimapMemory:
             target_grid_pos: Target (col, row) grid coordinate.
 
         Returns:
-            bool: True when the tile is visible under current reveal rules.
+            True when the tile is visible under current reveal rules.
         """
         # Owning either map reveals terrain without line-of-sight checks.
         if self.player_has_any_map():
@@ -186,7 +186,7 @@ class MinimapMemory:
             target_grid_pos: Target (col, row) entity coordinate.
 
         Returns:
-            bool: True when the entity position is visible.
+            True when the entity position is visible.
         """
         if not self.player_has_active_light_source():
             return False

@@ -1,7 +1,6 @@
 # Keep shared configuration grouped in namespaced classes for predictable imports.
 import os
 
-
 class ColorSettings:
     """Centralized named colors used throughout UI and gameplay rendering."""
 
@@ -73,7 +72,6 @@ class ColorSettings:
     MESSAGE_CONTROL_A = GREEN
     MESSAGE_DOOR = TAN
 
-
 class ScreenSettings:
     """Class to hold all the settings related to the screen."""
     WIDTH = 800
@@ -139,7 +137,6 @@ class UISettings:
     # opposite the HIGH SCORE label. Used as a topright anchor when blitting.
     MUTE_RIGHT_X = ACTION_WINDOW_X + ACTION_WINDOW_WIDTH
     MUTE_Y = SCORE_Y
-
 
 class RenderSettings:
     """Constants for title, overlay, and between-screen render timing/layout."""
@@ -241,7 +238,6 @@ class TutorialSettings:
     BODY_FONT_SIZE = 14
     # The dismiss prompt reuses FontSettings.MESSAGE_SIZE directly at the
     # call site so HUD text stays one source of truth.
-
 
 class PlayerSettings:
     """Player-specific tuning values."""
@@ -430,8 +426,6 @@ class AudioSettings:
 
 class AssetPaths:
     """Resolved asset paths for sprites, audio, and music content."""
-
-    # TODO: Consider moving asset paths to a dedicated asset_manifest.py to keep settings focused on gameplay constants.
 
     # Images
     BASE_DIR = os.path.dirname(__file__)

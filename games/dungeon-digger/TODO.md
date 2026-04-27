@@ -145,6 +145,7 @@ These notes capture confirmed progress without changing checkbox status unless a
 - replace pokemon and minecraft sounds
 - remove "bulk buy" option
 - get rid of the "tutorial" dungeon arena, it's boring, and the tutorial can play on any dungeon as long as it's not skipped
+- add hard limit of 255 to each item for "retro" feel
 
 # Refactoring notes
 - L1 R1 controls to cycle light source are in main.y, they should be in sprites.py in the player input function

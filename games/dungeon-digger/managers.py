@@ -19,7 +19,7 @@ class ScoreLeaderboardManager:
         """Return the absolute path to the high-score data file.
 
         Returns:
-            str: Filesystem path for the high-score file.
+            Filesystem path for the high-score file.
         """
         return os.path.join(os.path.dirname(__file__), GameSettings.HIGH_SCORE_FILE)
 
@@ -27,7 +27,7 @@ class ScoreLeaderboardManager:
         """Return the absolute path to the leaderboard data file.
 
         Returns:
-            str: Filesystem path for the leaderboard file.
+            Filesystem path for the leaderboard file.
         """
         return os.path.join(os.path.dirname(__file__), GameSettings.LEADERBOARD_FILE)
 
@@ -35,7 +35,7 @@ class ScoreLeaderboardManager:
         """Load the saved high score from disk if it exists.
 
         Returns:
-            int: High score value, or zero if unavailable.
+            High score value, or zero if unavailable.
         """
         high_score_path = self.get_high_score_path()
         if not os.path.exists(high_score_path):
@@ -61,10 +61,10 @@ class ScoreLeaderboardManager:
         """Normalize initials to exactly three uppercase alphabetic characters.
 
         Args:
-            initials (str): Raw initials input.
+            initials: Raw initials input.
 
         Returns:
-            str: Sanitized three-character initials string.
+            Sanitized three-character initials string.
         """
         letters = "".join(char for char in initials.upper() if char.isalpha())
         return (letters[:3]).ljust(3, "A")
@@ -116,10 +116,10 @@ class ScoreLeaderboardManager:
         """Return True when score qualifies for leaderboard entry.
 
         Args:
-            score (int): Candidate score.
+            score: Candidate score.
 
         Returns:
-            bool: True when score should be entered.
+            True when score should be entered.
         """
         if score <= 0:
             return False
@@ -133,8 +133,8 @@ class ScoreLeaderboardManager:
         """Insert and persist one top-score entry.
 
         Args:
-            initials (str): Player initials.
-            score (int): Final score for this run.
+            initials: Player initials.
+            score: Final score for this run.
         """
         clean_initials = self.sanitize_initials(initials)
         existing_index = next(
@@ -158,8 +158,8 @@ class ScoreLeaderboardManager:
         """Increase score from one treasure pickup.
 
         Args:
-            item_name (str): Treasure item key.
-            amount (int): Quantity collected.
+            item_name: Treasure item key.
+            amount: Quantity collected.
         """
         value = ItemSettings.TREASURE_SCORE_VALUES.get(item_name, 0)
         self.game.score += value * amount
@@ -181,7 +181,7 @@ class ScoreLeaderboardManager:
         """Return whether the continue action is currently allowed.
 
         Returns:
-            bool: True when continue action should be accepted.
+            True when continue action should be accepted.
         """
         if self.game.ui_state != "game_over":
             return False
@@ -213,7 +213,7 @@ class ScoreLeaderboardManager:
         """Handle keyboard/controller input while entering initials.
 
         Args:
-            event (pygame.event.Event): Input event to process.
+            event: Input event to process.
         """
         if self.game.ui_state != "enter_initials":
             return
@@ -442,7 +442,7 @@ class IntermissionFlow:
         """Return ordered shop menu rows.
 
         Returns:
-            list[str]: Purchasable item rows plus continue row.
+            Purchasable item rows plus continue row.
         """
         return [*ItemSettings.SHOP_PRICES.keys(), "CONTINUE"]
 
@@ -450,7 +450,7 @@ class IntermissionFlow:
         """Move currently highlighted shop row.
 
         Args:
-            delta (int): Signed row step.
+            delta: Signed row step.
         """
         options = self.get_shop_menu_options()
         if not options:
@@ -463,11 +463,11 @@ class IntermissionFlow:
         """Create purchase message text with pluralization.
 
         Args:
-            item_name (str): Purchased item name.
-            quantity (int): Purchased quantity.
+            item_name: Purchased item name.
+            quantity: Purchased quantity.
 
         Returns:
-            str: UI-ready purchase message.
+            UI-ready purchase message.
         """
         if quantity == 1:
             if item_name == "MONSTER REPELLENT":
@@ -492,8 +492,8 @@ class IntermissionFlow:
         """Attempt to purchase one shop item.
 
         Args:
-            item_name (str): Item row selected.
-            quantity (int): Desired quantity.
+            item_name: Item row selected.
+            quantity: Desired quantity.
         """
         if item_name not in ItemSettings.SHOP_PRICES:
             return
@@ -549,7 +549,7 @@ class IntermissionFlow:
         """Process keyboard and controller events for shop UI.
 
         Args:
-            event (pygame.event.Event): Input event to process.
+            event: Input event to process.
         """
         if not self.game.in_shop_phase:
             return
