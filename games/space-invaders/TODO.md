@@ -1,0 +1,6 @@
+- [ ] Add intials high score system
+- [ ] window just closes when you die
+- [ ] animate aliens
+- [ ] add pause
+- [ ] add full screen mode
+- [ ] add reset key combo
