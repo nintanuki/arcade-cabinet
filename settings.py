@@ -96,23 +96,23 @@ class GameSettings:
     OPTIONS = [
         ("Star Hero", Path("games") / "star-hero" / "main.py"),
         ("Dungeon Digger", Path("games") / "dungeon-digger" / "main.py"),
-        ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
         ("Snake", Path("games") / "snake" / "snake.py"),
         ("Space Invaders", Path("games") / "space-invaders" / "main.py"),
-        ("Runner", Path("games") / "runner" / "main.py"),
         ("Pong", Path("games") / "pong" / "main.py"),
+        ("Runner", Path("games") / "runner" / "main.py"),
         ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
+        ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
         "Star Hero": Path("previews") / "star_hero.png",
         "Dungeon Digger": Path("previews") / "dungeon_digger.png",
-        "Jezz Ball": Path("previews") / "jezz_ball.png",
         "Snake": Path("previews") / "snake.png",
         "Space Invaders": Path("previews") / "space_invaders.png",
-        "Runner": Path("previews") / "runner.png",
         "Pong": Path("previews") / "pong.png",
+        "Runner": Path("previews") / "runner.png",
         "Air Hockey": Path("previews") / "air_hockey.png",
+        "Jezz Ball": Path("previews") / "jezz_ball.png",
     }
 
     NO_CONTROLLER_SUPPORT_GAMES = {
