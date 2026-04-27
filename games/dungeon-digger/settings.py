@@ -183,13 +183,39 @@ class RenderSettings:
     LEADERBOARD_EMPTY_Y = 260
     LEADERBOARD_PROMPT_Y_OFFSET = 60
 
+    # Slot select layout (NEW GAME / LOAD GAME). Ten rows of slot summary
+    # land between the header and the bottom prompt. The cursor X offset
+    # positions the ">" indicator a few pixels left of the row text.
+    SLOT_SELECT_TITLE_Y = 50
+    SLOT_SELECT_START_Y = 110
+    SLOT_SELECT_ROW_HEIGHT = 36
+    SLOT_SELECT_ROW_X = 120
+    SLOT_SELECT_CURSOR_OFFSET_X = -20
+    SLOT_SELECT_PROMPT_Y_OFFSET = 35
+
+    # Name entry, overwrite confirm, and delete confirm share a centered
+    # layout pattern: a header, a contextual line, a focal element (the
+    # typed name buffer or NO/YES options), and a bottom controls hint.
+    SAVE_DIALOG_TITLE_Y = 150
+    SAVE_DIALOG_BODY_Y = 230
+    SAVE_DIALOG_FOCAL_Y = 320
+    SAVE_DIALOG_PROMPT_Y_OFFSET = 50
+    SAVE_DIALOG_OPTION_GAP = 100
+
 class GameSettings:
     """Global gameplay flow constants and persistence limits."""
 
     LEVEL_TRANSITION_MS = 2000
-    HIGH_SCORE_FILE = 'high_score.txt'
     LEADERBOARD_FILE = 'leaderboard.txt'
     LEADERBOARD_LIMIT = 10
+
+    # Save system: ten slots, JSON files under saves/. SAVE_VERSION exists so
+    # SaveManager can reject or migrate older save files if the schema ever
+    # changes incompatibly.
+    SAVES_DIR = 'saves'
+    SAVE_VERSION = 1
+    MAX_SAVE_SLOTS = 10
+    MAX_PLAYER_NAME_LENGTH = 8
     GAME_OVER_CONTINUE_DELAY_MS = 650
     GAME_OVER_PROMPT_FADE_MS = 750
     DOOR_UNLOCK_MESSAGE_TYPE_SPEED = 0.12
@@ -201,7 +227,6 @@ class GameSettings:
     TREASURE_CONVERSION_POST_MESSAGE_DELAY_MS = 450
 
     SHOP_DISPLAY_DELAY_MS = 200
-    SHOP_BULK_PURCHASE_QUANTITY = 5
     STATUS_EFFECT_TURN_BUFFER = 1
 
 class WindowSettings:
@@ -277,6 +302,8 @@ class InputSettings:
     JOY_BUTTON_START = 7
     JOY_BUTTON_QUIT_COMBO = (7, 6, 4, 5)
 
+    JOY_AXIS_LEFT_X = 0
+    JOY_AXIS_LEFT_Y = 1
     JOY_AXIS_L2 = 4
     JOY_AXIS_R2 = 5
     JOY_TRIGGER_THRESHOLD = 0.5
@@ -341,11 +368,10 @@ class ItemSettings:
         'INVISIBILITY CLOAK': 10000,
     }
 
+    # Only the invisibility cloak is limited stock (one per shop visit, and
+    # zero if the player already owns one). Every other item is unlimited.
     SHOP_LIMITED_STOCK_TEMPLATE = {
-        'LANTERN': 3,
         'INVISIBILITY CLOAK': 1,
-        'MAP': 1,
-        'KEY DETECTOR': 1,
     }
 
     DETECTOR_DISTANCE_FOUND = 0

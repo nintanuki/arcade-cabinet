@@ -390,12 +390,14 @@ class RenderManager:
             else:
                 price = ItemSettings.SHOP_PRICES[option]
                 stock = self.game.shop_stock.get(option)
+                # Only the cloak ever reaches stock == 0 (limited to one per
+                # shop, zero once owned). Every other item is unlimited and
+                # carries no quantity indicator next to its name.
                 if stock == 0:
                     line_text = f"{option} - OUT OF STOCK"
                     color = ColorSettings.TEXT_ERROR
                 else:
-                    count_suffix = '' if stock is None else f" x{stock}"
-                    line_text = f"{option}{count_suffix} - {price}G"
+                    line_text = f"{option} - {price}G"
                     color = ColorSettings.TEXT_DEFAULT
 
             if index == selected_index:
@@ -616,3 +618,220 @@ class RenderManager:
                     )
                 )
                 self.screen.blit(prompt_surf, prompt_rect)
+
+    # -------------------------
+    # SAVE-FLOW SCREENS
+    # -------------------------
+
+    def draw_slot_select_screen(self) -> None:
+        """Draw the save-slot picker shared by NEW GAME and LOAD GAME.
+
+        Reads ui_state to pick the title text and the bottom controls hint,
+        and slot_select_index to highlight one of ten rows. Each row shows
+        either "EMPTY" / "CORRUPT" or "NAME / LV X / SCORE Y / GOLD Z" so
+        the player can pick by their progress, not just by slot number.
+        """
+        self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
+
+        title_font = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
+        row_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
+        prompt_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
+
+        # Header text differs by mode so the player always sees which flow
+        # they're in even if they navigated here without intent.
+        if self.game.ui_state == 'slot_select_new':
+            header_text = "NEW GAME - SELECT SLOT"
+            controls_text = "ENTER: SELECT     ESC: BACK"
+        else:
+            header_text = "LOAD GAME - SELECT SLOT"
+            controls_text = "ENTER: LOAD     X / DEL: DELETE     ESC: BACK"
+
+        title_surf = title_font.render(header_text, False, ColorSettings.TEXT_TITLE)
+        title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, RenderSettings.SLOT_SELECT_TITLE_Y))
+        self.screen.blit(title_surf, title_rect)
+
+        summaries = self.game.save_manager.list_slots()
+        start_y = RenderSettings.SLOT_SELECT_START_Y
+        row_height = RenderSettings.SLOT_SELECT_ROW_HEIGHT
+        row_x = RenderSettings.SLOT_SELECT_ROW_X
+
+        for idx, summary in enumerate(summaries):
+            y = start_y + idx * row_height
+            is_selected = idx == self.game.slot_select_index
+
+            # Slot label is always present so the row index is visible even
+            # when the slot is empty.
+            slot_label = f"SLOT {summary['slot_id']:>2}"
+
+            if summary['corrupt']:
+                detail = "CORRUPT - DELETE TO REUSE"
+                detail_color = ColorSettings.TEXT_ERROR
+            elif not summary['occupied']:
+                detail = "EMPTY"
+                detail_color = ColorSettings.DIM_GRAY
+            else:
+                detail = (
+                    f"{summary['name']:<8}  LV {summary['level']:>2}  "
+                    f"SCORE {summary['score']:>5}  GOLD {summary['gold']:>5}"
+                )
+                detail_color = ColorSettings.TEXT_DEFAULT
+
+            row_color = ColorSettings.TEXT_SELECTOR if is_selected else ColorSettings.TEXT_DEFAULT
+
+            row_surf = row_font.render(f"{slot_label} : {detail}", False, row_color if is_selected else detail_color)
+            row_rect = row_surf.get_rect(midleft=(row_x, y))
+            self.screen.blit(row_surf, row_rect)
+
+            if is_selected:
+                cursor_surf = row_font.render(">", False, ColorSettings.TEXT_SELECTOR)
+                cursor_rect = cursor_surf.get_rect(
+                    midright=(row_x + RenderSettings.SLOT_SELECT_CURSOR_OFFSET_X, y)
+                )
+                self.screen.blit(cursor_surf, cursor_rect)
+
+        prompt_surf = prompt_font.render(controls_text, False, ColorSettings.TEXT_PROMPT)
+        prompt_rect = prompt_surf.get_rect(
+            center=(ScreenSettings.WIDTH / 2, ScreenSettings.HEIGHT - RenderSettings.SLOT_SELECT_PROMPT_Y_OFFSET)
+        )
+        self.screen.blit(prompt_surf, prompt_rect)
+
+    def draw_name_entry_screen(self) -> None:
+        """Draw the keyboard-typed name entry screen.
+
+        Renders the typed buffer with an underscore cursor at the next
+        character position so the player can see how many characters they
+        still have to play with. Slot number is shown so the player
+        remembers which slot they're filling in.
+        """
+        self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
+
+        title_font = pygame.font.Font(FontSettings.FONT, FontSettings.ENDGAME_SIZE)
+        body_font = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
+        buffer_font = pygame.font.Font(FontSettings.FONT, FontSettings.ENDGAME_SIZE)
+        prompt_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
+
+        title_surf = title_font.render("ENTER YOUR NAME", False, ColorSettings.TEXT_TITLE)
+        title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, RenderSettings.SAVE_DIALOG_TITLE_Y))
+        self.screen.blit(title_surf, title_rect)
+
+        slot_text = f"SLOT {self.game.confirm_target_slot:>2}"
+        slot_surf = body_font.render(slot_text, False, ColorSettings.TEXT_DEFAULT)
+        slot_rect = slot_surf.get_rect(center=(ScreenSettings.WIDTH / 2, RenderSettings.SAVE_DIALOG_BODY_Y))
+        self.screen.blit(slot_surf, slot_rect)
+
+        # Pad the displayed buffer with underscores up to the maximum so
+        # the player has a visual sense of how many characters fit.
+        max_length = GameSettings.MAX_PLAYER_NAME_LENGTH
+        typed = self.game.name_entry_buffer
+        # Replace literal spaces in the typed buffer with a visible bullet
+        # so the player can see they've typed a space rather than nothing.
+        typed_display = typed.replace(' ', '_')
+        # Use a small block character for the cursor slot so the focus is
+        # visually distinct from the placeholder underscores around it.
+        slots = list(typed_display)
+        # Add a blinking-style cursor at the next slot if there's room.
+        if len(slots) < max_length:
+            slots.append('_')
+        # Fill any remaining positions with underscores.
+        while len(slots) < max_length:
+            slots.append('_')
+
+        # Render character-by-character so the cursor slot gets its own
+        # color treatment.
+        char_width = buffer_font.size("A")[0] + 12
+        total_width = char_width * max_length
+        start_x = ScreenSettings.WIDTH / 2 - total_width / 2
+        for i, ch in enumerate(slots):
+            is_cursor = i == len(typed_display)
+            color = ColorSettings.TEXT_PROMPT if is_cursor else ColorSettings.TEXT_DEFAULT
+            ch_surf = buffer_font.render(ch, False, color)
+            ch_rect = ch_surf.get_rect(midtop=(start_x + i * char_width + char_width / 2, RenderSettings.SAVE_DIALOG_FOCAL_Y))
+            self.screen.blit(ch_surf, ch_rect)
+
+        # Two-line prompt: hint that types A-Z 0-9 and SPACE only, plus the
+        # control summary.
+        controls_a = f"TYPE 1-{max_length} LETTERS / NUMBERS / SPACE"
+        controls_b = "ENTER: CONFIRM     BACKSPACE: DELETE     ESC: BACK"
+        prompt_a_surf = prompt_font.render(controls_a, False, ColorSettings.TEXT_DEFAULT)
+        prompt_b_surf = prompt_font.render(controls_b, False, ColorSettings.TEXT_PROMPT)
+        prompt_a_rect = prompt_a_surf.get_rect(
+            center=(ScreenSettings.WIDTH / 2, ScreenSettings.HEIGHT - RenderSettings.SAVE_DIALOG_PROMPT_Y_OFFSET - 24)
+        )
+        prompt_b_rect = prompt_b_surf.get_rect(
+            center=(ScreenSettings.WIDTH / 2, ScreenSettings.HEIGHT - RenderSettings.SAVE_DIALOG_PROMPT_Y_OFFSET)
+        )
+        self.screen.blit(prompt_a_surf, prompt_a_rect)
+        self.screen.blit(prompt_b_surf, prompt_b_rect)
+
+    def draw_overwrite_confirm_screen(self) -> None:
+        """Draw the YES/NO confirm dialog for overwriting an existing save."""
+        existing = self.game.save_manager.load_slot(self.game.confirm_target_slot)
+        existing_name = (existing or {}).get('player_name', '')
+        existing_level = (existing or {}).get('next_level', '?')
+        title_text = f"OVERWRITE SLOT {self.game.confirm_target_slot}?"
+        body_text = (
+            f"{existing_name} (LV {existing_level}) WILL BE LOST"
+            if existing_name
+            else "EXISTING SAVE WILL BE LOST"
+        )
+        self._draw_confirm_dialog(title_text, body_text)
+
+    def draw_delete_confirm_screen(self) -> None:
+        """Draw the YES/NO confirm dialog for deleting an existing save."""
+        existing = self.game.save_manager.load_slot(self.game.confirm_target_slot)
+        existing_name = (existing or {}).get('player_name', '')
+        existing_level = (existing or {}).get('next_level', '?')
+        title_text = f"DELETE SLOT {self.game.confirm_target_slot}?"
+        body_text = (
+            f"{existing_name} (LV {existing_level}) WILL BE LOST"
+            if existing_name
+            else "SAVE WILL BE LOST"
+        )
+        self._draw_confirm_dialog(title_text, body_text)
+
+    def _draw_confirm_dialog(self, title_text: str, body_text: str) -> None:
+        """Render a generic centered NO/YES confirm dialog.
+
+        Args:
+            title_text: Big header text (e.g. "OVERWRITE SLOT 3?").
+            body_text: Smaller line beneath the header explaining the
+                consequence of confirming.
+        """
+        self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
+
+        title_font = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
+        body_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
+        option_font = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
+        prompt_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
+
+        title_surf = title_font.render(title_text, False, ColorSettings.TEXT_TITLE)
+        title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, RenderSettings.SAVE_DIALOG_TITLE_Y))
+        self.screen.blit(title_surf, title_rect)
+
+        body_surf = body_font.render(body_text, False, ColorSettings.TEXT_ERROR)
+        body_rect = body_surf.get_rect(center=(ScreenSettings.WIDTH / 2, RenderSettings.SAVE_DIALOG_BODY_Y))
+        self.screen.blit(body_surf, body_rect)
+
+        # Render NO and YES side by side with the highlighted one in
+        # selector color. NO sits left, YES sits right; the cursor maps
+        # 0 -> NO, 1 -> YES (matches confirm_index).
+        gap = RenderSettings.SAVE_DIALOG_OPTION_GAP
+        center_x = ScreenSettings.WIDTH / 2
+        for option_index, label in enumerate(("NO", "YES")):
+            is_selected = option_index == self.game.confirm_index
+            color = ColorSettings.TEXT_SELECTOR if is_selected else ColorSettings.TEXT_DEFAULT
+            option_surf = option_font.render(label, False, color)
+            option_x = center_x - gap / 2 + option_index * gap
+            option_rect = option_surf.get_rect(center=(option_x, RenderSettings.SAVE_DIALOG_FOCAL_Y))
+            self.screen.blit(option_surf, option_rect)
+            if is_selected:
+                cursor_surf = option_font.render(">", False, ColorSettings.TEXT_SELECTOR)
+                cursor_rect = cursor_surf.get_rect(midright=(option_rect.left - 8, option_rect.centery))
+                self.screen.blit(cursor_surf, cursor_rect)
+
+        prompt_text = "LEFT/RIGHT: SELECT     ENTER: CONFIRM     ESC: BACK"
+        prompt_surf = prompt_font.render(prompt_text, False, ColorSettings.TEXT_PROMPT)
+        prompt_rect = prompt_surf.get_rect(
+            center=(ScreenSettings.WIDTH / 2, ScreenSettings.HEIGHT - RenderSettings.SAVE_DIALOG_PROMPT_Y_OFFSET)
+        )
+        self.screen.blit(prompt_surf, prompt_rect)

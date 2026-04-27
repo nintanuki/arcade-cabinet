@@ -19,14 +19,6 @@ class ScoreLeaderboardManager:
     # PERSISTENCE
     # -------------------------
 
-    def get_high_score_path(self) -> str:
-        """Return the absolute path to the high-score data file.
-
-        Returns:
-            Filesystem path for the high-score file.
-        """
-        return os.path.join(os.path.dirname(__file__), GameSettings.HIGH_SCORE_FILE)
-
     def get_leaderboard_path(self) -> str:
         """Return the absolute path to the leaderboard data file.
 
@@ -36,30 +28,30 @@ class ScoreLeaderboardManager:
         return os.path.join(os.path.dirname(__file__), GameSettings.LEADERBOARD_FILE)
 
     def load_high_score(self) -> int:
-        """Load the saved high score from disk if it exists.
+        """Return the current high score by reading the top leaderboard entry.
+
+        The high score is no longer stored in its own file. The leaderboard's
+        top entry is the single source of truth, so this method derives the
+        value from there. Returns zero when no leaderboard entries exist.
 
         Returns:
-            High score value, or zero if unavailable.
+            High score value, or zero if no leaderboard entries exist.
         """
-        high_score_path = self.get_high_score_path()
-        if not os.path.exists(high_score_path):
+        entries = self.load_leaderboard()
+        if not entries:
             return 0
-
-        try:
-            with open(high_score_path, "r", encoding="utf-8") as score_file:
-                return int(score_file.read().strip() or 0)
-        except (OSError, ValueError):
-            return 0
+        return entries[0][1]
 
     def save_high_score(self) -> None:
-        """Persist the current run high score to disk."""
-        self.game.high_score = max(self.game.high_score, self.game.score)
+        """Refresh the in-memory high score from leaderboard state.
 
-        try:
-            with open(self.get_high_score_path(), "w", encoding="utf-8") as score_file:
-                score_file.write(str(self.game.high_score))
-        except OSError:
-            pass
+        Kept as a no-write operation rather than removed so existing call
+        sites still work and the public surface of ScoreLeaderboardManager
+        stays stable. Persistence happens through save_leaderboard whenever
+        a new entry qualifies; this method simply re-syncs the cached
+        value the HUD reads each frame.
+        """
+        self.game.high_score = max(self.game.high_score, self.game.score)
 
     def load_leaderboard(self) -> list[tuple[str, int]]:
         """Load top scores from disk in descending order.
@@ -207,7 +199,18 @@ class ScoreLeaderboardManager:
         )
 
     def continue_from_game_over(self) -> None:
-        """Advance into initials entry or directly to leaderboard."""
+        """Route from the game-over screen based on the run outcome.
+
+        On a loss, the run is over and we drop the player back to a fresh
+        title screen via reset_game(). The leaderboard is reserved for
+        completed runs only, so deaths neither prompt for initials nor
+        write a leaderboard entry. On a win, we proceed into the existing
+        initials-entry or leaderboard flow.
+        """
+        if self.game.game_result == "loss":
+            self.game.reset_game()
+            return
+
         if self.is_top_ten_score(self.game.pending_leaderboard_score):
             self.game.ui_state = "enter_initials"
             self.game.initials_entry = "AAA"
@@ -443,7 +446,41 @@ class IntermissionFlow:
         self.game.in_treasure_conversion = False
         self.game.treasure_conversion_data = {}
 
+        # Save *before* the shop opens. The player's run state at this
+        # moment — gold included, level-scoped items already stripped — is
+        # what they should resume into on the next load. The next dungeon
+        # has not been picked yet, so a death-then-reload flow can re-roll
+        # monster and loot placement.
+        self.write_auto_save()
+
         self.start_shop_phase()
+
+    def write_auto_save(self) -> None:
+        """Persist the player's mid-run state to their bound save slot.
+
+        Called from complete_treasure_conversion, the only auto-save point.
+        No-op when no slot is bound (defensive — under normal play either
+        NEW GAME or LOAD GAME assigns a slot before any auto-save can
+        fire). The save records the next level the player is heading into
+        (1-indexed), the post-conversion inventory (which already excludes
+        level-scoped items), the player's discovered-items set, and the
+        running score. On success a "GAME SAVED." message is logged so the
+        player gets visible confirmation between conversion and shop.
+        """
+        if self.game.active_save_slot is None:
+            return
+
+        next_level = self.game.level_numbers[self.game.pending_level_index]
+        wrote = self.game.save_manager.save_slot(
+            slot_id=self.game.active_save_slot,
+            player_name=self.game.player_name,
+            next_level=next_level,
+            inventory=self.game.player.inventory,
+            discovered_items=self.game.player.discovered_items,
+            score=self.game.score,
+        )
+        if wrote:
+            self.game.log_message("GAME SAVED.")
 
     # -------------------------
     # SHOP
@@ -600,17 +637,12 @@ class IntermissionFlow:
                 self.move_shop_selection(1)
                 return
 
-            if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z, pygame.K_x, pygame.K_5):
+            if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
                 selected_option = options[self.game.shop_selected_index]
                 if selected_option == "CONTINUE":
                     self.complete_shop_phase()
                 else:
-                    quantity = (
-                        GameSettings.SHOP_BULK_PURCHASE_QUANTITY
-                        if event.key in (pygame.K_x, pygame.K_5)
-                        else 1
-                    )
-                    self.buy_shop_item(selected_option, quantity=quantity)
+                    self.buy_shop_item(selected_option)
                 return
 
         if event.type == pygame.JOYHATMOTION:
@@ -629,10 +661,3 @@ class IntermissionFlow:
                 else:
                     self.buy_shop_item(selected_option)
                 return
-
-            if event.button == InputSettings.JOY_BUTTON_X:
-                selected_option = options[self.game.shop_selected_index]
-                if selected_option == "CONTINUE":
-                    self.complete_shop_phase()
-                else:
-                    self.buy_shop_item(selected_option, quantity=GameSettings.SHOP_BULK_PURCHASE_QUANTITY)

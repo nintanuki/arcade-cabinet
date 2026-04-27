@@ -200,8 +200,8 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 
 # Dungeon Digger runtime data
-high_score.txt
 leaderboard.txt
+saves/
 .cursorignore
 .cursorindexingignore
 

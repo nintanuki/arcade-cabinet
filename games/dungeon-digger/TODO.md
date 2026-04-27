@@ -42,7 +42,7 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 - [ ] Monster gets stuck between walls.
 - [ ] Map drawing is incorrect / broken.
 - [ ] Play found-gold/treasure sound AFTER dig sound (they currently overlap).
-- [ ] Check that we don't need `high_score.txt` now that we have `leaderboard.txt`.
+- [x] Check that we don't need `high_score.txt` now that we have `leaderboard.txt`. (Done — high score now derived from the top leaderboard entry; high_score.txt is no longer written.)
 - [ ] Enemy line of sight doesn't seem to work diagonally.
 
 ## Visual / UX Bugs
@@ -112,12 +112,12 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 
 # Notes & Ideas
 - Make shopkeeper and NPCs drop hints.
-- Add save game feature. Player enters their name to create a new file, and it autosaves after every dungeon cleared (decide if this is before or after the shop — probably after, before the next level loads, so the player keeps purchases but might get a different dungeon on reload, they might get lucky and get an easier dungeon).
+- [x] Add save game feature. (Done — 10 named slots under saves/, auto-save runs after treasure conversion and before the shop, load drops the player into the pre-level shop so they can re-shop on reload, brand-new saves resume directly into level 1.)
 - Maybe have an indicator or highlight on the item in the inventory window with the toggle, and group light sources.
 - Figure out how the tutorial will work.
 - With the addition of the "tutorial" dungeon and easier levels loaded at start, more dirt tiles = more treasure, meaning the player can buy the $10,000 invisibility cloak by level 2! Make it more expensive? The game is also more boring now that it starts with less "challenging" maps, just lots of digging in open space with low threat of monsters.
 - Remove allowing A to start the game; must press START.
-- Remove "bulk buy" option.
+- [x] Remove "bulk buy" option. (Done — no more X / 5 keyboard or X-button controller bulk purchase; one press buys one item.)
 - Get rid of the "tutorial" dungeon arena — it's boring, and the tutorial can play on any dungeon as long as it's not skipped.
 - Add hard limit of 255 to each item for "retro" feel.
 - Map name should only be reveal if play picks up map, magic map, or manages to explore every tile

@@ -58,9 +58,21 @@ Some invalid actions do not advance a turn (for example, trying to use an item y
 ### Shop
 - Up/Down or W/S: Move selection
 - Enter / Space / Z: Buy selected item (or Continue)
-- X or 5: Buy 5 of selected item (where applicable)
 
-### Initials Entry (Leaderboard)
+### Save Menus (Slot Select / Confirm Dialogs)
+- Up/Down or W/S: Move slot cursor
+- Left/Right: Move NO/YES selection in confirm dialogs
+- Enter: Select / confirm
+- Esc: Back one screen
+- X or Delete: Delete the highlighted save (Load Game screen only)
+
+### Name Entry (New Game)
+- Type 1-8 letters, numbers, or spaces (auto-uppercased)
+- Backspace: Delete last character
+- Enter: Confirm name
+- Esc: Cancel and return to slot select
+
+### Initials Entry (Leaderboard, Win Only)
 - Type letters A-Z
 - Backspace: Delete last letter
 - Enter: Submit initials (once 3 letters are entered)
@@ -86,8 +98,14 @@ Some invalid actions do not advance a turn (for example, trying to use an item y
 ### Shop
 - D-pad Up/Down: Move selection
 - A: Buy selected item
-- X: Buy 5 selected item
 - Start: Continue to next level
+
+### Save Menus (Slot Select / Confirm Dialogs)
+- D-pad / Left analog stick Up/Down: Move slot cursor
+- D-pad / Left analog stick Left/Right: Move NO/YES selection in confirm dialogs
+- A or Start: Select / confirm
+- B: Back one screen
+- X: Delete the highlighted save (Load Game screen only)
 
 ## Items and Effects
 
@@ -109,19 +127,31 @@ Some invalid actions do not advance a turn (for example, trying to use an item y
 ## Score and Leaderboard
 
 - Treasure increases score.
-- High score is persisted.
-- Runs that qualify for top leaderboard placement prompt initials entry.
-- Leaderboard stores top entries and is shown at the end of a run.
+- High score is the top entry on the leaderboard.
+- Only completed runs (clearing the final dungeon) prompt for initials and write to the leaderboard. Death sends the player back to the title screen with the leaderboard untouched.
+- Leaderboard stores top entries and is shown at the end of a winning run.
+
+## Save System
+
+- Up to 10 named save slots, each stored as JSON in the `saves/` directory.
+- Choose **NEW GAME** to pick a slot and enter a name (8 chars max). The slot is reserved on disk immediately so a quit before the first level clear still leaves a recoverable level-1 save.
+- Choose **LOAD GAME** to resume any occupied slot. A non-fresh save drops the player into the pre-level shop so different shopping decisions can be made each attempt; the next dungeon is then re-rolled when the shop is exited. A brand-new save loads directly into level 1.
+- Auto-save fires once per cleared dungeon, between treasure conversion and the shop. The message log shows "GAME SAVED." when it completes.
+- Death and quit do not write a save. Final-dungeon clear also does not write a save, so beating the game leaves the slot pointing at the shop before the final dungeon.
+- The Load Game screen has a delete affordance (X button on controller, X or Delete key on keyboard, with a confirm prompt).
 
 ## Game Flow
 
 1. Title Screen
-2. Level gameplay
-3. Door unlock sequence
-4. Treasure conversion
-5. Shop
-6. Next level transition
-7. Final win screen or game-over flow
+2. (NEW GAME) Slot Select → Overwrite Confirm (if occupied) → Name Entry → Tutorial Prompt
+3. (LOAD GAME) Slot Select → Pre-Level Shop (or Level 1 directly for a fresh save)
+4. Level gameplay
+5. Door unlock sequence
+6. Treasure conversion
+7. Auto-save
+8. Shop
+9. Next level transition
+10. Final win screen + leaderboard, or game-over screen back to title
 
 ## Running the Game
 
