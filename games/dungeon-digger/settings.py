@@ -488,4 +488,4 @@ class DebugSettings:
     MUTE = False # Force mute all sound output during testing.
     NO_FOG = False # Disable fog rendering for visibility debugging.
     SPAWN_LOG = True # Print spawn/item placement summary during dungeon setup.
-    USE_TEST_INITIAL_INVENTORY = True # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.
+    USE_TEST_INITIAL_INVENTORY = False # Start runs with ItemSettings.TEST_INITIAL_INVENTORY when enabled.

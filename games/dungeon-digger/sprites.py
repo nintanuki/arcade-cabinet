@@ -73,16 +73,9 @@ class Player(pygame.sprite.Sprite):
         self.game = game
         self.dungeon = self.game.dungeon
 
-    def _normalize_cardinal_step(self, delta_x_tiles: int, delta_y_tiles: int) -> tuple[int, int]:
-        """Allow movement on only one axis so diagonal steps are impossible."""
-        if delta_x_tiles != 0 and delta_y_tiles != 0:
-            # Keep vertical priority to match keyboard input ordering.
-            delta_x_tiles = 0
-        return delta_x_tiles, delta_y_tiles
-
-    def _owned_light_sources(self, order: tuple[str, ...]) -> list[str]:
-        """Return the subset of light sources the player currently has, in the given order."""
-        return [name for name in order if self.inventory.get(name, 0) > 0]
+    # -------------------------
+    # LIGHT SOURCE MANAGEMENT
+    # -------------------------
 
     def refresh_light_selection(self) -> None:
         """Ensure selected_light_source points to an owned source.
@@ -117,6 +110,14 @@ class Player(pygame.sprite.Sprite):
         new_index = (current_index + direction) % len(owned)
         self.selected_light_source = owned[new_index]
 
+    def _owned_light_sources(self, order: tuple[str, ...]) -> list[str]:
+        """Return the subset of light sources the player currently has, in the given order."""
+        return [name for name in order if self.inventory.get(name, 0) > 0]
+
+    # -------------------------
+    # INPUT
+    # -------------------------
+
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle edge-triggered player input (currently just light cycling).
 
@@ -139,17 +140,6 @@ class Player(pygame.sprite.Sprite):
                 self.cycle_selected_light_source(-1)
             elif event.button == InputSettings.JOY_BUTTON_R1:
                 self.cycle_selected_light_source(1)
-
-    def _gameplay_input_allowed(self) -> bool:
-        """True only when the player is in active gameplay (no menus/transitions)."""
-        game = self.game
-        return (
-            game.ui_state == 'playing'
-            and game.game_active
-            and not game.is_transitioning
-            and not game.in_treasure_conversion
-            and not game.in_shop_phase
-        )
 
     def read_input_intent(self) -> PlayerIntent:
         """
@@ -230,82 +220,27 @@ class Player(pygame.sprite.Sprite):
         delta_x_tiles, delta_y_tiles = self._normalize_cardinal_step(delta_x_tiles, delta_y_tiles)
         return delta_x_tiles, delta_y_tiles, action
 
-    def try_move_by_grid_step(self, delta_x_tiles: int = 0, delta_y_tiles: int = 0) -> None:
-        """
-        Attempt to move the player by one tile.
+    def _gameplay_input_allowed(self) -> bool:
+        """True only when the player is in active gameplay (no menus/transitions)."""
+        game = self.game
+        return (
+            game.ui_state == 'playing'
+            and game.game_active
+            and not game.is_transitioning
+            and not game.in_treasure_conversion
+            and not game.in_shop_phase
+        )
 
-        If the target tile is walkable, this starts movement animation,
-        logs the direction, plays the movement sound, and advances the turn.
-        If the target tile is blocked, it logs a boundary message instead.
+    def _normalize_cardinal_step(self, delta_x_tiles: int, delta_y_tiles: int) -> tuple[int, int]:
+        """Allow movement on only one axis so diagonal steps are impossible."""
+        if delta_x_tiles != 0 and delta_y_tiles != 0:
+            # Keep vertical priority to match keyboard input ordering.
+            delta_x_tiles = 0
+        return delta_x_tiles, delta_y_tiles
 
-        Args:
-            delta_x_tiles: Horizontal tile step, usually -1, 0, or 1.
-            delta_y_tiles: Vertical tile step, usually -1, 0, or 1.
-        """
-        delta_x_tiles, delta_y_tiles = self._normalize_cardinal_step(delta_x_tiles, delta_y_tiles)
-        current_col, current_row = coords.screen_to_grid(self.position.x, self.position.y)
-        target_col = current_col + delta_x_tiles
-        target_row = current_row + delta_y_tiles
-
-        if self.dungeon.is_walkable(target_col, target_row):
-            target_x, target_y = coords.grid_to_screen(target_col, target_row)
-            self.target_pos = pygame.math.Vector2(target_x, target_y)
-            self.is_moving = True
-
-            if delta_y_tiles == -1:
-                self.game.log_message("YOU MOVED NORTH.")
-            elif delta_y_tiles == 1:
-                self.game.log_message("YOU MOVED SOUTH.")
-            elif delta_x_tiles == -1:
-                self.game.log_message("YOU MOVED WEST.")
-            elif delta_x_tiles == 1:
-                self.game.log_message("YOU MOVED EAST.")
-
-            self.game.audio.play('move')
-            self.game.notify_tutorial('moved')
-            self.game.advance_turn()
-        else:
-            self.game.log_message("YOU CAN'T GO THAT WAY!")
-            self.game.audio.play('boundary')
-
-    def tick_status_effects(self) -> None:
-        """Decrement temporary status timers and surface their fade-out messages.
-
-        Called from GameManager.advance_turn after the player commits an
-        action so the player owns its own per-turn bookkeeping.
-        """
-        # Light source: shrink the radius proportionally each turn so the
-        # circle visibly fades before the source goes out.
-        if self.light_turns_left > 0:
-            self.light_turns_left -= 1
-
-            if self.light_turns_left > 0:
-                radius_per_turn = self.active_light_max_radius / self.active_light_max_duration
-                self.light_radius = radius_per_turn * self.light_turns_left
-            else:
-                self.light_radius = LightSettings.DEFAULT_RADIUS
-                self.game.log_message("YOUR LIGHT FLICKERS OUT...")
-
-        if self.repellent_turns > 0:
-            self.repellent_turns -= 1
-            if self.repellent_turns == 0:
-                self.game.log_message("THE SCENT OF THE REPELLENT FADES AWAY...")
-
-        if self.invisibility_turns > 0:
-            self.invisibility_turns -= 1
-            if self.invisibility_turns == 0:
-                self.game.log_message("THE INVISIBILITY WEARS OFF.")
-                # Cloak (reusable) starts cooling down immediately after
-                # wearing off; scrolls are one-shots and don't.
-                if self.invisibility_from_cloak:
-                    self.invisibility_cooldown_turns = (
-                        ItemSettings.INVISIBILITY_CLOAK_COOLDOWN
-                        + GameSettings.STATUS_EFFECT_TURN_BUFFER
-                    )
-                    self.invisibility_from_cloak = False
-
-        if self.invisibility_cooldown_turns > 0:
-            self.invisibility_cooldown_turns -= 1
+    # -------------------------
+    # ACTIONS
+    # -------------------------
 
     def process_turn_action(self) -> None:
         """
@@ -414,6 +349,44 @@ class Player(pygame.sprite.Sprite):
                 self.game.audio.play('vanish')
                 self.game.advance_turn()
 
+    def try_move_by_grid_step(self, delta_x_tiles: int = 0, delta_y_tiles: int = 0) -> None:
+        """
+        Attempt to move the player by one tile.
+
+        If the target tile is walkable, this starts movement animation,
+        logs the direction, plays the movement sound, and advances the turn.
+        If the target tile is blocked, it logs a boundary message instead.
+
+        Args:
+            delta_x_tiles: Horizontal tile step, usually -1, 0, or 1.
+            delta_y_tiles: Vertical tile step, usually -1, 0, or 1.
+        """
+        delta_x_tiles, delta_y_tiles = self._normalize_cardinal_step(delta_x_tiles, delta_y_tiles)
+        current_col, current_row = coords.screen_to_grid(self.position.x, self.position.y)
+        target_col = current_col + delta_x_tiles
+        target_row = current_row + delta_y_tiles
+
+        if self.dungeon.is_walkable(target_col, target_row):
+            target_x, target_y = coords.grid_to_screen(target_col, target_row)
+            self.target_pos = pygame.math.Vector2(target_x, target_y)
+            self.is_moving = True
+
+            if delta_y_tiles == -1:
+                self.game.log_message("YOU MOVED NORTH.")
+            elif delta_y_tiles == 1:
+                self.game.log_message("YOU MOVED SOUTH.")
+            elif delta_x_tiles == -1:
+                self.game.log_message("YOU MOVED WEST.")
+            elif delta_x_tiles == 1:
+                self.game.log_message("YOU MOVED EAST.")
+
+            self.game.audio.play('move')
+            self.game.notify_tutorial('moved')
+            self.game.advance_turn()
+        else:
+            self.game.log_message("YOU CAN'T GO THAT WAY!")
+            self.game.audio.play('boundary')
+
     def dig_current_tile(self) -> None:
         """
         Resolve the player's dig action at the current tile.
@@ -488,6 +461,53 @@ class Player(pygame.sprite.Sprite):
             # Dead silent only when very far away.
             self.game.log_message("THE KEY DETECTOR IS SILENT.")
 
+    # -------------------------
+    # TURN-TIME UPDATES
+    # -------------------------
+
+    def tick_status_effects(self) -> None:
+        """Decrement temporary status timers and surface their fade-out messages.
+
+        Called from GameManager.advance_turn after the player commits an
+        action so the player owns its own per-turn bookkeeping.
+        """
+        # Light source: shrink the radius proportionally each turn so the
+        # circle visibly fades before the source goes out.
+        if self.light_turns_left > 0:
+            self.light_turns_left -= 1
+
+            if self.light_turns_left > 0:
+                radius_per_turn = self.active_light_max_radius / self.active_light_max_duration
+                self.light_radius = radius_per_turn * self.light_turns_left
+            else:
+                self.light_radius = LightSettings.DEFAULT_RADIUS
+                self.game.log_message("YOUR LIGHT FLICKERS OUT...")
+
+        if self.repellent_turns > 0:
+            self.repellent_turns -= 1
+            if self.repellent_turns == 0:
+                self.game.log_message("THE SCENT OF THE REPELLENT FADES AWAY...")
+
+        if self.invisibility_turns > 0:
+            self.invisibility_turns -= 1
+            if self.invisibility_turns == 0:
+                self.game.log_message("THE INVISIBILITY WEARS OFF.")
+                # Cloak (reusable) starts cooling down immediately after
+                # wearing off; scrolls are one-shots and don't.
+                if self.invisibility_from_cloak:
+                    self.invisibility_cooldown_turns = (
+                        ItemSettings.INVISIBILITY_CLOAK_COOLDOWN
+                        + GameSettings.STATUS_EFFECT_TURN_BUFFER
+                    )
+                    self.invisibility_from_cloak = False
+
+        if self.invisibility_cooldown_turns > 0:
+            self.invisibility_cooldown_turns -= 1
+
+    # -------------------------
+    # STATUS QUERIES
+    # -------------------------
+
     def is_invisible(self) -> bool:
         """Return True while invisibility cloak effect is active."""
         return self.invisibility_turns > 0
@@ -496,12 +516,9 @@ class Player(pygame.sprite.Sprite):
         """Return True while monster repellent effect is active."""
         return self.repellent_turns > 0
 
-    def _get_pulse_ratio(self) -> float:
-        """Return a 0..1 triangle wave used by status-effect pulses."""
-        # Generate a symmetric 0..1 pulse over one flash cycle.
-        half_cycle = PlayerSettings.FLASH_HALF_CYCLE
-        distance_from_center = abs(self.flash_frame - half_cycle)
-        return 1.0 - (distance_from_center / half_cycle)
+    # -------------------------
+    # VISUALS
+    # -------------------------
 
     def get_action_window_border_style(self) -> tuple[str, int]:
         """Return (RGB color, alpha) for the animated action-window border."""
@@ -543,6 +560,17 @@ class Player(pygame.sprite.Sprite):
         else:
             self.image.set_alpha(255)
 
+    def _get_pulse_ratio(self) -> float:
+        """Return a 0..1 triangle wave used by status-effect pulses."""
+        # Generate a symmetric 0..1 pulse over one flash cycle.
+        half_cycle = PlayerSettings.FLASH_HALF_CYCLE
+        distance_from_center = abs(self.flash_frame - half_cycle)
+        return 1.0 - (distance_from_center / half_cycle)
+
+    # -------------------------
+    # PER-FRAME
+    # -------------------------
+
     def animate(self) -> None:
         """
         Advance the player's movement animation toward the current target position.
@@ -574,6 +602,7 @@ class Player(pygame.sprite.Sprite):
         """
         if not self.is_moving:
             self.process_turn_action()
+
 
 class Monster(pygame.sprite.Sprite):
     """Represent monster behavior, movement, and chase decision logic."""
@@ -614,57 +643,9 @@ class Monster(pygame.sprite.Sprite):
         self.anim_speed = PlayerSettings.ANIMATION_SPEED
         self.is_chasing = False
 
-    def _choose_primary_chase_step(self, delta_pixels_x: float, delta_pixels_y: float) -> tuple[int, int]:
-        """Return a one-tile movement vector toward the player.
-
-        Args:
-            delta_pixels_x: Horizontal delta from monster to player.
-            delta_pixels_y: Vertical delta from monster to player.
-
-        Returns:
-            Pixel step aligned to one cardinal direction.
-        """
-        step_x = 0
-        step_y = 0
-
-        if abs(delta_pixels_x) >= abs(delta_pixels_y):
-            if delta_pixels_x > 0:
-                step_x = GridSettings.TILE_SIZE
-            elif delta_pixels_x < 0:
-                step_x = -GridSettings.TILE_SIZE
-            elif delta_pixels_y > 0:
-                step_y = GridSettings.TILE_SIZE
-            elif delta_pixels_y < 0:
-                step_y = -GridSettings.TILE_SIZE
-        else:
-            if delta_pixels_y > 0:
-                step_y = GridSettings.TILE_SIZE
-            elif delta_pixels_y < 0:
-                step_y = -GridSettings.TILE_SIZE
-            elif delta_pixels_x > 0:
-                step_x = GridSettings.TILE_SIZE
-            elif delta_pixels_x < 0:
-                step_x = -GridSettings.TILE_SIZE
-
-        return step_x, step_y
-
-    def _is_visible_in_player_light(self, manhattan_distance: int) -> bool:
-        """Return whether the monster is currently visible in the player's light."""
-        return self.game.player.light_radius > 0 and manhattan_distance <= int(self.game.player.light_radius)
-
-    def _log_chase_warning(self, manhattan_distance: int) -> None:
-        """Log the chase warning text variant based on player-visible monster state."""
-        if self._is_visible_in_player_light(manhattan_distance):
-            self.game.log_message("YOU'VE BEEN SPOTTED BY A MONSTER!")
-        else:
-            self.game.log_message("YOU HEAR A MONSTER NEARBY!")
-
-    def _stop_chasing(self) -> None:
-        """Drop chase state and resume normal music; fire tutorial hook on transition."""
-        if self.is_chasing:
-            self.game.notify_tutorial('monster_lost_sight')
-        self.is_chasing = False
-        self.game.audio.play_normal_music()
+    # -------------------------
+    # TURN LOGIC
+    # -------------------------
 
     def resolve_turn(self) -> None:
         """
@@ -808,6 +789,62 @@ class Monster(pygame.sprite.Sprite):
             return True
         return False
 
+    def _choose_primary_chase_step(self, delta_pixels_x: float, delta_pixels_y: float) -> tuple[int, int]:
+        """Return a one-tile movement vector toward the player.
+
+        Args:
+            delta_pixels_x: Horizontal delta from monster to player.
+            delta_pixels_y: Vertical delta from monster to player.
+
+        Returns:
+            Pixel step aligned to one cardinal direction.
+        """
+        step_x = 0
+        step_y = 0
+
+        if abs(delta_pixels_x) >= abs(delta_pixels_y):
+            if delta_pixels_x > 0:
+                step_x = GridSettings.TILE_SIZE
+            elif delta_pixels_x < 0:
+                step_x = -GridSettings.TILE_SIZE
+            elif delta_pixels_y > 0:
+                step_y = GridSettings.TILE_SIZE
+            elif delta_pixels_y < 0:
+                step_y = -GridSettings.TILE_SIZE
+        else:
+            if delta_pixels_y > 0:
+                step_y = GridSettings.TILE_SIZE
+            elif delta_pixels_y < 0:
+                step_y = -GridSettings.TILE_SIZE
+            elif delta_pixels_x > 0:
+                step_x = GridSettings.TILE_SIZE
+            elif delta_pixels_x < 0:
+                step_x = -GridSettings.TILE_SIZE
+
+        return step_x, step_y
+
+    def _is_visible_in_player_light(self, manhattan_distance: int) -> bool:
+        """Return whether the monster is currently visible in the player's light."""
+        return self.game.player.light_radius > 0 and manhattan_distance <= int(self.game.player.light_radius)
+
+    def _log_chase_warning(self, manhattan_distance: int) -> None:
+        """Log the chase warning text variant based on player-visible monster state."""
+        if self._is_visible_in_player_light(manhattan_distance):
+            self.game.log_message("YOU'VE BEEN SPOTTED BY A MONSTER!")
+        else:
+            self.game.log_message("YOU HEAR A MONSTER NEARBY!")
+
+    def _stop_chasing(self) -> None:
+        """Drop chase state and resume normal music; fire tutorial hook on transition."""
+        if self.is_chasing:
+            self.game.notify_tutorial('monster_lost_sight')
+        self.is_chasing = False
+        self.game.audio.play_normal_music()
+
+    # -------------------------
+    # PER-FRAME
+    # -------------------------
+
     def animate(self) -> None:
         """
         Advance the monster's movement animation toward its target position.
@@ -830,6 +867,7 @@ class Monster(pygame.sprite.Sprite):
         Monster actions are currently turn-based, so this method is unused.
         """
         pass
+
 
 class NPC(pygame.sprite.Sprite):
     """A stationary NPC that gives the player a random item when approached."""

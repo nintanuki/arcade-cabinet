@@ -15,6 +15,10 @@ class ScoreLeaderboardManager:
         """
         self.game = game
 
+    # -------------------------
+    # PERSISTENCE
+    # -------------------------
+
     def get_high_score_path(self) -> str:
         """Return the absolute path to the high-score data file.
 
@@ -56,18 +60,6 @@ class ScoreLeaderboardManager:
                 score_file.write(str(self.game.high_score))
         except OSError:
             pass
-
-    def sanitize_initials(self, initials: str) -> str:
-        """Normalize initials to exactly three uppercase alphabetic characters.
-
-        Args:
-            initials: Raw initials input.
-
-        Returns:
-            Sanitized three-character initials string.
-        """
-        letters = "".join(char for char in initials.upper() if char.isalpha())
-        return (letters[:3]).ljust(3, "A")
 
     def load_leaderboard(self) -> list[tuple[str, int]]:
         """Load top scores from disk in descending order.
@@ -112,6 +104,32 @@ class ScoreLeaderboardManager:
         except OSError:
             pass
 
+    # -------------------------
+    # SCORING
+    # -------------------------
+
+    def add_score(self, item_name: str, amount: int = 1) -> None:
+        """Increase score from one treasure pickup.
+
+        Args:
+            item_name: Treasure item key.
+            amount: Quantity collected.
+        """
+        value = ItemSettings.TREASURE_SCORE_VALUES.get(item_name, 0)
+        self.game.score += value * amount
+
+    def sanitize_initials(self, initials: str) -> str:
+        """Normalize initials to exactly three uppercase alphabetic characters.
+
+        Args:
+            initials: Raw initials input.
+
+        Returns:
+            Sanitized three-character initials string.
+        """
+        letters = "".join(char for char in initials.upper() if char.isalpha())
+        return (letters[:3]).ljust(3, "A")
+
     def is_top_ten_score(self, score: int) -> bool:
         """Return True when score qualifies for leaderboard entry.
 
@@ -154,15 +172,9 @@ class ScoreLeaderboardManager:
         self.game.high_score = max(self.game.high_score, self.game.leaderboard[0][1] if self.game.leaderboard else 0)
         self.save_leaderboard()
 
-    def add_score(self, item_name: str, amount: int = 1) -> None:
-        """Increase score from one treasure pickup.
-
-        Args:
-            item_name: Treasure item key.
-            amount: Quantity collected.
-        """
-        value = ItemSettings.TREASURE_SCORE_VALUES.get(item_name, 0)
-        self.game.score += value * amount
+    # -------------------------
+    # GAME-OVER FLOW
+    # -------------------------
 
     def update_game_over_flow(self) -> None:
         """Reveal continue prompt after game-over text is fully typed."""
@@ -203,6 +215,10 @@ class ScoreLeaderboardManager:
             return
 
         self.game.ui_state = "leaderboard"
+
+    # -------------------------
+    # INITIALS ENTRY
+    # -------------------------
 
     def submit_initials_entry(self) -> None:
         """Commit initials and transition to leaderboard screen."""
@@ -263,6 +279,7 @@ class ScoreLeaderboardManager:
                 self.game.initials_entry = "".join(chars)
 
 
+
 class IntermissionFlow:
     """Drive the between-level sequence: transition card, treasure exchange, then shop."""
 
@@ -294,6 +311,10 @@ class IntermissionFlow:
         self.game.shop_display_delay_ms = GameSettings.SHOP_DISPLAY_DELAY_MS
         self.game.shop_stock = {}
         self.game.shop_limited_stock_template = dict(ItemSettings.SHOP_LIMITED_STOCK_TEMPLATE)
+
+    # -------------------------
+    # LEVEL TRANSITION
+    # -------------------------
 
     def start_level_transition(self) -> None:
         """Pause on a title card before loading the next dungeon."""
@@ -365,6 +386,10 @@ class IntermissionFlow:
         if removed_any:
             self.game.log_message("KEYS, MAPS, AND DETECTORS DON'T CARRY BETWEEN LEVELS.")
 
+    # -------------------------
+    # TREASURE CONVERSION
+    # -------------------------
+
     def start_treasure_conversion(self) -> None:
         """Build treasure-conversion rows from current inventory."""
         treasure_items = {}
@@ -419,6 +444,10 @@ class IntermissionFlow:
         self.game.treasure_conversion_data = {}
 
         self.start_shop_phase()
+
+    # -------------------------
+    # SHOP
+    # -------------------------
 
     def start_shop_phase(self) -> None:
         """Open shop phase and initialize stock data."""
