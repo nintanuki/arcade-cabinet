@@ -1,9 +1,9 @@
 # PRIORITY ORDER (STRICT)
-1. Refactor / Clean Code  
-2. Documentation  
-3. Bug Fixes  
-4. Game Balance  
-5. New Features  
+1. Refactor / Clean Code
+2. Documentation
+3. Bug Fixes
+4. Game Balance
+5. New Features
 
 Do NOT add new features until steps 1–4 are complete.
 
@@ -11,67 +11,68 @@ Do NOT add new features until steps 1–4 are complete.
 
 # CORE REFACTORING
 
-## Architecture
-- [ ] Break up `GameManager` (too many responsibilities)
-- [ ] Separate concerns:
-  - Game state
-  - Turn system
-  - Item Shop
+Most of the architecture cleanup landed during the recent refactor. Remaining
+follow-ups are state-ownership cleanups that were deliberately deferred.
 
-## Code Quality
-- [ ] Properly comment all systems
-- [ ] Standardize naming conventions
-- [ ] Remove dead / experimental code
-- [ ] Centralize repeated logic (movement, messaging, etc.)
+- [ ] Move shop / treasure / level-transition state from `GameManager` attributes onto `IntermissionFlow` itself (it currently writes through `self.game.X = ...`).
+- [ ] Move game-over / initials state from `GameManager` onto `ScoreLeaderboardManager`.
+- [ ] Continue the docstring + comment polish on a per-file basis when something looks rough.
+
+---
+
+# PERFORMANCE
+
+These are the bottlenecks worth attacking if browser (pygbag) framerate, low-end
+hardware, or executable startup time becomes a concern. Ordered easiest-first.
+
+- [ ] **Cache rendered HUD font surfaces.** `draw_ui_frames` re-renders `f"SCORE: {score}"`, `f"HIGH SCORE: {high}"`, `f"LEVEL {n}"`, and the dungeon-name line every frame. Cache each by its current text and only re-render on change.
+- [ ] **Pre-bake the CRT scanline overlay.** `crt.create_crt_lines` draws scanlines onto the TV image every frame. Bake them once into a static surface; multiply that surface by the random alpha each frame instead of redrawing lines.
+- [ ] **Cache `draw_grid_background` to an offscreen surface.** All 140 tiles are repainted every frame. Render once into a cached `Surface` and re-blit; invalidate only when a tile changes (dig, level load).
+- [ ] **Cache the fog-of-war light mask by radius.** `draw_fog_of_war` allocates a fresh mask surface and draws ~`radius_px` concentric circles every frame (60 circles when fully lit). Memoize on `(radius_px,)` so it only rebuilds when `light_radius` changes — typically once per turn, not 60×/sec. Likely the biggest single win.
+- [ ] **Precompute Bresenham line-of-sight points.** `DungeonLevel.get_line_points` builds a fresh list each call. For a fixed grid this can be cached per (start, end) pair, or replaced with a generator that visits cells without allocating.
 
 ---
 
 # BUGS / ISSUES
-- [ ] Area revealed by light sources in minimap are a little too large for each item (compare squares)?
+
+- [ ] Area revealed by light sources in the minimap looks slightly too large (compare squares).
 
 ## Gameplay Bugs
-- [ ] Player can pass through monster
-- [X] Monster can spawn on player
-- [ ] Monster gets stuck between walls
-- [X] Monster-player collision delay (should trigger instant game over)
-- [ ] Map drawing is incorrect / broken
-- [X] Entire map not revealed on win/loss
-- [ ] Play found gold/treasure sound AFTER dig sound (they currently overlap)
-- [ ] Check that we don't need high_score.txt now that we have leaderboard.txt
-- [ ] Enemy line of sight doesn't seem to work diagonally
+- [ ] Player can pass through monster.
+- [ ] Monster gets stuck between walls.
+- [ ] Map drawing is incorrect / broken.
+- [ ] Play found-gold/treasure sound AFTER dig sound (they currently overlap).
+- [ ] Check that we don't need `high_score.txt` now that we have `leaderboard.txt`.
+- [ ] Enemy line of sight doesn't seem to work diagonally.
 
 ## Visual / UX Bugs
-- [ ] Text is blurry (font/rendering issue)
-- [X] Grammar fix: “a emerald” → “an emerald”
-- [ ] Monster visibility issue (color blends with environment)
+- [ ] Text is blurry (font/rendering issue).
+- [ ] Monster visibility issue (color blends with environment).
 
 ---
 
 # GAMEPLAY BALANCE
 
 ## Difficulty
-- [ ] Game is too hard early on
-- [ ] Some maps are overly punishing
-- [ ] Reduce frustration from “useless” loot
-- [ ] Make key detector more sensitive
+- [ ] Game is too hard early on.
+- [ ] Some maps are overly punishing.
+- [ ] Reduce frustration from "useless" loot.
+- [ ] Make key detector more sensitive.
 - [ ] Provide clues when monsters are near?
-- [X] Randomize key, player, door and monster locations. The maps should just be based on walls.
-- [X] When the monster starts chasing the player, without repellent it is basically impossible to escape.
-  Added monster idle chance during chase (currently controlled by `MonsterSettings.IDLE_CHANCE`).
 
 ---
 
 # CORE GAMEPLAY IMPROVEMENTS
 
 ## Monster Interaction
-- [ ] Add temporary banish or other defensive option
+- [ ] Add temporary banish or other defensive option.
 
 ---
 
 # EXISTING SYSTEMS TO COMPLETE
 
 ## Feedback Systems
-- [ ] Create dedicated sound effect for lighting a lantern
+- [ ] Create dedicated sound effect for lighting a lantern.
 - [ ] Add sound effects to actions that are missing them.
 
 ---
@@ -79,75 +80,46 @@ Do NOT add new features until steps 1–4 are complete.
 # CONTENT & STRUCTURE
 
 ## Maps
-- [ ] Adjust unfair layouts
-- [ ] Add more handcrafted maps
+- [ ] Adjust unfair layouts.
+- [ ] Add more handcrafted maps.
 
 ---
 
 # IDEAS (POST-CORE ONLY)
 
 ## Mechanics
-- [ ] Dynamic monster variety (random sprites)
-- [ ] Random obstacles (traps)
+- [ ] Dynamic monster variety (random sprites).
+- [ ] Random obstacles (traps).
 
 ## Systems
-- [ ] Dynamic music? (Jaws-style proximity system)
+- [ ] Dynamic music? (Jaws-style proximity system).
+
+---
 
 # NEXT ACTIONABLE TASKS
 
-- [ ] Prevent player movement into occupied monster tiles
-- [ ] Sequence dig -> treasure audio so sounds do not overlap
+- [ ] Prevent player movement into occupied monster tiles.
+- [ ] Sequence dig → treasure audio so sounds do not overlap.
 
 ---
 
 # NOTES
 
-- Current foundation is solid (grid, movement, fog, digging all working)
-- Biggest risk now is code complexity, not features
-- Focus = stability → clarity → polish → expansion
-- Light source should not just be a radius; it should be blocked by walls (no seeing through walls)
-- Made spawns random again, but now must ensure entities do not spawn on top of each other or too close.
-- Create a special area in the UI for unique key items (symbols?) instead of tracking quantity in inventory sidebar
-
----
-
-# PROGRESS NOTES (VERIFIED)
-
-These notes capture confirmed progress without changing checkbox status unless a task is fully complete.
-
-## Documentation and Clarity
-- Added comprehensive class/function docstrings across gameplay modules.
-- Added a player-facing game manual in README.
-- Added TODO annotations for magic-number migration and settings organization.
-
-## Architecture and Refactor Readiness
-- `GameManager` responsibilities are now explicitly documented and segmented with TODOs for future extraction.
-- Run-loop refactor targets are identified (event processing, state updates, frame rendering).
-- Shop/input handling has documented extraction points for dedicated handlers.
-
-## Known Completed Fixes (Already Checked)
-- Monster-player collision delay fix remains validated as completed.
-- Spawn overlap prevention remains validated as completed.
-- Grammar fix for article usage remains validated as completed.
-
-## Current Focus Guidance
-- Continue reducing complexity in `GameManager` before adding new mechanics.
-- Prioritize unresolved gameplay bugs before balance/features.
+- Current foundation is solid (grid, movement, fog, digging all working).
+- Light sources should not just be a radius; they should be blocked by walls (no seeing through walls).
+- Create a special area in the UI for unique key items (symbols?) instead of tracking quantity in inventory sidebar.
 
 # Notes & Ideas
 - Make shopkeeper and NPCs drop hints.
-- Add save game feature. Player enters their name to create a new file, and it autosaves after every dungeon cleared ( decide if this is before or after the shop, probably after, before next nevel loads, so player keeps their purchases but might get a different dungeon on reload and have better luck)
-- Allow player to toggle light source, so B doesn't always automatically light lantern > torch > match
-- ^ Maybe have an indicator or highlight on the item in the inventory window with the toggle, and group light sources
-- Figure out how the tutorial will work
-- With the addition of the "tutorial" dungeon and easier levels loaded at start, more dirt tiles = more treasure meaning the player can buy the $10,000 invisibility cloak by level 2! Make it more expensive? The game is also more boring now that it starts with less "challenging" maps, just lots of digging in open space with low threat of monsters.
-- remove allowing A to start the game, must press start
-- replace pokemon and minecraft sounds
-- remove "bulk buy" option
-- get rid of the "tutorial" dungeon arena, it's boring, and the tutorial can play on any dungeon as long as it's not skipped
-- add hard limit of 255 to each item for "retro" feel
+- Add save game feature. Player enters their name to create a new file, and it autosaves after every dungeon cleared (decide if this is before or after the shop — probably after, before the next level loads, so the player keeps purchases but might get a different dungeon on reload).
+- Maybe have an indicator or highlight on the item in the inventory window with the toggle, and group light sources.
+- Figure out how the tutorial will work.
+- With the addition of the "tutorial" dungeon and easier levels loaded at start, more dirt tiles = more treasure, meaning the player can buy the $10,000 invisibility cloak by level 2! Make it more expensive? The game is also more boring now that it starts with less "challenging" maps, just lots of digging in open space with low threat of monsters.
+- Remove allowing A to start the game; must press START.
+- Remove "bulk buy" option.
+- Get rid of the "tutorial" dungeon arena — it's boring, and the tutorial can play on any dungeon as long as it's not skipped.
+- Add hard limit of 255 to each item for "retro" feel.
 
 # Refactoring notes
-- L1 R1 controls to cycle light source are in main.y, they should be in sprites.py in the player input function
-- Add reset option for keyboard too (ESC?)
-- Remove controls in "welcome message" now that you have a tutorial, add something more dramatic
+- Add reset option for keyboard too (ESC?).
+- Remove controls in "welcome message" now that you have a tutorial, add something more dramatic.
