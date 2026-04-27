@@ -121,6 +121,7 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 - Get rid of the "tutorial" dungeon arena — it's boring, and the tutorial can play on any dungeon as long as it's not skipped.
 - Add hard limit of 255 to each item for "retro" feel.
 - Map name should only be reveal if play picks up map, magic map, or manages to explore every tile
+- Repellent should not effect all monsters on the map at once when used, instead it should be an constant area of effect that follows the player, same radius as the lantern, and monsters will be repelled by this radius (consider drawing a purple foggy circle that shrinks over time?)
 
 # Refactoring notes
 - Add reset option for keyboard too (ESC?).
