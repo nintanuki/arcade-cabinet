@@ -105,7 +105,7 @@ class Player(pygame.sprite.Sprite):
         self.animation_state()
 
 class Obstacle(pygame.sprite.Sprite):
-    def __init__(self, type):
+    def __init__(self, type, speed):
         super().__init__()
         if type == 'fly':
             fly_1 = pygame.image.load(str(ASSET_DIR / 'graphics' / 'Fly' / 'fly1.png')).convert_alpha()
@@ -121,6 +121,7 @@ class Obstacle(pygame.sprite.Sprite):
         self.animation_index = 0
         self.image = self.frames[self.animation_index]
         self.rect = self.image.get_rect(midbottom=(randint(900, 1100), y_pos))
+        self.speed = speed
 
     def animation_state(self):
         self.animation_index += 0.1
@@ -129,7 +130,7 @@ class Obstacle(pygame.sprite.Sprite):
 
     def update(self):
         self.animation_state()
-        self.rect.x -= 6
+        self.rect.x -= self.speed
         if self.rect.x <= -100:
             self.kill()
 
@@ -175,6 +176,9 @@ class Game:
         self.player = pygame.sprite.GroupSingle()
         self.player.add(Player())
         self.obstacle_group = pygame.sprite.Group()
+
+        # Obstacle speed
+        self.obstacle_speed = 6  # Initial speed
 
         # Backgrounds
         self.sky_surf = pygame.image.load(str(ASSET_DIR / 'graphics' / 'Sky.png')).convert()
@@ -300,7 +304,8 @@ class Game:
                 
                 if self.game_active:
                     if event.type == self.obstacle_timer:
-                        self.obstacle_group.add(Obstacle(choice(['fly', 'snail', 'snail', 'snail'])))
+                        self.obstacle_group.add(Obstacle(choice(['fly', 'snail', 'snail', 'snail']), self.obstacle_speed))
+                        self.obstacle_speed += 0.2  # Increase speed AFTER spawning
                 else:
                     if (
                         (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
@@ -309,6 +314,7 @@ class Game:
                     ):
                         self.game_active = True
                         self.start_time = int(pygame.time.get_ticks() / 1000)
+                        self.obstacle_speed = 6  # Reset speed at the start of a new game
 
             if self.game_active:
                 self.sky_x -= BackgroundSettings.SKY_SCROLL_SPEED
@@ -329,7 +335,7 @@ class Game:
                     self.screen.blit(self.ground_surf, (x, 300))
                     x += ground_w
                 self.score = self.display_score()
-                
+
                 self.player.draw(self.screen)
                 self.player.update()
 
@@ -337,6 +343,8 @@ class Game:
                 self.obstacle_group.update()
 
                 self.game_active = self.collision_sprite()
+
+            # No need to reset obstacle speed here; it's now reset when a new game starts
             else:
                 self.screen.fill((94, 129, 162))
                 self.screen.blit(self.player_stand, self.player_stand_rect)
