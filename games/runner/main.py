@@ -193,7 +193,11 @@ class Game:
 
         # Timer
         self.obstacle_timer = pygame.USEREVENT + 1
-        pygame.time.set_timer(self.obstacle_timer, 1500)
+        self.default_spawn_interval = 1500  # ms
+        self.min_spawn_interval = 500       # ms
+        self.spawn_interval_decrement = 15  # ms per spawn (slower ramp)
+        self.current_spawn_interval = self.default_spawn_interval
+        pygame.time.set_timer(self.obstacle_timer, self.current_spawn_interval)
 
     def quit_combo_pressed(self):
         """Return True if START + SELECT + L1 + R1 are held on any controller."""
@@ -305,7 +309,10 @@ class Game:
                 if self.game_active:
                     if event.type == self.obstacle_timer:
                         self.obstacle_group.add(Obstacle(choice(['fly', 'snail', 'snail', 'snail']), self.obstacle_speed))
-                        self.obstacle_speed += 0.2  # Increase speed AFTER spawning
+                        self.obstacle_speed += 0.1  # Increase speed AFTER spawning (slower ramp)
+                        # Decrease spawn interval, but not below minimum
+                        self.current_spawn_interval = max(self.min_spawn_interval, self.current_spawn_interval - self.spawn_interval_decrement)
+                        pygame.time.set_timer(self.obstacle_timer, self.current_spawn_interval)
                 else:
                     if (
                         (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
@@ -315,6 +322,8 @@ class Game:
                         self.game_active = True
                         self.start_time = int(pygame.time.get_ticks() / 1000)
                         self.obstacle_speed = 6  # Reset speed at the start of a new game
+                        self.current_spawn_interval = self.default_spawn_interval  # Reset spawn interval
+                        pygame.time.set_timer(self.obstacle_timer, self.current_spawn_interval)
 
             if self.game_active:
                 self.sky_x -= BackgroundSettings.SKY_SCROLL_SPEED
