@@ -24,7 +24,7 @@ class GameManager:
         """
         pygame.init()
         self.screen = pygame.display.set_mode((ScreenSettings.RESOLUTION), pygame.SCALED)
-        pygame.display.set_caption('Dungeon Digger')
+        pygame.display.set_caption(ScreenSettings.TITLE)
         if start_fullscreen:
             pygame.display.toggle_fullscreen()
         self.clock = pygame.time.Clock()

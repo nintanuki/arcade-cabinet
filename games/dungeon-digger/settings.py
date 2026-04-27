@@ -80,6 +80,7 @@ class ScreenSettings:
     FPS = 60
     CRT_ALPHA_RANGE = (75, 90)
     CRT_SCANLINE_HEIGHT = 3
+    TITLE = "Dungeon Digger"
 
 class GridSettings:
     """Grid and tile scaling values used for map layout and sprite snapping."""
@@ -140,6 +141,8 @@ class UISettings:
 
 class RenderSettings:
     """Constants for title, overlay, and between-screen render timing/layout."""
+
+    IN_GAME_TITLE = ScreenSettings.TITLE.upper()
 
     TITLE_CHASE_INITIAL_DELAY_MS = 60000
     TITLE_CHASE_COOLDOWN_MS = 60000
