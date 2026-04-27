@@ -112,7 +112,7 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 
 # Notes & Ideas
 - Make shopkeeper and NPCs drop hints.
-- Add save game feature. Player enters their name to create a new file, and it autosaves after every dungeon cleared (decide if this is before or after the shop — probably after, before the next level loads, so the player keeps purchases but might get a different dungeon on reload).
+- Add save game feature. Player enters their name to create a new file, and it autosaves after every dungeon cleared (decide if this is before or after the shop — probably after, before the next level loads, so the player keeps purchases but might get a different dungeon on reload, they might get lucky and get an easier dungeon).
 - Maybe have an indicator or highlight on the item in the inventory window with the toggle, and group light sources.
 - Figure out how the tutorial will work.
 - With the addition of the "tutorial" dungeon and easier levels loaded at start, more dirt tiles = more treasure, meaning the player can buy the $10,000 invisibility cloak by level 2! Make it more expensive? The game is also more boring now that it starts with less "challenging" maps, just lots of digging in open space with low threat of monsters.
@@ -122,6 +122,7 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 - Add hard limit of 255 to each item for "retro" feel.
 - Map name should only be reveal if play picks up map, magic map, or manages to explore every tile
 - Repellent should not effect all monsters on the map at once when used, instead it should be an constant area of effect that follows the player, same radius as the lantern, and monsters will be repelled by this radius (consider drawing a purple foggy circle that shrinks over time?)
+- coin sound should play for every beat in treasure exchange screen
 
 # Refactoring notes
 - Add reset option for keyboard too (ESC?).
