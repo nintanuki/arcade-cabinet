@@ -108,6 +108,7 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 - Current foundation is solid (grid, movement, fog, digging all working).
 - Light sources should not just be a radius; they should be blocked by walls (no seeing through walls).
 - Create a special area in the UI for unique key items (symbols?) instead of tracking quantity in inventory sidebar.
+- Remove the "[SPAWN] debug" message
 
 # Notes & Ideas
 - Make shopkeeper and NPCs drop hints.
