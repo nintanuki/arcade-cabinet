@@ -5,12 +5,12 @@ from settings import *
 from audio import AudioManager
 from sprites import Player, Monster, Door, NPC
 from windows import MessageLog, InventoryWindow, MapWindow
-from dungeon import DungeonMaster
+from dungeon import DungeonLevel
 from dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER, get_monster_count_for_dungeon
-from mapmemory import MapMemory
+from minimap_memory import MinimapMemory
 from render import RenderManager
 from crt import CRT
-from managers import ScoreLeaderboardManager, BetweenLevelManager
+from managers import ScoreLeaderboardManager, IntermissionFlow
 from tutorial import TutorialManager, default_duration_for as tutorial_default_duration
 import coords
 import loot
@@ -36,11 +36,11 @@ class GameManager:
         # -------- Core subsystem initialization --------
         self.setup_controllers()
         self.load_assets()
-        self.dungeon = DungeonMaster(self.scaled_dirt_tiles)
+        self.dungeon = DungeonLevel(self.scaled_dirt_tiles)
         self.all_sprites = pygame.sprite.Group()
         self.audio = AudioManager()
         self.score_manager = ScoreLeaderboardManager(self)
-        self.between_level_manager = BetweenLevelManager(self)
+        self.intermission = IntermissionFlow(self)
         self.game_active = False
         self.game_result = None
         self.score = 0
@@ -70,7 +70,7 @@ class GameManager:
         self.pending_leaderboard_score = 0
         self.initials_entry = "AAA"
         self.initials_index = 0
-        self.between_level_manager.initialize_state()
+        self.intermission.initialize_state()
 
         # Pre-create the fog surface to avoid doing it every frame during rendering.
         self.fog_surface = pygame.Surface((UISettings.ACTION_WINDOW_WIDTH, UISettings.ACTION_WINDOW_HEIGHT), pygame.SRCALPHA)
@@ -351,9 +351,9 @@ class GameManager:
     def _tick_between_level_flow(self) -> None:
         """Advance level-transition, door-unlock, treasure-conversion, and game-over timers."""
         if self.ui_state == 'playing':
-            self.between_level_manager.update_level_transition()
-            self.between_level_manager.update_door_unlock_sequence()
-            self.between_level_manager.update_treasure_conversion()
+            self.intermission.update_level_transition()
+            self.intermission.update_door_unlock_sequence()
+            self.intermission.update_treasure_conversion()
         self.score_manager.update_game_over_flow()
 
     def _process_events(self) -> None:
@@ -390,7 +390,7 @@ class GameManager:
                 self.handle_title_menu_move(1)
 
         if self.in_shop_phase:
-            self.between_level_manager.handle_shop_event(event)
+            self.intermission.handle_shop_event(event)
 
         if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
             self.handle_start_press()
@@ -416,7 +416,7 @@ class GameManager:
             return
 
         if self.in_shop_phase:
-            self.between_level_manager.handle_shop_event(event)
+            self.intermission.handle_shop_event(event)
 
         if event.button in (InputSettings.JOY_BUTTON_START, InputSettings.JOY_BUTTON_A):
             self.handle_start_press()
@@ -434,7 +434,7 @@ class GameManager:
                 self.handle_title_menu_move(1)
 
         if self.in_shop_phase:
-            self.between_level_manager.handle_shop_event(event)
+            self.intermission.handle_shop_event(event)
 
         self.score_manager.handle_initials_event(event)
 

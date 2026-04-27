@@ -27,6 +27,7 @@ Do NOT add new features until steps 1–4 are complete.
 ---
 
 # BUGS / ISSUES
+- [ ] Area revealed by light sources in minimap are a little too large for each item (compare squares)?
 
 ## Gameplay Bugs
 - [ ] Player can pass through monster
@@ -142,6 +143,8 @@ These notes capture confirmed progress without changing checkbox status unless a
 - With the addition of the "tutorial" dungeon and easier levels loaded at start, more dirt tiles = more treasure meaning the player can buy the $10,000 invisibility cloak by level 2! Make it more expensive? The game is also more boring now that it starts with less "challenging" maps, just lots of digging in open space with low threat of monsters.
 - remove allowing A to start the game, must press start
 - replace pokemon and minecraft sounds
+- remove "bulk buy" option
+- get rid of the "tutorial" dungeon arena, it's boring, and the tutorial can play on any dungeon as long as it's not skipped
 
 # Refactoring notes
 - L1 R1 controls to cycle light source are in main.y, they should be in sprites.py in the player input function

@@ -1,6 +1,6 @@
 """Stateless conversion between grid coordinates and screen pixels.
 
-Lives outside GameManager so any subsystem (mapmemory, sprites, render,
+Lives outside GameManager so any subsystem (minimap_memory, sprites, render,
 windows) can do the conversion without going through the game manager
 just to call two-line math.
 """

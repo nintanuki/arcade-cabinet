@@ -7,7 +7,7 @@ start_gameplay_from_title, and after a successful door unlock.
 
 import coords
 from dungeon_config import get_monster_count_for_dungeon
-from mapmemory import MapMemory
+from minimap_memory import MinimapMemory
 from render import RenderManager
 from sprites import Door, Monster, NPC, Player
 
@@ -51,7 +51,7 @@ class LevelLoader:
         self.restore_player_progress(player_progress)
 
         # Memory + renderer reference the freshly-spawned entities.
-        game.map_memory = MapMemory(game)
+        game.map_memory = MinimapMemory(game)
         game.render = RenderManager(game)
 
     def spawn_player(self) -> None:

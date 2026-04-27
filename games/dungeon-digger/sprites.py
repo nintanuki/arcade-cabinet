@@ -425,7 +425,7 @@ class Player(pygame.sprite.Sprite):
         if self.position == self.game.door.position:
             if self.inventory.get('KEY', 0) > 0:
                 self.game.door.open_door()
-                self.game.between_level_manager.handle_door_unlock()
+                self.game.intermission.handle_door_unlock()
             else:
                 self.game.log_message("THE DOOR IS LOCKED. YOU NEED A KEY!")
                 self.game.audio.play_boundary_sound()

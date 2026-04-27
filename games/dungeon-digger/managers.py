@@ -263,8 +263,8 @@ class ScoreLeaderboardManager:
                 self.game.initials_entry = "".join(chars)
 
 
-class BetweenLevelManager:
-    """Handle level transitions, treasure exchange, and shop flow."""
+class IntermissionFlow:
+    """Drive the between-level sequence: transition card, treasure exchange, then shop."""
 
     def __init__(self, game) -> None:
         """Store shared game reference.

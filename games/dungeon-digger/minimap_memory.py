@@ -1,7 +1,7 @@
 from settings import UISettings
 import coords
 
-class MapMemory:
+class MinimapMemory:
     """Track and expose the player's remembered minimap terrain and entities."""
 
     def __init__(self, game) -> None:

@@ -547,7 +547,7 @@ class RenderManager:
         self.screen.blit(gold_surf, (start_x, y_pos))
         y_pos += line_height + RenderSettings.SHOP_GOLD_GAP
 
-        options = self.game.between_level_manager.get_shop_menu_options()
+        options = self.game.intermission.get_shop_menu_options()
         selected_index = min(self.game.shop_selected_index, max(0, len(options) - 1))
 
         for index, option in enumerate(options):

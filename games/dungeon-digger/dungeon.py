@@ -2,8 +2,11 @@ import random
 from settings import UISettings, ItemSettings, MonsterSettings, NPCSettings, DebugSettings
 from tilemaps import DUNGEONS
 
-class DungeonMaster:
-    """Own dungeon layout data, mutable tile state, and map-rule queries."""
+class DungeonLevel:
+    """The currently-loaded dungeon level: layout grid, mutable tile state, and map-rule queries.
+
+    LevelLoader.load_level reuses one DungeonLevel and reloads its blueprint each time.
+    """
 
     def __init__(self, scaled_dirt_tiles: list) -> None:
         """
