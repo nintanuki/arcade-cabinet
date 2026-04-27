@@ -687,7 +687,13 @@ class Player(pygame.sprite.Sprite):
         if not self.shield_active:
             return
 
-        pulse = (pygame.time.get_ticks() // 100) % 2
+        current_time = pygame.time.get_ticks()
+        time_left = PlayerSettings.SHIELD_DURATION - (current_time - self.shield_start_time)
+        # If shield is in last 1 second, flash rapidly
+        if time_left <= 1000:
+            pulse = (current_time // 50) % 2  # Faster flash
+        else:
+            pulse = (current_time // 100) % 2
         alpha = 150 if pulse == 0 else 70
         radius = max(self.rect.width, self.rect.height) // 2 + 12
 

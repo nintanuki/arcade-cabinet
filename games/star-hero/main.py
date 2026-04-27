@@ -389,6 +389,8 @@ class SessionStateManager:
         )
 
         if has_upgrade:
+            # Play the same alarm as losing the first heart
+            game.audio.channel_4.play(game.audio.low_health_alarm1)
             player.trigger_damage_effect()
             return
 
@@ -534,22 +536,33 @@ class SpawnDirector:
 
     def try_spawn_alien_drop(self, alien: Alien) -> None:
         """
-        Handles standard drops and rare bomb drops for a defeated alien.
+        Evaluates whether a destroyed alien should drop a powerup and spawns it if so.
 
         Args:
-            alien (Alien): The alien that was destroyed.
+            alien (Alien): The alien that was destroyed, used to determine drop chances and type.
         """
         game = self.game
         player = game.player.sprite
-        spawned_standard_drop = False
 
         if alien.color == 'red':
-            if not player.shield_active and random.random() < AlienSettings.RED_SHIELD_DROP_CHANCE:
-                self.spawn_powerup(alien.rect.center, 'red_shield')
-                spawned_standard_drop = True
-            elif game.hearts < PlayerSettings.MAX_HEALTH and random.random() < AlienSettings.DROP_CHANCE['red']:
-                self.spawn_powerup(alien.rect.center, 'red')
-                spawned_standard_drop = True
+            if random.random() < AlienSettings.DROP_CHANCE['red']:
+                eligible_drops = []
+                weights = []
+                # Heart drop
+                if game.hearts < PlayerSettings.MAX_HEALTH: # Only drop hearts if player isn't at full health
+                    eligible_drops.append('red')
+                    weights.append(1.0)
+                # Bomb drop
+                eligible_drops.append('bomb')
+                weights.append(1.0)
+                # Shield drop
+                if not player.shield_active: # Only drop shield if player doesn't already have one active
+                    eligible_drops.append('red_shield')
+                    weights.append(0.5)  # Shields are half as likely as hearts or bombs
+
+                if eligible_drops:
+                    chosen = random.choices(eligible_drops, weights=weights, k=1)[0]
+                    self.spawn_powerup(alien.rect.center, chosen)
         else:
             can_drop_color_powerup = True
             if alien.color == 'green':
@@ -559,10 +572,6 @@ class SpawnDirector:
 
             if can_drop_color_powerup and random.random() < AlienSettings.DROP_CHANCE[alien.color]:
                 self.spawn_powerup(alien.rect.center, alien.color)
-                spawned_standard_drop = True
-
-        if not spawned_standard_drop and random.random() < self.get_bomb_drop_chance(alien.value):
-            self.spawn_powerup(alien.rect.center, 'bomb')
 
 class GameManager:
     """Main game manager class"""

@@ -83,14 +83,11 @@ class AlienSettings:
 
     # Probability of each alien dropping a powerup upon destruction, by color
     DROP_CHANCE = {
-        'red':    0.25,
+        'red':    0.20,
         'green':  0.20,
-        'yellow': 0.15,
+        'yellow': 0.20,
         'blue':   0.10,
-        }
-    RED_SHIELD_DROP_CHANCE = 0.05
-    BOMB_DROP_BASE = 0.01
-    BOMB_DROP_BONUS = 0.05
+    }
     
     # Blue alien confusion attack settings
     CONFUSION_CHANCE = 0.1 # chance that a blue alien will trigger the confusion attack
