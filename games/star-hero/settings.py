@@ -1,5 +1,16 @@
 import os
 
+class ColorSettings:
+    """Defines the RGB color values for various named colors used throughout the game, such as for drawing lasers, powerups, and other visual elements."""
+    COLORS = {
+        'RED': (255, 80, 80),
+        'GREEN': (60, 255, 100),
+        'YELLOW': (255, 220, 60),
+        'BLUE': (80, 160, 255),
+        'WHITE': (255, 255, 255),
+        'CYAN': (80, 255, 255),
+        'BLACK': (0, 0, 0)
+    }
 
 class ScreenSettings:
     """Holds all the settings related to the game screen, such as dimensions, frame rate, background color, and other visual parameters."""
@@ -136,7 +147,7 @@ class PowerupSettings:
     'red_shield': {'draw_color': (80, 255, 255), 'type': 'shield', 'shape': 'circle'},
     'green':  {'draw_color': (60, 255, 100), 'type': 'laser_upgrade', 'shape': 'diamond'},
     'yellow': {'draw_color': (255, 220, 60), 'type': 'rapid_fire', 'shape': 'diamond'},
-    'blue':   {'draw_color': (80, 160, 255), 'type': 'rainbow_beam', 'shape': 'diamond'},
+    'blue':   {'draw_color': (80, 160, 255), 'type': 'rainbow_beam', 'shape': 'star'},
     'bomb':   {'draw_color': (255, 40, 40),  'type': 'bomb',        'shape': 'circle'},
     }
 
