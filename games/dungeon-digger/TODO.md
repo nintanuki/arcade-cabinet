@@ -120,6 +120,7 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 - Remove "bulk buy" option.
 - Get rid of the "tutorial" dungeon arena — it's boring, and the tutorial can play on any dungeon as long as it's not skipped.
 - Add hard limit of 255 to each item for "retro" feel.
+- Map name should only be reveal if play picks up map, magic map, or manages to explore every tile
 
 # Refactoring notes
 - Add reset option for keyboard too (ESC?).
