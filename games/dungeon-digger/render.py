@@ -414,7 +414,7 @@ class RenderManager:
     # -------------------------
 
     def draw_title_screen(self):
-        """Draw a minimal title card while waiting for Start."""
+        """Draw the title card and menu or new game prompt."""
         self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
 
         title_font = pygame.font.Font(FontSettings.FONT, FontSettings.ENDGAME_SIZE)
@@ -449,22 +449,44 @@ class RenderManager:
         title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, (ScreenSettings.HEIGHT / 2) - 40))
         self.screen.blit(title_surf, title_rect)
 
-        menu_options = ["PLAY", "SKIP TUTORIAL"]
-        option_start_y = int(ScreenSettings.HEIGHT / 2) + 10
-        option_spacing = 28
-        cursor_symbol = ">"
-
-        for i, label in enumerate(menu_options):
-            is_selected = i == self.game.title_menu_index
-            color = ColorSettings.TEXT_SELECTOR if is_selected else ColorSettings.TEXT_DEFAULT
-            option_surf = prompt_font.render(label, False, color)
-            option_rect = option_surf.get_rect(center=(ScreenSettings.WIDTH / 2, option_start_y + i * option_spacing))
-            self.screen.blit(option_surf, option_rect)
-
-            if is_selected:
-                cursor_surf = prompt_font.render(cursor_symbol, False, ColorSettings.TEXT_SELECTOR)
-                cursor_rect = cursor_surf.get_rect(midright=(option_rect.left - 6, option_rect.centery))
-                self.screen.blit(cursor_surf, cursor_rect)
+        if self.game.ui_state == 'title':
+            menu_options = ["LOAD GAME", "NEW GAME", "OPTIONS"]
+            option_start_y = int(ScreenSettings.HEIGHT / 2) + 70
+            option_spacing = 32
+            cursor_symbol = ">"
+            for i, label in enumerate(menu_options):
+                is_selected = i == self.game.title_menu_index
+                color = ColorSettings.TEXT_SELECTOR if is_selected else ColorSettings.TEXT_DEFAULT
+                option_surf = prompt_font.render(label, False, color)
+                option_rect = option_surf.get_rect(center=(ScreenSettings.WIDTH / 2, option_start_y + i * option_spacing))
+                self.screen.blit(option_surf, option_rect)
+                if is_selected:
+                    cursor_surf = prompt_font.render(cursor_symbol, False, ColorSettings.TEXT_SELECTOR)
+                    cursor_rect = cursor_surf.get_rect(midright=(option_rect.left - 6, option_rect.centery))
+                    self.screen.blit(cursor_surf, cursor_rect)
+        elif self.game.ui_state == 'newgame_prompt':
+            # Black screen with white text prompt
+            self.screen.fill(ColorSettings.BLACK)
+            question = "HAVE YOU PLAYED DUNGEON DIGGER BEFORE?"
+            options = ["NO (START TUTORIAL)", "YES"]
+            question_font = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
+            option_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
+            q_surf = question_font.render(question, False, ColorSettings.WHITE)
+            q_rect = q_surf.get_rect(center=(ScreenSettings.WIDTH / 2, (ScreenSettings.HEIGHT / 2) - 40))
+            self.screen.blit(q_surf, q_rect)
+            option_start_y = int(ScreenSettings.HEIGHT / 2) + 10
+            option_spacing = 32
+            cursor_symbol = ">"
+            for i, label in enumerate(options):
+                is_selected = i == self.game.newgame_prompt_index
+                color = ColorSettings.TEXT_SELECTOR if is_selected else ColorSettings.WHITE
+                option_surf = option_font.render(label, False, color)
+                option_rect = option_surf.get_rect(center=(ScreenSettings.WIDTH / 2, option_start_y + i * option_spacing))
+                self.screen.blit(option_surf, option_rect)
+                if is_selected:
+                    cursor_surf = option_font.render(cursor_symbol, False, ColorSettings.TEXT_SELECTOR)
+                    cursor_rect = cursor_surf.get_rect(midright=(option_rect.left - 10, option_rect.centery))
+                    self.screen.blit(cursor_surf, cursor_rect)
 
     def draw_initials_entry_screen(self):
         """Draw initials input for top-ten leaderboard placement."""

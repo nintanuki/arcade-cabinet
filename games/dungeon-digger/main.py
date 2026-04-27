@@ -57,6 +57,8 @@ class GameManager:
 
         self.ui_state = 'title'
         self.title_menu_index = 0
+        self.newgame_prompt_active = False
+        self.newgame_prompt_index = 0
         self.npcs: list = []
 
         # State for game over flow and leaderboard entry.
@@ -168,19 +170,17 @@ class GameManager:
         return pygame.time.get_ticks() < self.transition_end_time
 
     def start_gameplay_from_title(self, skip_tutorial: bool = False) -> None:
-        """Leave title screen and begin active gameplay.
+        """
+        Leave title screen and begin active gameplay.
 
         Args:
-            skip_tutorial: When True, advance past level 0 (The Arena) to level 1.
+            skip_tutorial: When True, skip the tutorial and start at level 1.
         """
         self.audio.play('menu_select')
-        if skip_tutorial and len(self.level_order) > 1:
-            self.current_level_index = 1
-            self.pending_level_index = 1
-            player_progress = self.level_loader.capture_player_progress()
-            self.level_loader.load_level(player_progress)
-        # Activate the tutorial system only when the player chose PLAY. It
-        # then runs for the entire session and is level-agnostic.
+        self.current_level_index = 1
+        self.pending_level_index = 1
+        player_progress = self.level_loader.capture_player_progress()
+        self.level_loader.load_level(player_progress)
         if not skip_tutorial:
             self.tutorial = TutorialManager(self)
         else:
@@ -191,17 +191,46 @@ class GameManager:
 
     def handle_title_menu_move(self, direction: int) -> None:
         """Move the title screen cursor up (-1) or down (+1)."""
-        options_count = 2  # PLAY, SKIP TUTORIAL
-        new_index = (self.title_menu_index + direction) % options_count
-        if new_index != self.title_menu_index:
-            self.title_menu_index = new_index
-            self.audio.play('menu_move')
+        if self.ui_state == 'title':
+            options_count = 3  # LOAD GAME, NEW GAME, OPTIONS
+            new_index = (self.title_menu_index + direction) % options_count
+            if new_index != self.title_menu_index:
+                self.title_menu_index = new_index
+                self.audio.play('menu_move')
+        elif self.ui_state == 'newgame_prompt':
+            options_count = 2  # NO (START TUTORIAL), YES
+            new_index = (self.newgame_prompt_index + direction) % options_count
+            if new_index != self.newgame_prompt_index:
+                self.newgame_prompt_index = new_index
+                self.audio.play('menu_move')
 
     def handle_start_press(self) -> None:
         """Handle Start/Enter based on top-level UI state."""
         if self.ui_state == 'title':
-            skip = self.title_menu_index == 1
-            self.start_gameplay_from_title(skip_tutorial=skip)
+            if self.title_menu_index == 0:
+                # LOAD GAME (not implemented)
+                self.audio.play('menu_select')
+                # Placeholder: do nothing
+                return
+            elif self.title_menu_index == 1:
+                # NEW GAME
+                self.ui_state = 'newgame_prompt'
+                self.newgame_prompt_index = 0
+                self.audio.play('menu_select')
+                return
+            elif self.title_menu_index == 2:
+                # OPTIONS (not implemented)
+                self.audio.play('menu_select')
+                # Placeholder: do nothing
+                return
+
+        if self.ui_state == 'newgame_prompt':
+            if self.newgame_prompt_index == 0:
+                # NO (START TUTORIAL)
+                self.start_gameplay_from_title(skip_tutorial=False)
+            else:
+                # YES
+                self.start_gameplay_from_title(skip_tutorial=True)
             return
 
         if self.ui_state == 'game_over' and self.score_manager.can_continue_from_game_over():
@@ -372,7 +401,7 @@ class GameManager:
             self.tutorial.handle_event(event)
             return
 
-        if self.ui_state == 'title':
+        if self.ui_state in ('title', 'newgame_prompt'):
             if event.key in (pygame.K_UP, pygame.K_w):
                 self.handle_title_menu_move(-1)
             elif event.key in (pygame.K_DOWN, pygame.K_s):
@@ -415,7 +444,7 @@ class GameManager:
 
     def _handle_joyhatmotion(self, event) -> None:
         """Route a D-pad direction event for menus."""
-        if self.ui_state == 'title':
+        if self.ui_state in ('title', 'newgame_prompt'):
             _, hat_y = event.value
             if hat_y == 1:
                 self.handle_title_menu_move(-1)
@@ -487,7 +516,7 @@ class GameManager:
             if self.tutorial is not None:
                 self.tutorial.draw(self.screen)
 
-        if self.ui_state == 'title':
+        if self.ui_state in {'title', 'newgame_prompt'}:
             self.render.draw_title_screen()
         elif self.ui_state == 'game_over':
             self.render.draw_end_game_screens()

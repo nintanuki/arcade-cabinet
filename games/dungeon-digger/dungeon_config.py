@@ -9,7 +9,6 @@ from tilemaps import DUNGEONS
 class DungeonConfig:
     """Own difficulty routing and per-dungeon spawn configuration."""
 
-    DIFFICULTY_TUTORIAL = "TUTORIAL"
     DIFFICULTY_VERY_EASY = "VERY_EASY"
     DIFFICULTY_EASY = "EASY"
     DIFFICULTY_MEDIUM = "MEDIUM"
@@ -35,7 +34,6 @@ class DungeonConfig:
     @property
     def allowed_difficulties(self) -> set[str]:
         return {
-            self.DIFFICULTY_TUTORIAL,
             self.DIFFICULTY_VERY_EASY,
             self.DIFFICULTY_EASY,
             self.DIFFICULTY_MEDIUM,
@@ -78,7 +76,6 @@ class DungeonConfig:
     def build_dungeons_by_difficulty(self) -> dict[str, list[str]]:
         """Group dungeons by difficulty preserving DUNGEONS definition order."""
         grouped = {
-            self.DIFFICULTY_TUTORIAL: [],
             self.DIFFICULTY_VERY_EASY: [],
             self.DIFFICULTY_EASY: [],
             self.DIFFICULTY_MEDIUM: [],
@@ -153,7 +150,6 @@ class DungeonConfig:
 
 
 DUNGEON_DIFFICULTY = {
-    'The Arena': DungeonConfig.DIFFICULTY_TUTORIAL,
     'The Corners': DungeonConfig.DIFFICULTY_VERY_EASY,
     'The Lanes': DungeonConfig.DIFFICULTY_EASY,
     'The Clover': DungeonConfig.DIFFICULTY_EASY,
@@ -172,7 +168,6 @@ DUNGEON_DIFFICULTY = {
 }
 
 DUNGEON_MONSTER_COUNTS = {
-    'The Arena': 1,
     'The Corners': 1,
     'The Lanes': 1,
     'The Clover': 1,
@@ -191,7 +186,6 @@ DUNGEON_MONSTER_COUNTS = {
 }
 
 LEVEL_DIFFICULTY_BY_NUMBER = {
-    0: DungeonConfig.DIFFICULTY_TUTORIAL,
     1: DungeonConfig.DIFFICULTY_VERY_EASY,
     2: DungeonConfig.DIFFICULTY_VERY_EASY,
     3: DungeonConfig.DIFFICULTY_EASY,

@@ -359,7 +359,7 @@ class ItemSettings:
     SPAWN_CHANCE = {
         # Consumables
         'MATCH': 0.25,
-        'TORCH': 0.15,
+        'TORCH': 0.10,
         'LANTERN': 0.02,
         'MONSTER REPELLENT': 0.10,
         'INVISIBILITY SCROLL': 0.01,
@@ -382,7 +382,7 @@ class ItemSettings:
         'SAPPHIRE': (1, 5),
         'EMERALD': (1, 3),
         'MATCH': (1, 3),
-        'TORCH': (1, 5),
+        'TORCH': (1, 2),
         # 'MONSTER REPELLENT': (1, 2)
         # Items not listed here default to quantity 1.
     }
