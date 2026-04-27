@@ -235,7 +235,7 @@ pygame.init()
 pygame.joystick.init()
 cell_size = 40
 cell_number = 20
-screen = pygame.display.set_mode((cell_number * cell_size,cell_number * cell_size))
+screen = pygame.display.set_mode((cell_number * cell_size,cell_number * cell_size), pygame.SCALED)
 clock = pygame.time.Clock()
 apple = pygame.image.load(str(ASSET_DIR / 'Graphics' / 'apple.png')).convert_alpha()
 game_font = pygame.font.Font(str(ASSET_DIR / 'Font' / 'PoetsenOne-Regular.ttf'), 25)
