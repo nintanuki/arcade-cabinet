@@ -18,7 +18,6 @@ class LauncherSettings:
     WINDOW_TITLE = "Mr. Navarro's Arcade"
     MENU_MOVE_SOUND = Path("sound") / "sfx_menu_move2.wav"
     MENU_SELECT_SOUND_CANDIDATES = (
-        Path("sound") / "sfx_menu_move3.wav",
         Path("sound") / "sfx_menu_select3.wav",
     )
 
