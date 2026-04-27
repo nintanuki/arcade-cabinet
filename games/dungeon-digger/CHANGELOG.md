@@ -519,3 +519,28 @@ the file, which made `ast.parse` reject it ("source code string cannot
 contain null bytes") even though Python's import machinery still tolerated
 the file. Stripping the nulls and normalizing to a single trailing newline
 restores parseability without changing any code.
+
+---
+
+## 2026-04-27 15:55 — Highlight "GAME SAVED" message in green
+
+**File:** windows.py
+**Lines (at time of edit):** 38 (added)
+**Before:**
+    term_colors = {
+        "YOU WERE CAUGHT BY THE MONSTER": ColorSettings.TEXT_LOSS,
+        "KEY": ColorSettings.BORDER_KEY_ACTIVE,
+        ...
+    }
+**After:**
+    term_colors = {
+        "YOU WERE CAUGHT BY THE MONSTER": ColorSettings.TEXT_LOSS,
+        "GAME SAVED": ColorSettings.TEXT_WIN,
+        "KEY": ColorSettings.BORDER_KEY_ACTIVE,
+        ...
+    }
+**Why:** Adds "GAME SAVED" to the message-log highlight table so the
+auto-save confirmation reads in green (TEXT_WIN), making it visually
+distinct from neutral status lines. Trailing period is left in the
+default message color thanks to the existing word-boundary check in
+_has_word_boundaries.
