@@ -89,7 +89,7 @@ CARDS: dict[str, Card] = {
     "pickup_cloak": Card("pickup_cloak", "PRESS L2 OR C TO TURN INVISIBLE.", QUEUE_BURST),
     "pickup_scroll": Card("pickup_scroll", "PRESS L2 OR C TO TURN INVISIBLE.", QUEUE_BURST),
     "pickup_key": Card("pickup_key", "YOU FOUND THE KEY! HEAD TO THE DOOR.", QUEUE_BURST),
-    "pickup_map": Card("pickup_map", "MAPS REVEAL TERRAIN YOU'VE EXPLORED.", QUEUE_BURST),
+    "pickup_map": Card("pickup_map", "MAPS REVEAL TERRAIN YOU HAVEN'T EXPLORED.", QUEUE_BURST),
     "pickup_magic_map": Card("pickup_magic_map", "THE MAGIC MAP REVEALS EVERYTHING.", QUEUE_BURST),
     "pickup_gold": Card("pickup_gold", "GOLD COINS BUY SHOP ITEMS.", QUEUE_BURST),
     "pickup_gold_tip": Card("pickup_gold_tip", "THEY ALSO ADD TO YOUR SCORE", QUEUE_BURST),
