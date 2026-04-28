@@ -123,6 +123,8 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 - Map name should only be reveal if play picks up map, magic map, or manages to explore every tile
 - Repellent should not effect all monsters on the map at once when used, instead it should be an constant area of effect that follows the player, same radius as the lantern, and monsters will be repelled by this radius (consider drawing a purple foggy circle that shrinks over time?)
 - coin sound should play for every beat in treasure exchange screen
+- add sound effect for monster nearby warning (not the same as the chase sound)
+- flip character sprite left and right
 
 # Refactoring notes
 - Add reset option for keyboard too (ESC?).

@@ -278,7 +278,14 @@ class MonsterSettings:
     """Monster behavior and movement tuning values."""
 
     COUNT = 3
-    CHASE_RADIUS = 3  # Manhattan distance
+    # HEARING_RADIUS replaces the legacy CHASE_RADIUS. The chase trigger
+    # now keys off the player's light_radius (light = danger), so this
+    # value is reused for a different role: the Manhattan bubble inside
+    # which a monster can sense the player even in pitch darkness and
+    # emit a one-shot "you hear something" warning. Kept separate from
+    # light_radius so the dark warning range can be tuned without
+    # touching how far light reaches.
+    HEARING_RADIUS = 3  # Manhattan distance
     IDLE_CHANCE = 0.3
     MIN_PLAYER_DISTANCE = 5  # Minimum Manhattan distance between a monster and the player at spawn.
     REPELLENT_DURATION = 5 # Number of turns the repellent effect remains active.

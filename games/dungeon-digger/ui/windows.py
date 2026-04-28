@@ -56,14 +56,29 @@ class MessageLog:
         return sorted(term_colors.items(), key=lambda item: len(item[0]), reverse=True)
 
     def _default_color_for_message(self, text: str, fallback_color: str) -> str:
-        """Return default line color, with custom overrides for warning lines."""
-        warning_messages = {
-            "YOU HEAR A MONSTER NEARBY!",
-            "YOU'VE BEEN SPOTTED BY A MONSTER!",
+        """Return default line color, with custom overrides for warning lines.
+
+        Each entry in warning_message_colors maps a full uppercased log
+        line to the color that line should render in. Used for full-line
+        overrides; per-word highlights from term_colors still apply on
+        top during the highlight pass.
+
+        Args:
+            text: Full message line as logged.
+            fallback_color: Color to use if no override matches.
+
+        Returns:
+            Color string for the entire line.
+        """
+        warning_message_colors = {
+            "YOU HEAR A MONSTER NEARBY!": ColorSettings.TEXT_LOSS,
+            "YOU'VE BEEN SPOTTED BY A MONSTER!": ColorSettings.TEXT_LOSS,
+            # Darkness hearing warning: purple distinguishes the
+            # "something is creeping near you" cue from the red
+            # active-chase warnings above.
+            "YOU HEAR SOMETHING NEARBY, YOU AREN'T ALONE...": ColorSettings.PURPLE,
         }
-        if text.upper() in warning_messages:
-            return ColorSettings.TEXT_LOSS
-        return fallback_color
+        return warning_message_colors.get(text.upper(), fallback_color)
 
     def _is_word_char(self, char: str) -> bool:
         """Return whether a character should count as part of a word.

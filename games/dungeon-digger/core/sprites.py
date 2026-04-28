@@ -642,6 +642,18 @@ class Monster(pygame.sprite.Sprite):
         self.is_moving = False
         self.anim_speed = PlayerSettings.ANIMATION_SPEED
         self.is_chasing = False
+        # Edge-trigger flag for the darkness hearing warning so the
+        # log doesn't spam every turn the monster sits inside the
+        # hearing bubble. Resets when the monster leaves the bubble
+        # so a fresh approach can re-arm the warning.
+        self.has_warned_player_of_proximity = False
+        # Grid (col, row) of the player at the moment they were last
+        # spotted. While set and is_chasing is True, the monster keeps
+        # advancing toward this tile after losing sight ("investigate
+        # last seen position"). Cleared inside _stop_chasing, so the
+        # invariant "not chasing => no remembered tile" holds for free
+        # across the give-up / repellent / invisibility paths.
+        self.last_known_player_grid_pos: tuple[int, int] | None = None
 
     # -------------------------
     # TURN LOGIC
@@ -693,28 +705,57 @@ class Monster(pygame.sprite.Sprite):
             self.try_start_move(step_x, step_y)
             return
 
-        # Chasing rules:
-        # - if the player has no light, monsters never chase regardless of distance
-        # - otherwise use the current chase radius + line of sight rules
-        if not player_has_light:
-            self._stop_chasing()
+        # Whether the monster has live eyes on the player this turn.
+        # Light is the danger trigger — an unlit player is never spotted
+        # regardless of distance. Adjacent counts because a monster on
+        # the next tile can grab the player even past the light edge.
+        spotted_player = player_has_light and (
+            is_adjacent
+            or (manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player())
+        )
 
-        elif is_adjacent or (manhattan_distance <= int(self.game.player.light_radius) and self.has_clear_line_of_sight_to_player()):
+        if spotted_player:
             if not self.is_chasing:
                 self.is_chasing = True
                 self.game.audio.play('monster_chase')
                 self.game.audio.play_chase_music()
                 self._log_chase_warning(manhattan_distance)
                 self.game.notify_tutorial('monster_spotted')
+            # Refresh the remembered tile every turn we still see the
+            # player, so the moment sight is lost we head for whichever
+            # tile they were standing on most recently.
+            self.last_known_player_grid_pos = coords.screen_to_grid(
+                self.game.player.position.x, self.game.player.position.y
+            )
+        elif self.is_chasing and self.last_known_player_grid_pos is not None:
+            # Sight is broken (player ducked the light, hid behind a
+            # wall, or killed their lantern), but the monster still
+            # remembers where they were. If the monster has reached that
+            # tile, the trail goes cold and the chase ends; otherwise
+            # the chase-step block below keeps advancing toward it.
+            monster_grid_pos = coords.screen_to_grid(self.position.x, self.position.y)
+            if monster_grid_pos == self.last_known_player_grid_pos:
+                self._stop_chasing()
         else:
             self._stop_chasing()
+
+        # The "you hear something" cue belongs to unlit gameplay only:
+        # while the player is lit, the spotted/last-known branches above
+        # already surface the threat. Keeping it here (after the chase
+        # decision) means it can still fire mid-investigation when the
+        # player has killed their light to break LOS.
+        if not player_has_light:
+            self._maybe_warn_proximity_in_dark(manhattan_distance)
 
         # If the monster is chasing, it still has a 20% chance to hesitate.
         if self.is_chasing:
             if random.random() < MonsterSettings.IDLE_CHANCE:
                 return
 
-            step_x, step_y = self._choose_primary_chase_step(delta_pixels_x, delta_pixels_y)
+            target_delta_x, target_delta_y = self._chase_target_delta(
+                spotted_player, delta_pixels_x, delta_pixels_y
+            )
+            step_x, step_y = self._choose_primary_chase_step(target_delta_x, target_delta_y)
 
             # After calculating the movement, we apply it.
             self.try_start_move(step_x, step_y)
@@ -763,31 +804,52 @@ class Monster(pygame.sprite.Sprite):
         """
         Check if the monster has a clear path to the player.
 
-        Only straight-line (row or column) visibility is considered.
-        Walls block line of sight.
+        Delegates to DungeonLevel.has_line_of_sight, which walks the grid
+        cells between monster and player using Bresenham's line algorithm
+        (an integer-only line-drawing routine that picks the closest grid
+        cell to a true straight line at each step). Bresenham handles
+        diagonal sight lines, so this no longer requires the monster and
+        player to share a row or column. Walls block sight; dirt and
+        other walkable tiles do not.
 
         Returns:
             True if no walls block the view, False otherwise.
         """
         m_col, m_row = coords.screen_to_grid(self.position.x, self.position.y)
         p_col, p_row = coords.screen_to_grid(self.game.player.position.x, self.game.player.position.y)
+        return self.dungeon.has_line_of_sight((m_col, m_row), (p_col, p_row))
 
-        # Check if they are in the same column
-        if m_col == p_col:
-            start, end = min(m_row, p_row), max(m_row, p_row)
-            for row in range(start + 1, end):
-                if not self.dungeon.is_walkable(m_col, row):
-                    return False
-            return True
+    def _chase_target_delta(
+        self,
+        has_eyes_on_player: bool,
+        player_delta_pixels_x: float,
+        player_delta_pixels_y: float,
+    ) -> tuple[float, float]:
+        """Return the pixel delta from the monster to its chase target.
 
-        # Check if they are in the same row
-        if m_row == p_row:
-            start, end = min(m_col, p_col), max(m_col, p_col)
-            for col in range(start + 1, end):
-                if not self.dungeon.is_walkable(col, m_row):
-                    return False
-            return True
-        return False
+        When the monster currently sees the player, the target is the
+        player's live position and the precomputed delta is returned
+        unchanged. When sight has been lost mid-chase, the target
+        becomes the grid cell stored in last_known_player_grid_pos —
+        the "investigate last seen tile" behavior. The tuple-None
+        guard is defensive: the caller only invokes this while
+        is_chasing, which by invariant implies last_known is set, but
+        falling back to the live delta keeps the monster moving rather
+        than freezing if that invariant is ever violated.
+
+        Args:
+            has_eyes_on_player: True if the player was spotted this turn.
+            player_delta_pixels_x: Pre-computed pixel delta to the player.
+            player_delta_pixels_y: Pre-computed pixel delta to the player.
+
+        Returns:
+            (dx, dy) in pixels from the monster to the chase target.
+        """
+        if has_eyes_on_player or self.last_known_player_grid_pos is None:
+            return player_delta_pixels_x, player_delta_pixels_y
+        last_col, last_row = self.last_known_player_grid_pos
+        last_x, last_y = coords.grid_to_screen(last_col, last_row)
+        return last_x - self.position.x, last_y - self.position.y
 
     def _choose_primary_chase_step(self, delta_pixels_x: float, delta_pixels_y: float) -> tuple[int, int]:
         """Return a one-tile movement vector toward the player.
@@ -834,12 +896,56 @@ class Monster(pygame.sprite.Sprite):
         else:
             self.game.log_message("YOU HEAR A MONSTER NEARBY!")
 
+    def _maybe_warn_proximity_in_dark(self, manhattan_distance: int) -> None:
+        """Emit a one-shot 'you hear something' log when this monster
+        enters the player's hearing bubble in pitch darkness.
+
+        Without this cue, an unlit player has no way to tell a monster
+        is wandering toward them and dies to what looks like a random
+        coin flip. The flag is edge-triggered: it arms when the monster
+        is outside HEARING_RADIUS and fires once on entry, so the log
+        doesn't repeat while the monster sits inside the bubble.
+
+        Args:
+            manhattan_distance: Manhattan distance to the player in
+                tiles, computed once by the caller to avoid recomputing.
+        """
+        if manhattan_distance <= MonsterSettings.HEARING_RADIUS:
+            if not self.has_warned_player_of_proximity:
+                self.has_warned_player_of_proximity = True
+                self.game.log_message("YOU HEAR SOMETHING NEARBY, YOU AREN'T ALONE...")
+                # ^ add sound effect here later
+        else:
+            self.has_warned_player_of_proximity = False
+
     def _stop_chasing(self) -> None:
-        """Drop chase state and resume normal music; fire tutorial hook on transition."""
+        """Drop chase state and resume normal music; fire tutorial hook on transition.
+
+        Also clears last_known_player_grid_pos so the "investigate last
+        seen tile" memory is wiped any time the chase ends — whether the
+        monster gave up, was repelled, or the player went invisible.
+        Centralizing the clear here keeps every caller from having to
+        remember it.
+
+        Music is global but is_chasing is per-monster: only switch back
+        to normal background music when no other monster on the level
+        is still chasing. Without this guard, a monster that doesn't
+        see the player resolves its turn after a chasing monster and
+        flips the music back to normal every frame — which is what
+        masked the chase soundtrack after the Bresenham LOS change
+        started letting more than one monster's chase decision land in
+        the same player turn.
+        """
         if self.is_chasing:
             self.game.notify_tutorial('monster_lost_sight')
         self.is_chasing = False
-        self.game.audio.play_normal_music()
+        self.last_known_player_grid_pos = None
+        any_other_monster_still_chasing = any(
+            other is not self and other.is_chasing
+            for other in self.game.monsters
+        )
+        if not any_other_monster_still_chasing:
+            self.game.audio.play_normal_music()
 
     # -------------------------
     # PER-FRAME

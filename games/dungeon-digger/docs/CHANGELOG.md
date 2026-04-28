@@ -759,3 +759,222 @@ map viewer, and the moved CHANGELOG/TESTING/TODO docs are no longer
 findable from the repo root unless something in the README points at
 them. README.md itself stays at the repo root so GitHub still renders
 it on the main project page.
+
+---
+
+## 2026-04-28 18:05 — Monster AI: Bresenham LOS + darkness hearing warning (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** 280-289 (renamed CHASE_RADIUS → HEARING_RADIUS, added comment)
+**Before:**
+    COUNT = 3
+    CHASE_RADIUS = 3  # Manhattan distance
+    IDLE_CHANCE = 0.3
+**After:**
+    COUNT = 3
+    # HEARING_RADIUS replaces the legacy CHASE_RADIUS. The chase trigger
+    # now keys off the player's light_radius (light = danger), so this
+    # value is reused for a different role: the Manhattan bubble inside
+    # which a monster can sense the player even in pitch darkness and
+    # emit a one-shot "you hear something" warning. ...
+    HEARING_RADIUS = 3  # Manhattan distance
+    IDLE_CHANCE = 0.3
+**Why:** Owner confirmed CHASE_RADIUS was legacy from a pre-light-mechanic
+proximity-only chase model. The constant had zero references after the
+chase trigger moved to player.light_radius. Repurposing the same value as
+a hearing/warning radius gives it a new, real role rather than deleting
+it; the comment documents the history so the next reader doesn't have to
+re-derive it.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 644-649 (Monster.__init__ added flag)
+**Before:**
+    self.is_chasing = False
+**After:**
+    self.is_chasing = False
+    # Edge-trigger flag for the darkness hearing warning so the
+    # log doesn't spam every turn the monster sits inside the
+    # hearing bubble. Resets when the monster leaves the bubble
+    # so a fresh approach can re-arm the warning.
+    self.has_warned_player_of_proximity = False
+**Why:** Backing field for the new darkness-warning helper. Comment
+explains the edge-trigger semantics so the reset path in
+`_maybe_warn_proximity_in_dark` doesn't look accidental.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 704-709 (Monster.resolve_turn no-light branch)
+**Before:**
+    if not player_has_light:
+        self._stop_chasing()
+**After:**
+    if not player_has_light:
+        self._stop_chasing()
+        # Darkness still hides the player from active pursuit, but
+        # the player gets an audible cue so a wandering monster
+        # ending its turn on their tile isn't a blind coin flip.
+        self._maybe_warn_proximity_in_dark(manhattan_distance)
+**Why:** Reported gameplay issue — players were dying in the dark to what
+felt like RNG, with no warning. Wiring the helper into the existing
+no-light branch preserves "darkness hides you" but tells the player when
+something is creeping close enough to matter.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 771-788 (Monster.has_clear_line_of_sight_to_player rewritten)
+**Before:**
+    # Check if they are in the same column
+    if m_col == p_col:
+        ...
+    # Check if they are in the same row
+    if m_row == p_row:
+        ...
+    return False
+**After:**
+    return self.dungeon.has_line_of_sight((m_col, m_row), (p_col, p_row))
+**Why:** Reported gameplay issue — monsters rarely noticed the player
+even with a lantern. The previous LOS only succeeded when monster and
+player shared a row or column, so any diagonal offset returned False.
+DungeonLevel.has_line_of_sight already implements proper grid raytracing
+via Bresenham's line algorithm; delegating to it picks up diagonal sight
+for free. Docstring names the algorithm so the math isn't a mystery to
+future readers (per TESTING.md's "comments must explain why" rule).
+Also closes docs/TODO.md line 46 ("Enemy line of sight doesn't seem to
+work diagonally").
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 835-854 (added Monster._maybe_warn_proximity_in_dark)
+**After:** New helper that fires a one-shot "YOU HEAR SOMETHING SHUFFLING
+NEARBY..." log message when the monster crosses into HEARING_RADIUS
+while the player has no light, and resets when it leaves.
+**Why:** Pairs with the no-light branch wiring above. Edge-triggered so
+the log stays readable; uses the renamed HEARING_RADIUS constant.
+
+---
+
+## 2026-04-28 18:18 — Color hearing warning purple (Claude Opus 4.7)
+
+**File:** ui/windows.py
+**Lines (at time of edit):** 58-66 (rewritten as 58-80)
+**Before:**
+    def _default_color_for_message(self, text: str, fallback_color: str) -> str:
+        """Return default line color, with custom overrides for warning lines."""
+        warning_messages = {
+            "YOU HEAR A MONSTER NEARBY!",
+            "YOU'VE BEEN SPOTTED BY A MONSTER!",
+        }
+        if text.upper() in warning_messages:
+            return ColorSettings.TEXT_LOSS
+        return fallback_color
+**After:**
+    def _default_color_for_message(self, text: str, fallback_color: str) -> str:
+        """... summary, Args, Returns ..."""
+        warning_message_colors = {
+            "YOU HEAR A MONSTER NEARBY!": ColorSettings.TEXT_LOSS,
+            "YOU'VE BEEN SPOTTED BY A MONSTER!": ColorSettings.TEXT_LOSS,
+            "YOU HEAR SOMETHING NEARBY, YOU AREN'T ALONE...": ColorSettings.PURPLE,
+        }
+        return warning_message_colors.get(text.upper(), fallback_color)
+**Why:** Owner edited the darkness hearing warning text and wants it
+rendered in purple so the new "passive presence detected" cue is
+visually distinct from the red active-chase warnings. Set-of-strings
+swapped for a dict so each warning can carry its own color without
+adding more branches; existing two warnings stay TEXT_LOSS, new one
+maps to PURPLE. Docstring expanded to satisfy the TESTING.md rule that
+docstrings include summary, Args, Returns.
+
+---
+
+## 2026-04-28 18:30 — Monster AI: investigate last-known position after losing sight (Claude Opus 4.7)
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 644-655 (Monster.__init__ added field)
+**Before:**
+    self.has_warned_player_of_proximity = False
+**After:**
+    self.has_warned_player_of_proximity = False
+    # Grid (col, row) of the player at the moment they were last
+    # spotted. While set and is_chasing is True, the monster keeps
+    # advancing toward this tile after losing sight ...
+    self.last_known_player_grid_pos: tuple[int, int] | None = None
+**Why:** Backing field for the new "investigate last seen tile"
+behavior. Documented invariant ("not chasing => no remembered tile")
+explains why the clear in _stop_chasing is sufficient.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 708-762 (resolve_turn chase decision rewritten)
+**Before:** Three-branch if/elif/else on (no light / spotted / else)
+that called `_stop_chasing()` immediately the moment the player went
+unlit or LOS was broken. Chase-step always used the live player delta.
+**After:** Computes a `spotted_player` boolean once. Spotted refreshes
+last_known_player_grid_pos every turn. When sight is lost mid-chase
+and last_known is set, the monster keeps chasing and the chase-step
+routes through `_chase_target_delta` to head for the remembered tile.
+Reaching that tile triggers `_stop_chasing()` (which clears the
+memory). Hearing warning still fires only in unlit play, but is now
+positioned after the chase decision so it can fire mid-investigation
+when the player kills their light to break LOS.
+**Why:** Owner spec: "if the player is spotted by a monster, but then
+the monster loses the player in the darkness, the monster should still
+continue chasing but only until the player's last known position."
+This is the standard roguelike "search/investigate" state. Player can
+now use walls + light timing tactically to break a chase rather than
+just outrun it. Spotted_player extracted as a local so the same
+condition drives both the chase trigger and the chase-step routing.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 856-867 (_stop_chasing extended)
+**Before:**
+    self.is_chasing = False
+    self.game.audio.play_normal_music()
+**After:**
+    self.is_chasing = False
+    self.last_known_player_grid_pos = None
+    self.game.audio.play_normal_music()
+**Why:** Centralizes the last-known clear so every cancel path
+(repellent, invisibility, give-up after reaching last-known, monster
+loses interest) drops the memory automatically. Maintains the
+invariant "not chasing => no remembered tile" without sprinkling clear
+lines across resolve_turn.
+
+**File:** core/sprites.py
+**Lines (at time of edit):** ~792-822 (added Monster._chase_target_delta)
+**After:** New helper that returns either the live player pixel delta
+(when the monster currently sees the player) or the delta to the grid
+cell stored in last_known_player_grid_pos (when investigating). The
+None guard is defensive — by invariant the field is set whenever the
+caller invokes this from a chasing state, but the fallback keeps the
+monster moving instead of freezing if that invariant ever breaks.
+**Why:** Lets the existing `_choose_primary_chase_step` stay unchanged
+— it still picks one cardinal toward whatever delta you give it, so
+all the new behavior lives in this small target-selection helper.
+
+---
+
+## 2026-04-28 18:42 — Bugfix: chase music clobbered by non-chasing monsters (Claude Opus 4.7)
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 921-947 (Monster._stop_chasing)
+**Before:**
+    self.is_chasing = False
+    self.last_known_player_grid_pos = None
+    self.game.audio.play_normal_music()
+**After:**
+    self.is_chasing = False
+    self.last_known_player_grid_pos = None
+    any_other_monster_still_chasing = any(
+        other is not self and other.is_chasing
+        for other in self.game.monsters
+    )
+    if not any_other_monster_still_chasing:
+        self.game.audio.play_normal_music()
+**Why:** Owner reported the chase SFX firing but the chase music never
+playing after the Bresenham LOS change. Root cause was a pre-existing
+mismatch: is_chasing is per-monster, but play_chase_music /
+play_normal_music are global. Each player turn iterates every monster
+and calls resolve_turn on it. Before Bresenham, the orthogonal-only
+LOS made it rare for any monster to spot the player, so the bug never
+surfaced. Now that monsters spot the player at angles, monster A's
+spotted-branch starts chase music, then monster B's "I don't see
+them" branch immediately calls _stop_chasing → play_normal_music,
+flipping music back. Guarding the play_normal_music call on "no other
+monster is still chasing" leaves chase music playing as long as any
+single monster is in pursuit.
