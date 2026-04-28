@@ -151,14 +151,14 @@ def play_pause_transition(was_paused: bool) -> None:
             pause_sound.play()
 
 # Game objects
-player = Player(str(ASSET_DIR / 'graphics' / 'paddle.png'), SCREEN_WIDTH - 20, SCREEN_HEIGHT / 2, 5)
-opponent = Opponent(str(ASSET_DIR / 'graphics' / 'paddle.png'), 20, SCREEN_WIDTH / 2, 5)
+player = Player(str(ASSET_DIR / 'graphics' / 'white_paddle.png'), SCREEN_WIDTH - 20, SCREEN_HEIGHT / 2, 5)
+opponent = Opponent(str(ASSET_DIR / 'graphics' / 'white_paddle.png'), 20, SCREEN_WIDTH / 2, 5)
 paddle_group = pygame.sprite.Group()
 paddle_group.add(player)
 paddle_group.add(opponent)
 
 # TODO(refactor): Move font/screen dependencies out of Ball and into a UI/controller layer.
-ball = Ball(str(ASSET_DIR / 'graphics' / 'ball.png'), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 4, 4, paddle_group, audio, basic_font, screen)
+ball = Ball(str(ASSET_DIR / 'graphics' / 'white_ball.png'), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 4, 4, paddle_group, audio, basic_font, screen)
 ball_sprite = pygame.sprite.GroupSingle()
 ball_sprite.add(ball)
 
@@ -240,12 +240,12 @@ while True:
         game_manager.run_game()
 
     # Music
-    # TODO(bug): Restarting sound playback whenever the channel is idle can create audible seams.
-    if not audio.channel_0.get_busy():
-        audio.channel_0.play(audio.bg_music)
+    # # TODO(bug): Restarting sound playback whenever the channel is idle can create audible seams.
+    # if not audio.channel_0.get_busy():
+    #     audio.channel_0.play(audio.bg_music)
 
     # Rendering
-    if full_screen is False:
-        crt.draw()
+    # if full_screen is False:
+    crt.draw()
     pygame.display.flip()
     clock.tick(FRAMERATE)
