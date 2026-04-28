@@ -16,9 +16,9 @@ class LauncherSettings:
     """Core launcher text and metadata."""
 
     WINDOW_TITLE = "Mr. Navarro's Arcade"
-    MENU_MOVE_SOUND = Path("sound") / "sfx_menu_move2.wav"
+    MENU_MOVE_SOUND = Path("assets") / "sound" / "sfx_menu_move2.wav"
     MENU_SELECT_SOUND_CANDIDATES = (
-        Path("sound") / "sfx_menu_select3.wav",
+        Path("assets") / "sound" / "sfx_menu_select3.wav",
     )
 
 
@@ -36,7 +36,7 @@ class ColorSettings:
 class FontSettings:
     """Typography configuration for launcher text."""
 
-    FILE = Path("font") / "Pixeled.ttf"
+    FILE = Path("assets") / "font" / "Pixeled.ttf"
     TITLE_SIZE = 44
     SUBTITLE_SIZE = 14
     OPTION_SIZE = 16
@@ -107,16 +107,16 @@ class GameSettings:
     ]
 
     PREVIEW_IMAGES = {
-        "Star Hero": Path("previews") / "star_hero.png",
-        "Dungeon Digger": Path("previews") / "dungeon_digger.png",
-        "Snake": Path("previews") / "snake.png",
-        "Space Invaders": Path("previews") / "space_invaders.png",
-        "Pong": Path("previews") / "pong.png",
-        "Runner": Path("previews") / "runner.png",
-        "Air Hockey": Path("previews") / "air_hockey.png",
-        "Jezz Ball": Path("previews") / "jezz_ball.png",
-        "Ninja Frog": Path("previews") / "ninja_frog.png",
-        "Dungeon Warrior": Path("previews") / "dungeon_warrior.png",
+        "Star Hero": Path("assets") / "previews" / "star_hero.png",
+        "Dungeon Digger": Path("assets") / "previews" / "dungeon_digger.png",
+        "Snake": Path("assets") / "previews" / "snake.png",
+        "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
+        "Pong": Path("assets") / "previews" / "pong.png",
+        "Runner": Path("assets") / "previews" / "runner.png",
+        "Air Hockey": Path("assets") / "previews" / "air_hockey.png",
+        "Jezz Ball": Path("assets") / "previews" / "jezz_ball.png",
+        "Ninja Frog": Path("assets") / "previews" / "ninja_frog.png",
+        "Dungeon Warrior": Path("assets") / "previews" / "dungeon_warrior.png",
     }
 
     NO_CONTROLLER_SUPPORT_GAMES = {
