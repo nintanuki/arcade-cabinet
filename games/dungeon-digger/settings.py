@@ -427,7 +427,12 @@ class ItemSettings:
 class FontSettings:
     """Font files, sizes, and text-color mappings for UI rendering."""
 
-    FONT = 'font/Pixeled.ttf'
+    # Absolute path so pygame.font.Font(...) works no matter what the
+    # caller's working directory is. assets/ now owns every bundled media
+    # folder (font, graphics, music, sound).
+    FONT = os.path.join(
+        os.path.dirname(__file__), 'assets', 'font', 'Pixeled.ttf'
+    )
     MESSAGE_SIZE = 8
     SCORE_SIZE = 12
     HUD_SIZE = 10
@@ -454,9 +459,15 @@ class AudioSettings:
 class AssetPaths:
     """Resolved asset paths for sprites, audio, and music content."""
 
-    # Images
+    # All bundled media now lives under a single assets/ folder
+    # (assets/font, assets/graphics, assets/music, assets/sound) so the
+    # project root only carries code + docs + saves. BASE_DIR still resolves
+    # to the project root because settings.py itself stays at the root.
     BASE_DIR = os.path.dirname(__file__)
-    GRAPHICS_DIR = os.path.join(BASE_DIR, 'graphics')
+    ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
+
+    # Images
+    GRAPHICS_DIR = os.path.join(ASSETS_DIR, 'graphics')
     MONSTER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'monsters')
     PLAYER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'player')
     NPC_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'npcs')
@@ -482,7 +493,7 @@ class AssetPaths:
     TV = os.path.join(GRAPHICS_DIR, 'tv.png')
 
     # Audio
-    SOUND_DIR = os.path.join(BASE_DIR, 'sound')
+    SOUND_DIR = os.path.join(ASSETS_DIR, 'sound')
     MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_movement_footstepsloop4_slow.ogg')
     DIG_SOUND = os.path.join(SOUND_DIR, 'dig_sound_effect.ogg')
     BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'wall_bump_sound_effect.ogg')
@@ -502,7 +513,7 @@ class AssetPaths:
     MENU_SELECT_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_select3.ogg')
 
     # Music
-    MUSIC_DIR = os.path.join(BASE_DIR, 'music')
+    MUSIC_DIR = os.path.join(ASSETS_DIR, 'music')
     NORMAL_MUSIC_TRACKS = [
         os.path.join(MUSIC_DIR, 'Goblins_Den_(Regular).ogg'),
     ]

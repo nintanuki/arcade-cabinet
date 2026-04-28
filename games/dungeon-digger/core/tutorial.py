@@ -35,7 +35,7 @@ from settings import (
     GameSettings,
     TutorialSettings,
 )
-from render_utils import color_with_alpha
+from ui.render_utils import color_with_alpha
 
 
 # Internal dispatch markers for which queue a card belongs to. Kept as

@@ -5,11 +5,11 @@ place. GameManager keeps only the call sites — load on boot, on
 start_gameplay_from_title, and after a successful door unlock.
 """
 
-import coords
-from dungeon_config import get_monster_count_for_dungeon
-from minimap_memory import MinimapMemory
-from render import RenderManager
-from sprites import Door, Monster, NPC, Player
+from util import coords
+from core.dungeon_config import get_monster_count_for_dungeon
+from ui.minimap_memory import MinimapMemory
+from ui.render import RenderManager
+from core.sprites import Door, Monster, NPC, Player
 
 
 class LevelLoader:

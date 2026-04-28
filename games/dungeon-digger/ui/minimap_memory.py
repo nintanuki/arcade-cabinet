@@ -1,5 +1,5 @@
 from settings import UISettings
-import coords
+from util import coords
 
 class MinimapMemory:
     """Track and expose the player's remembered minimap terrain and entities."""

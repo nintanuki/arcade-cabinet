@@ -15,7 +15,7 @@ version is included on every file so future schema changes can be detected.
 import json
 import os
 
-from settings import GameSettings
+from settings import AssetPaths, GameSettings
 
 
 class SaveManager:
@@ -26,7 +26,7 @@ class SaveManager:
     """
 
     # The whitelist for player names is everything the pixel font in
-    # font/Pixeled.ttf displays cleanly. Letters and digits are allowed in
+    # assets/font/Pixeled.ttf displays cleanly. Letters and digits are allowed in
     # any order, plus a literal space so multi-word names are possible.
     ALLOWED_NAME_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ")
 
@@ -48,7 +48,10 @@ class SaveManager:
         Returns:
             Filesystem path for the saves directory.
         """
-        return os.path.join(os.path.dirname(__file__), GameSettings.SAVES_DIR)
+        # Anchor on the project root (AssetPaths.BASE_DIR) rather than this
+        # file's directory; otherwise saves would land in systems/saves/
+        # after this module moved into the systems/ package.
+        return os.path.join(AssetPaths.BASE_DIR, GameSettings.SAVES_DIR)
 
     def get_slot_path(self, slot_id: int) -> str:
         """Return the absolute path for one slot's save file.

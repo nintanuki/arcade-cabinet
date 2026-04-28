@@ -1,15 +1,17 @@
 """Standalone dungeon map viewer for quick layout inspection.
 
 This tool is intentionally separate from game runtime code.
-Run this file directly to browse all dungeons.
+Run from the project root with `python -m tools.map_viewer` so the
+core/ package is importable; running the file directly will fail
+because the script directory becomes tools/ instead of the repo root.
 """
 
 import sys
 
 import pygame
 
-from dungeon_config import DUNGEON_DIFFICULTY, DUNGEON_MONSTER_COUNTS
-from tilemaps import DUNGEONS
+from core.dungeon_config import DUNGEON_DIFFICULTY, DUNGEON_MONSTER_COUNTS
+from core.tilemaps import DUNGEONS
 
 
 WINDOW_WIDTH = 1080

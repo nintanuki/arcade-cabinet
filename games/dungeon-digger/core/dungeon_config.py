@@ -3,7 +3,7 @@
 Keeps difficulty buckets, level routing, and monster count rules outside tilemaps.py.
 """
 
-from tilemaps import DUNGEONS
+from core.tilemaps import DUNGEONS
 
 
 class DungeonConfig:

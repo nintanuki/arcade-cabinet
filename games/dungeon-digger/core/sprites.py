@@ -3,9 +3,9 @@ import random
 import os
 from typing import Literal
 from settings import *
-from render_utils import color_with_alpha
-import coords
-import loot
+from ui.render_utils import color_with_alpha
+from util import coords
+from core import loot
 
 PlayerAction = Literal['move', 'dig', 'detector', 'light', 'repellent', 'cloak']
 PlayerIntent = tuple[int, int, PlayerAction | None]

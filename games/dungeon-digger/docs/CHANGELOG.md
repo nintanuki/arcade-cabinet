@@ -544,3 +544,218 @@ auto-save confirmation reads in green (TEXT_WIN), making it visually
 distinct from neutral status lines. Trailing period is left in the
 default message color thanks to the existing word-boundary check in
 _has_word_boundaries.
+
+---
+
+## 2026-04-28 17:50 — Reorganize project into packages; bundle assets/ and docs/ (Claude Opus 4.7)
+
+**File:** assets/font/, assets/graphics/, assets/music/, assets/sound/
+**Lines (at time of edit):** (relocated)
+**Before:** Each media folder lived directly at the project root
+(`font/`, `graphics/`, `music/`, `sound/`).
+**After:** All four moved under a single `assets/` umbrella so the
+project root only carries code, docs, saves, README, and `.gitignore`.
+**Why:** Owner request: tidy the root by collecting bundled media into
+one folder. Internal subfolders (graphics/monsters, graphics/npcs,
+graphics/player) were preserved.
+
+**File:** docs/CHANGELOG.md, docs/TESTING.md, docs/TODO.md
+**Lines (at time of edit):** (relocated)
+**Before:** CHANGELOG.md, TESTING.md, TODO.md lived at the project root.
+**After:** Moved under `docs/`. README.md stays at the root so GitHub
+still renders it on the main repo page.
+**Why:** Owner request: separate ancillary documentation from the README
+without breaking GitHub's front-page README rendering.
+
+**File:** core/__init__.py, ui/__init__.py, systems/__init__.py,
+util/__init__.py, tools/__init__.py
+**Lines (at time of edit):** (new files)
+**Before:** (files did not exist)
+**After:** Empty package marker files.
+**Why:** Required so `from core.dungeon import ...`, `from ui.windows
+import ...`, etc. resolve.
+
+**File:** core/dungeon.py, core/dungeon_config.py, core/level_loader.py,
+core/loot.py, core/sprites.py, core/tilemaps.py, core/tutorial.py
+**Lines (at time of edit):** (relocated; imports updated)
+**Before:** Each lived at the project root with bare imports
+(`from tilemaps import DUNGEONS`, `import coords`, `import loot`,
+`from sprites import ...`, etc.).
+**After:** Moved into `core/`. Cross-package imports rewritten:
+`from core.tilemaps import DUNGEONS`,
+`from core.dungeon_config import get_monster_count_for_dungeon`,
+`from core.sprites import Door, Monster, NPC, Player`,
+`from core import loot`,
+`from util import coords`,
+`from ui.minimap_memory import MinimapMemory`,
+`from ui.render import RenderManager`,
+`from ui.render_utils import color_with_alpha`.
+**Why:** World/gameplay modules grouped together. `tutorial.py` lives in
+core because it owns gameplay event hooks (notify, on_turn_end) even
+though it also draws an overlay. Bare-name `coords` and `loot` imports
+became package-qualified but still bind the same local name (`from util
+import coords` → call sites `coords.tile_to_screen(...)` keep working).
+
+**File:** ui/render.py, ui/render_utils.py, ui/crt.py, ui/windows.py,
+ui/minimap_memory.py
+**Lines (at time of edit):** (relocated; imports updated)
+**Before:** Each lived at the project root with bare imports
+(`import coords`, `from render_utils import ...`).
+**After:** Moved into `ui/`. Cross-package imports rewritten to
+`from util import coords` and (within ui/render.py) `from ui.render_utils
+import color_with_alpha`.
+**Why:** Anything that owns drawing or window state is now under one
+package.
+
+**File:** systems/audio.py, systems/managers.py, systems/save_manager.py
+**Lines (at time of edit):** (relocated)
+**Before:** audio.py, managers.py, save_manager.py at the project root.
+**After:** Moved into `systems/`. None of the three had cross-module
+imports beyond settings, so no further import edits were needed (other
+than save_manager.py picking up AssetPaths — see next entry).
+**Why:** Cross-cutting services that aren't gameplay or rendering live
+together.
+
+**File:** util/coords.py
+**Lines (at time of edit):** (relocated)
+**Before:** coords.py at the project root.
+**After:** Moved into `util/`. No internal edits.
+**Why:** Pure coordinate helper — neither core nor UI specifically. Lives
+in its own small util/ package so callers from any layer import it
+without a layering smell.
+
+**File:** tools/map_viewer.py
+**Lines (at time of edit):** 1-12 (docstring + imports updated)
+**Before:**
+    """Standalone dungeon map viewer for quick layout inspection.
+
+    This tool is intentionally separate from game runtime code.
+    Run this file directly to browse all dungeons.
+    """
+    ...
+    from dungeon_config import DUNGEON_DIFFICULTY, DUNGEON_MONSTER_COUNTS
+    from tilemaps import DUNGEONS
+**After:**
+    """Standalone dungeon map viewer for quick layout inspection.
+
+    This tool is intentionally separate from game runtime code.
+    Run from the project root with `python -m tools.map_viewer` so the
+    core/ package is importable; running the file directly will fail
+    because the script directory becomes tools/ instead of the repo root.
+    """
+    ...
+    from core.dungeon_config import DUNGEON_DIFFICULTY, DUNGEON_MONSTER_COUNTS
+    from core.tilemaps import DUNGEONS
+**Why:** Moved into `tools/` to separate dev utilities from the runtime
+package. Docstring documents the new run command because invoking the
+file directly stops working once the package import is required.
+
+**File:** main.py
+**Lines (at time of edit):** 4-15 (modified), 965 (modified)
+**Before:**
+    from settings import *
+    from audio import AudioManager
+    from windows import MessageLog, InventoryWindow, MapWindow
+    from dungeon import DungeonLevel
+    from dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER
+    from crt import CRT
+    from managers import ScoreLeaderboardManager, IntermissionFlow
+    from save_manager import SaveManager
+    from tutorial import TutorialManager
+    import coords
+    import loot
+    from level_loader import LevelLoader
+    ...
+    if __name__ == '__main__':
+**After:**
+    from settings import *
+    from systems.audio import AudioManager
+    from ui.windows import MessageLog, InventoryWindow, MapWindow
+    from core.dungeon import DungeonLevel
+    from core.dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER
+    from ui.crt import CRT
+    from systems.managers import ScoreLeaderboardManager, IntermissionFlow
+    from systems.save_manager import SaveManager
+    from core.tutorial import TutorialManager
+    from util import coords
+    from core import loot
+    from core.level_loader import LevelLoader
+    ...
+    if __name__ == "__main__":
+**Why:** Updates the entry point's imports for the new package layout.
+The `if __name__` quote-style swap was a touch-edit to force the bash
+sandbox mount to refresh its stale view of the file during verification;
+behavior is identical.
+
+**File:** settings.py
+**Lines (at time of edit):** 427-436 (FontSettings.FONT), 454-473
+(AssetPaths preamble), 496 (SOUND_DIR), 516 (MUSIC_DIR)
+**Before:**
+    FONT = 'font/Pixeled.ttf'
+    ...
+    BASE_DIR = os.path.dirname(__file__)
+    GRAPHICS_DIR = os.path.join(BASE_DIR, 'graphics')
+    ...
+    SOUND_DIR = os.path.join(BASE_DIR, 'sound')
+    ...
+    MUSIC_DIR = os.path.join(BASE_DIR, 'music')
+**After:**
+    FONT = os.path.join(
+        os.path.dirname(__file__), 'assets', 'font', 'Pixeled.ttf'
+    )
+    ...
+    BASE_DIR = os.path.dirname(__file__)
+    ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
+    GRAPHICS_DIR = os.path.join(ASSETS_DIR, 'graphics')
+    ...
+    SOUND_DIR = os.path.join(ASSETS_DIR, 'sound')
+    ...
+    MUSIC_DIR = os.path.join(ASSETS_DIR, 'music')
+**Why:** Repoints every bundled-media path under the new `assets/`
+folder. The `FontSettings.FONT` value also becomes an absolute path so
+`pygame.font.Font(...)` no longer depends on the caller's working
+directory.
+
+**File:** systems/save_manager.py
+**Lines (at time of edit):** 18 (modified), 29-30 (comment updated),
+45-54 (get_saves_dir reworked)
+**Before:**
+    from settings import GameSettings
+    ...
+    # The whitelist for player names is everything the pixel font in
+    # font/Pixeled.ttf displays cleanly.
+    ...
+    def get_saves_dir(self) -> str:
+        ...
+        return os.path.join(os.path.dirname(__file__), GameSettings.SAVES_DIR)
+**After:**
+    from settings import AssetPaths, GameSettings
+    ...
+    # The whitelist for player names is everything the pixel font in
+    # assets/font/Pixeled.ttf displays cleanly.
+    ...
+    def get_saves_dir(self) -> str:
+        ...
+        # Anchor on the project root (AssetPaths.BASE_DIR) rather than
+        # this file's directory; otherwise saves would land in
+        # systems/saves/ after this module moved into the systems/
+        # package.
+        return os.path.join(AssetPaths.BASE_DIR, GameSettings.SAVES_DIR)
+**Why:** save_manager moved into systems/, so `os.path.dirname(__file__)`
+no longer points at the project root. Anchoring on `AssetPaths.BASE_DIR`
+keeps `saves/` at the repo root where it has always lived. Comment
+update follows the renamed font path.
+
+**File:** README.md
+**Lines (at time of edit):** ~156-200 (Running the Game extended; new
+Documentation and Project Layout sections appended)
+**After:** Adds a "Map Viewer (Dev Tool)" subsection describing
+`python -m tools.map_viewer` and warning that running the file directly
+no longer works. Adds a "Documentation" section linking
+`docs/CHANGELOG.md`, `docs/TESTING.md`, and `docs/TODO.md`. Adds a
+"Project Layout" section that documents the new top-level folder split.
+**Why:** README needs to describe the new run command for the moved
+map viewer, and the moved CHANGELOG/TESTING/TODO docs are no longer
+findable from the repo root unless something in the README points at
+them. README.md itself stays at the repo root so GitHub still renders
+it on the main project page.

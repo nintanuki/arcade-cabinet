@@ -1,6 +1,6 @@
 import random
 from settings import UISettings, ItemSettings, MonsterSettings, NPCSettings, DebugSettings
-from tilemaps import DUNGEONS
+from core.tilemaps import DUNGEONS
 
 class DungeonLevel:
     """The currently-loaded dungeon level: layout grid, mutable tile state, and map-rule queries.

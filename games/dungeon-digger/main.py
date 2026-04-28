@@ -2,17 +2,17 @@ import pygame
 import sys
 
 from settings import *
-from audio import AudioManager
-from windows import MessageLog, InventoryWindow, MapWindow
-from dungeon import DungeonLevel
-from dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER
-from crt import CRT
-from managers import ScoreLeaderboardManager, IntermissionFlow
-from save_manager import SaveManager
-from tutorial import TutorialManager
-import coords
-import loot
-from level_loader import LevelLoader
+from systems.audio import AudioManager
+from ui.windows import MessageLog, InventoryWindow, MapWindow
+from core.dungeon import DungeonLevel
+from core.dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER
+from ui.crt import CRT
+from systems.managers import ScoreLeaderboardManager, IntermissionFlow
+from systems.save_manager import SaveManager
+from core.tutorial import TutorialManager
+from util import coords
+from core import loot
+from core.level_loader import LevelLoader
 
 class GameManager:
     """Coordinate game state, flow, rendering phases, and input orchestration."""
@@ -962,6 +962,6 @@ class GameManager:
             pygame.display.flip()
             self.clock.tick(ScreenSettings.FPS)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     game_manager = GameManager()
     game_manager.run()

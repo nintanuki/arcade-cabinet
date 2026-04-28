@@ -162,3 +162,43 @@ python main.py
 ```
 
 If your environment uses a different Python command, use that equivalent.
+
+### Map Viewer (Dev Tool)
+
+A standalone dungeon map browser lives at `tools/map_viewer.py`. Because it
+imports from the `core/` package, run it from the project root as a module so
+Python resolves the package path correctly:
+
+```bash
+python -m tools.map_viewer
+```
+
+Running `python tools/map_viewer.py` directly will fail to import `core` and
+is not supported.
+
+## Documentation
+
+Project docs live under `docs/`:
+
+- [Changelog](docs/CHANGELOG.md) — append-only record of every code change.
+- [Testing checklist & refactoring rules](docs/TESTING.md) — what to verify
+  after a change and the conventions every edit must follow.
+- [TODO](docs/TODO.md) — prioritized backlog of refactors, bugs, balance, and
+  ideas.
+
+## Project Layout
+
+```
+dungeon-digger/
+├── main.py              entry point
+├── settings.py          tunables and resolved asset paths
+├── README.md
+├── assets/              font/ graphics/ music/ sound/
+├── docs/                CHANGELOG.md, TESTING.md, TODO.md
+├── saves/               runtime-generated JSON save slots
+├── core/                world & gameplay (dungeon, sprites, loot, tutorial, …)
+├── ui/                  rendering, windows, CRT, minimap
+├── systems/             audio, score/intermission managers, save manager
+├── util/                shared helpers (coords)
+└── tools/               dev/debug scripts (map_viewer)
+```
