@@ -70,7 +70,7 @@ class MenuSettings:
     NO_CONTROLLER_SUPPORT_CENTER_Y = 585
     AIR_HOCKEY_WARNING_TEXT = "STILL TUNING THE PHYSICS, EXPECT QUIRKS"
     AIR_HOCKEY_WARNING_CENTER_Y = 605
-
+    UNDER_CONSTRUCTION_TEXT = "UNDER CONSTRUCTION"
 
 class ControlSettings:
     """Input mappings for keyboard and controller navigation."""
@@ -102,6 +102,8 @@ class GameSettings:
         ("Runner", Path("games") / "runner" / "main.py"),
         ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
         ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
+        ("Ninja Frog", Path("games") / "ninja-frog" / "main.py"),
+        ("Dungeon Warrior", Path("games") / "dungeon-warrior" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
@@ -113,9 +115,16 @@ class GameSettings:
         "Runner": Path("previews") / "runner.png",
         "Air Hockey": Path("previews") / "air_hockey.png",
         "Jezz Ball": Path("previews") / "jezz_ball.png",
+        "Ninja Frog": Path("previews") / "ninja_frog.png",
+        "Dungeon Warrior": Path("previews") / "dungeon_warrior.png",
     }
 
     NO_CONTROLLER_SUPPORT_GAMES = {
         "Jezz Ball",
         "Air Hockey",
+    }
+
+    UNDER_CONSTRUCTION_GAMES = {
+        "Ninja Frog",
+        "Dungeon Warrior",
     }

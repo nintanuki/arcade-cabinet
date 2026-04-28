@@ -161,7 +161,7 @@ class GameManager:
                 scaled = pygame.transform.scale(cam_surface, (self.camera.screen_width, self.camera.screen_height))
                 self.screen.blit(scaled, (0, 0))
 
-            self.crt.draw() # might not be the best look for this game
+            # self.crt.draw() # might not be the best look for this game
 
             pygame.display.flip()
             self.clock.tick(60)

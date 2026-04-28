@@ -223,6 +223,15 @@ class ArcadeLauncher:
 			fallback_rect = fallback_surface.get_rect(center=inner_rect.center)
 			self.screen.blit(fallback_surface, fallback_rect)
 
+		if selected_label in GameSettings.UNDER_CONSTRUCTION_GAMES:
+			construction_surface = self.option_font.render(
+				MenuSettings.UNDER_CONSTRUCTION_TEXT,
+				False,
+				ColorSettings.RED,
+			)
+			construction_rect = construction_surface.get_rect(center=preview_rect.center)
+			self.screen.blit(construction_surface, construction_rect)
+
 	def show_loading_screen(self, duration_ms: int = 2200) -> None:
 		"""Show a temporary loading screen before launching a selected game."""
 		start_time = pygame.time.get_ticks()
@@ -322,7 +331,10 @@ class ArcadeLauncher:
 				ColorSettings.RED,
 			)
 			no_controller_rect = no_controller_surface.get_rect(
-				center=(ScreenSettings.WIDTH // 2, MenuSettings.NO_CONTROLLER_SUPPORT_CENTER_Y)
+				center=(
+					MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2),
+					MenuSettings.NO_CONTROLLER_SUPPORT_CENTER_Y,
+				)
 			)
 			self.screen.blit(no_controller_surface, no_controller_rect)
 
@@ -333,7 +345,10 @@ class ArcadeLauncher:
 				ColorSettings.RED,
 			)
 			air_hockey_warning_rect = air_hockey_warning_surface.get_rect(
-				center=(ScreenSettings.WIDTH // 2, MenuSettings.AIR_HOCKEY_WARNING_CENTER_Y)
+				center=(
+					MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2),
+					MenuSettings.AIR_HOCKEY_WARNING_CENTER_Y,
+				)
 			)
 			self.screen.blit(air_hockey_warning_surface, air_hockey_warning_rect)
 
