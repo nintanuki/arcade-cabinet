@@ -94,7 +94,7 @@ class ControlSettings:
 class CRTSettings:
     """CRT overlay effect tuning for the launcher screen."""
 
-    OVERLAY_IMAGE = Path("games") / "dungeon-digger" / "graphics" / "tv.png"
+    OVERLAY_IMAGE = Path("assets") / "graphics" / "tv.png"
     SCANLINE_HEIGHT = 3
     ALPHA_RANGE = (75, 90)
 
@@ -103,29 +103,29 @@ class GameSettings:
     """Game option metadata shown in the launcher menu."""
 
     OPTIONS = [
-        ("Star Hero", Path("games") / "star-hero" / "main.py"),
-        ("Dungeon Digger", Path("games") / "dungeon-digger" / "main.py"),
-        ("Snake", Path("games") / "snake" / "snake.py"),
-        ("Space Invaders", Path("games") / "space-invaders" / "main.py"),
-        ("Pong", Path("games") / "pong" / "main.py"),
-        ("Runner", Path("games") / "runner" / "main.py"),
         ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
+        ("Dungeon Digger", Path("games") / "dungeon-digger" / "main.py"),
+        ("Dungeon Warrior", Path("games") / "dungeon-warrior" / "main.py"),
         ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
         ("Ninja Frog", Path("games") / "ninja-frog" / "main.py"),
-        ("Dungeon Warrior", Path("games") / "dungeon-warrior" / "main.py"),
+        ("Pong", Path("games") / "pong" / "main.py"),
+        ("Runner", Path("games") / "runner" / "main.py"),
+        ("Snake", Path("games") / "snake" / "snake.py"),
+        ("Space Invaders", Path("games") / "space-invaders" / "main.py"),
+        ("Star Hero", Path("games") / "star-hero" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
-        "Star Hero": Path("assets") / "previews" / "star_hero.png",
-        "Dungeon Digger": Path("assets") / "previews" / "dungeon_digger.png",
-        "Snake": Path("assets") / "previews" / "snake.png",
-        "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
-        "Pong": Path("assets") / "previews" / "pong.png",
-        "Runner": Path("assets") / "previews" / "runner.png",
         "Air Hockey": Path("assets") / "previews" / "air_hockey.png",
+        "Dungeon Digger": Path("assets") / "previews" / "dungeon_digger.png",
+        "Dungeon Warrior": Path("assets") / "previews" / "dungeon_warrior.png",
         "Jezz Ball": Path("assets") / "previews" / "jezz_ball.png",
         "Ninja Frog": Path("assets") / "previews" / "ninja_frog.png",
-        "Dungeon Warrior": Path("assets") / "previews" / "dungeon_warrior.png",
+        "Pong": Path("assets") / "previews" / "pong.png",
+        "Runner": Path("assets") / "previews" / "runner.png",
+        "Snake": Path("assets") / "previews" / "snake.png",
+        "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
+        "Star Hero": Path("assets") / "previews" / "star_hero.png",
     }
 
     NO_CONTROLLER_SUPPORT_GAMES = {
