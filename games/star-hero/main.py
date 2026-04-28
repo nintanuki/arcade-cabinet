@@ -792,7 +792,7 @@ class GameManager:
                     continue
 
                 # Controller input
-                if event.type == pygame.JOYHATMOTION:
+                if event.type == pygame.JOYHATMOTION and not self.scores.entering_initials:
                     # event.value is (x, y). y=1 is Up, y=-1 is Down
                     if event.value[1] == 1: 
                         self.adjust_master_volume(0.1, show_overlay=True)

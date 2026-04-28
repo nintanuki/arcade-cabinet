@@ -1,6 +1,5 @@
 ### Issues That Need to be Fixed
-* Volume goes up and down when player enters initials!
-* Confusion beam sound still plays when game is paused
+* Confusion beam sound still plays when game is paused (removed the sound for now)
 * Player can hold button down for laser, disable this so they have to press the buttone very time
 * Logic for leaderboard scores and initials uses a lot of code and functions. Put into it's own class?
 * Player ship sprite can still move and shoot lasers briefly after death?
@@ -58,4 +57,4 @@
 * Try [pygame.mixer.music](https://www.pygame.org/docs/ref/music.html) instead of the sound class for music, gives more control like queue music.
 * The dark blue for HYPER in the status is too dark to read, change to CYAN or flashing colors like rainbow beam. Consider doing the same for auto, fast flashing. Change sound effect for hyper to something that sounds very powerful (x wing or tie fighter laser sounds?)
 * Are red aliens not dropping bombs because it's tied to the heart logic where they don't drop powerups if player is at full health???
-* Rainbow beam is not as wide anymore????
+* Rainbow beam is not as wide anymore???? UPDATE: I figured it out, when the player gets the third green alien upgrade (hyper) the laser is moving faster so there is less time for it to get wide. Does that mean if I slow the laser down when they get the rainbow beam it will be even wider? UPDATE 2: YES! This is actually really trippy... maybe I should add this. Also gave me the idea for a "power-down" (bad powerup? like confusion) that slows the player's laser
