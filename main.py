@@ -83,7 +83,9 @@ class ArcadeLauncher:
 		self.vertical_axis_engaged = False
 		self.status_message = ""
 		self.status_message_until = 0
-		self.menu_option_hitboxes: list[pygame.Rect] = []
+		self.menu_option_hitboxes: list[pygame.Rect] = [
+			pygame.Rect(0, 0, 0, 0) for _ in self.options
+		]
 
 	def show_status_message(self, message: str, duration_ms: int = 3500) -> None:
 		"""Display a temporary status/error message at the bottom of the screen."""
@@ -285,6 +287,55 @@ class ArcadeLauncher:
 				self.initialize_runtime()
 				self.vertical_axis_engaged = False
 
+	def draw_carousel_menu(self) -> None:
+		"""Draw a simple vertical carousel centered on the selected game."""
+		# Clear stale hitboxes so only currently visible carousel items react to the mouse.
+		for index in range(len(self.menu_option_hitboxes)):
+			self.menu_option_hitboxes[index] = pygame.Rect(0, 0, 0, 0)
+
+		for offset in range(-MenuSettings.CAROUSEL_VISIBLE_RADIUS, MenuSettings.CAROUSEL_VISIBLE_RADIUS + 1):
+			option_index = (self.selected_index + offset) % len(self.options)
+			label, _ = self.options[option_index]
+			distance = abs(offset)
+			is_selected = offset == 0
+
+			color = ColorSettings.YELLOW if is_selected else ColorSettings.WHITE
+			text_surface = self.option_font.render(label.upper(), False, color).convert_alpha()
+
+			scale = max(
+				MenuSettings.CAROUSEL_MIN_SCALE,
+				MenuSettings.CAROUSEL_SELECTED_SCALE - (distance * MenuSettings.CAROUSEL_SCALE_STEP),
+			)
+			if scale != 1.0:
+				text_surface = pygame.transform.smoothscale(
+					text_surface,
+					(
+						max(1, int(text_surface.get_width() * scale)),
+						max(1, int(text_surface.get_height() * scale)),
+					),
+				)
+
+			alpha = max(
+				MenuSettings.CAROUSEL_MIN_ALPHA,
+				MenuSettings.CAROUSEL_SELECTED_ALPHA - (distance * MenuSettings.CAROUSEL_ALPHA_STEP),
+			)
+			text_surface.set_alpha(alpha)
+
+			item_center = (
+				MenuSettings.CAROUSEL_CENTER_X,
+				MenuSettings.CAROUSEL_CENTER_Y + (offset * MenuSettings.CAROUSEL_ITEM_SPACING),
+			)
+			text_rect = text_surface.get_rect(center=item_center)
+			self.screen.blit(text_surface, text_rect)
+			self.menu_option_hitboxes[option_index] = text_rect.inflate(36, 16)
+
+			# if is_selected:
+			# 	cursor_surface = self.option_font.render(MenuSettings.CURSOR_SYMBOL, False, ColorSettings.YELLOW)
+			# 	cursor_rect = cursor_surface.get_rect(
+			# 		midright=(text_rect.left - MenuSettings.CURSOR_GAP, text_rect.centery)
+			# 	)
+			# 	self.screen.blit(cursor_surface, cursor_rect)
+
 	def draw(self) -> None:
 		"""Render the launcher title, subtitle, game options, and CRT overlay."""
 		self.screen.fill(ColorSettings.BLACK)
@@ -303,23 +354,7 @@ class ArcadeLauncher:
 		)
 		self.screen.blit(subtitle_surface, subtitle_rect)
 
-		for index, (label, _) in enumerate(self.options):
-			if len(self.menu_option_hitboxes) <= index:
-				self.menu_option_hitboxes.append(pygame.Rect(0, 0, 0, 0))
-			option_y = MenuSettings.OPTIONS_START_Y + index * MenuSettings.OPTION_SPACING
-			is_selected = index == self.selected_index
-			color = ColorSettings.YELLOW if is_selected else ColorSettings.WHITE
-			text_surface = self.option_font.render(label.upper(), False, color)
-			text_rect = text_surface.get_rect(midleft=(MenuSettings.OPTIONS_LEFT_X, option_y))
-			self.screen.blit(text_surface, text_rect)
-			self.menu_option_hitboxes[index] = text_rect.inflate(36, 16)
-
-			if is_selected:
-				cursor_surface = self.option_font.render(MenuSettings.CURSOR_SYMBOL, False, ColorSettings.YELLOW)
-				cursor_rect = cursor_surface.get_rect(
-					midright=(text_rect.left - MenuSettings.CURSOR_GAP, text_rect.centery)
-				)
-				self.screen.blit(cursor_surface, cursor_rect)
+		self.draw_carousel_menu()
 
 		self.draw_preview_panel()
 
