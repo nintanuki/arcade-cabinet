@@ -365,7 +365,7 @@ class ItemSettings:
         'MONSTER REPELLENT': 500,
         'KEY DETECTOR': 2000,
         'MAP': 5000,
-        'INVISIBILITY CLOAK': 10000,
+        'INVISIBILITY CLOAK': 25000,
     }
 
     # Only the invisibility cloak is limited stock (one per shop visit, and
@@ -384,9 +384,9 @@ class ItemSettings:
     # The higher the number, the more common it is.
     SPAWN_CHANCE = {
         # Consumables
-        'MATCH': 0.25,
+        'MATCH': 0.20,
         'TORCH': 0.10,
-        'LANTERN': 0.02,
+        'LANTERN': 0.05,
         'MONSTER REPELLENT': 0.10,
         'INVISIBILITY SCROLL': 0.01,
         
@@ -407,10 +407,8 @@ class ItemSettings:
         'RUBY': (1, 7),
         'SAPPHIRE': (1, 5),
         'EMERALD': (1, 3),
-        'MATCH': (1, 3),
-        'TORCH': (1, 2),
-        # 'MONSTER REPELLENT': (1, 2)
         # Items not listed here default to quantity 1.
+        # Note: add BOOK OF MATCHES (20) for a rare 5% drop
     }
 
     NORMAL_INITIAL_INVENTORY = {
