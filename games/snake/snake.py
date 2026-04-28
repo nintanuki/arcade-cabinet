@@ -370,6 +370,28 @@ pause_sound = load_optional_sound(PAUSE_SOUND_PATH)
 unpause_sound = load_optional_sound(UNPAUSE_SOUND_PATH)
 
 
+def start_background_music():
+	"""Loop the Red Sands track during gameplay.
+
+	Snake has no separate menu, so this is called once at startup and the
+	music plays for the lifetime of the process. Failure to load is treated
+	as missing audio so the game still runs without it.
+	"""
+	music_path = ASSET_DIR / 'Sound' / 'Red Sands.wav'
+	if not music_path.exists():
+		return
+	try:
+		pygame.mixer.music.load(str(music_path))
+		pygame.mixer.music.set_volume(0.4)
+		pygame.mixer.music.play(-1)
+	except pygame.error:
+		# Mixer can refuse a track on stripped-down installs; just continue.
+		return
+
+
+start_background_music()
+
+
 def play_optional_sound(sound):
 	"""Play a sound when one is available; do nothing otherwise."""
 	if sound is not None:

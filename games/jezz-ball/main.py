@@ -812,6 +812,9 @@ class GameManager:
         self.qualifies_for_leaderboard = False
         self.load_level(0)
         self.game_state = GameState.PLAYING
+        # Music plays only during gameplay — kick it off here so the title
+        # screen stays silent.
+        self.audio.restart_music()
 
     def _cycle_input_mode(self, direction: int) -> None:
         """Move title-screen input mode selection by one slot."""

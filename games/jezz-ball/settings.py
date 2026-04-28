@@ -121,7 +121,7 @@ class AudioSettings:
 
 	MUSIC_PATH = Path("music") / "pong_bg_music.ogg"
 	MUSIC_HALF_VOLUME_TOGGLE = True
-	MUSIC_BASE_VOLUME = 0.0
+	MUSIC_BASE_VOLUME = 0.6
 	SFX_WALL_START = Path("sound") / "pong.ogg"
 	SFX_WALL_COMPLETE = Path("sound") / "pong.ogg"
 	SFX_BALL_HIT_CURSOR = Path("sound") / "explosion.wav"
