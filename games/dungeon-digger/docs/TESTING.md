@@ -24,6 +24,6 @@ Run this after major changes to ensure nothing broke:
 * Keep functions organized and grouped by role. The update and run functions in classes should be the last function, and do as little as possible. Only call other functions if possible.
 * Do not change variable names if not necessary.
 * Function names and variable names must be descriptive.
-* Do not remove comments.
+* Do not remove comments unless they are no longer relevant.
 * Comments must explain why, not just what.
 * When making a change, do not leave a comment that a change was made, unless it was to fix a bug that wasn't obvious and to explain why something was done in an unconventional way.
