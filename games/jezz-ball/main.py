@@ -704,9 +704,13 @@ class GameManager:
         """Toggle fullscreen mode for the current display surface."""
         pygame.display.toggle_fullscreen()
 
-    def _lose_life(self) -> None:
-        """Reduce the life counter and mark the game over state when it reaches zero."""
-        self.building_wall = None
+    def _decrement_life(self) -> None:
+        """Burn a life, play the hit sound, and trigger game over on zero.
+
+        Split out from ``_lose_life`` so partial-wall hits can pay the same
+        life cost without also tearing down the in-progress wall — only the
+        impacted side dies in that case.
+        """
         self.lives_left -= 1
         self.audio.play("ball_hit_cursor")
         if self.lives_left <= 0:
@@ -714,6 +718,11 @@ class GameManager:
             self.game_state = GameState.GAME_OVER
             self.qualifies_for_leaderboard = self._qualifies_for_leaderboard(self.score)
             self.audio.stop_music()
+
+    def _lose_life(self) -> None:
+        """Catastrophic hit: scrap the in-progress wall and lose a life."""
+        self.building_wall = None
+        self._decrement_life()
 
     def _complete_wall(self) -> None:
         """Commit the finished wall, claim enclosed regions, and evaluate level completion."""
@@ -1103,8 +1112,29 @@ class GameManager:
 
         if self.building_wall is not None:
             self.building_wall.update(dt, PLAYFIELD, self.solid_rects)
-            if any(self.building_wall.collides_with_ball(ball) for ball in self.balls):
+
+            # Gather every side that any ball is touching this frame so we can
+            # decide between a partial kill and a full wipe in one pass.
+            sides_hit: set[str] = set()
+            for ball in self.balls:
+                side = self.building_wall.detect_hit_side(ball)
+                if side is not None:
+                    sides_hit.add(side)
+
+            center_hit = "center" in sides_hit or sides_hit >= {"negative", "positive"}
+            if center_hit:
+                # Ball clipped the spawn point (or both halves got hit at once)
+                # — entire wall is lost, classic Jezz Ball penalty.
                 self._lose_life()
+            elif sides_hit:
+                # Side hit: that color dies, the other half keeps growing and
+                # eventually commits as a permanent black wall.
+                self.building_wall.kill_side(next(iter(sides_hit)))
+                self._decrement_life()
+                if self.game_over:
+                    self.building_wall = None
+                elif self.building_wall.complete:
+                    self._complete_wall()
             elif self.building_wall.complete:
                 self._complete_wall()
 

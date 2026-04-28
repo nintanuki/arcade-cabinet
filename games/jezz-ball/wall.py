@@ -20,7 +20,13 @@ class Orientation(Enum):
 
 @dataclass
 class BuildingWall:
-	"""Wall that grows outward in both directions until it hits a boundary."""
+	"""Wall that grows outward in both directions until it hits a boundary.
+
+	Each direction is tracked independently so a ball collision can take out
+	just one side. A "dead" side stops growing, vanishes from rendering, and
+	contributes nothing to the committed wall — letting the surviving side
+	finish on its own and become a permanent black wall.
+	"""
 
 	origin: pygame.Vector2
 	orientation: Orientation
@@ -28,11 +34,23 @@ class BuildingWall:
 	positive_length: float = 0.0
 	negative_done: bool = False
 	positive_done: bool = False
+	negative_dead: bool = False
+	positive_dead: bool = False
 
 	@property
 	def complete(self) -> bool:
-		"""Return ``True`` when both directions have finished growing."""
+		"""Return ``True`` when both directions have finished growing.
+
+		A side is considered finished if it reached a natural stopper or was
+		killed by a ball. Either way, ``complete`` triggers the commit step in
+		the main game loop.
+		"""
 		return self.negative_done and self.positive_done
+
+	@property
+	def fully_dead(self) -> bool:
+		"""Return ``True`` when both sides were destroyed (a center hit)."""
+		return self.negative_dead and self.positive_dead
 
 	def update(self, dt: float, bounds: pygame.Rect, solid_rects: list[pygame.Rect]) -> None:
 		"""Grow the wall toward both ends until each side reaches a stopper."""
@@ -47,6 +65,25 @@ class BuildingWall:
 			self.positive_length += growth
 			if self._reached_stop(1, bounds, solid_rects):
 				self.positive_done = True
+
+	def kill_side(self, side: str) -> None:
+		"""Destroy one side of the wall so the other can complete on its own.
+
+		The killed side is set to zero length and marked done so ``update``
+		stops growing it and ``get_segments`` returns a degenerate rect that
+		is filtered out by drawing and grid-marking helpers.
+
+		Args:
+			side: ``"negative"`` or ``"positive"``.
+		"""
+		if side == "negative":
+			self.negative_dead = True
+			self.negative_done = True
+			self.negative_length = 0.0
+		elif side == "positive":
+			self.positive_dead = True
+			self.positive_done = True
+			self.positive_length = 0.0
 
 	def _reached_stop(self, direction: int, bounds: pygame.Rect, solid_rects: list[pygame.Rect]) -> bool:
 		"""Return whether the current wall tip has hit a boundary or solid area."""
@@ -107,6 +144,42 @@ class BuildingWall:
 	def collides_with_ball(self, ball: Ball) -> bool:
 		"""Return whether any in-progress segment intersects the given ball."""
 		return any(segment.colliderect(ball.rect) for segment in self.get_segments())
+
+	def detect_hit_side(self, ball: Ball) -> str | None:
+		"""Return which side of the wall the ball touched.
+
+		Returns one of ``"negative"``, ``"positive"``, ``"center"`` (when the
+		ball straddles both segments at the spawn point), or ``None`` when no
+		hit is registered. Already-dead sides cannot register a hit.
+
+		Args:
+			ball: Ball whose bounding rect is tested against each segment.
+		"""
+		segments = self.get_segments()
+		if len(segments) < 2:
+			return None
+
+		negative_segment, positive_segment = segments[0], segments[1]
+		negative_hit = (
+			not self.negative_dead
+			and negative_segment.width > 0
+			and negative_segment.height > 0
+			and negative_segment.colliderect(ball.rect)
+		)
+		positive_hit = (
+			not self.positive_dead
+			and positive_segment.width > 0
+			and positive_segment.height > 0
+			and positive_segment.colliderect(ball.rect)
+		)
+
+		if negative_hit and positive_hit:
+			return "center"
+		if negative_hit:
+			return "negative"
+		if positive_hit:
+			return "positive"
+		return None
 
 	def draw(self, surface: pygame.Surface) -> None:
 		"""Render the currently growing wall segments."""
