@@ -48,13 +48,74 @@ defaults. Every field is optional -- skip the ones you don't need.
 |-------|--------------|---------|
 | `label` | Menu name shown in the carousel. | Folder name, title-cased. |
 | `attribution` | Blue text under the preview panel. Use `CREATED BY <YOUR NAME>` so Mr. Navarro knows who made it. | `CREATED BY UNKNOWN STUDENT` |
-| `preview` | Path to a PNG/JPG screenshot, **relative to your game folder**. The launcher scales it into the preview panel. | No preview. |
+| `preview` | Filename of a screenshot **relative to your game folder** (see "Preview screenshots" below). | No preview, panel reads "PREVIEW NOT AVAILABLE". |
 | `no_controller_support` | Show the red "NO CONTROLLER SUPPORT" warning under the preview. | `false` |
 | `limited_controller_support` | Show the red "LIMITED CONTROLLER SUPPORT" warning. Mutually exclusive with the above. | `false` |
 | `wonky_physics` | Show the red "EXPECT WONKY PHYSICS" warning. | `false` |
 | `under_construction` | Stamp "UNDER CONSTRUCTION" across the preview. | `false` |
 
 For a working example with a manifest, see [`blue-circle/`](blue-circle/).
+
+## Preview screenshots
+
+The right side of the launcher menu has a panel that shows a screenshot of
+the highlighted game. To give your game one:
+
+1. Take a screenshot of your game while it's running (any pygame-friendly
+   format works -- PNG is recommended).
+2. Save it inside your game folder. The simplest convention is
+   `preview.png` next to your `main.py`.
+3. Point at it from `game.json`:
+   ```json
+   {
+       "label": "My Game",
+       "attribution": "CREATED BY YOUR NAME",
+       "preview": "preview.png"
+   }
+   ```
+
+The path is **relative to your game folder**, so `preview.png` resolves
+to `games/student/<your-folder>/preview.png`. You can put the file in a
+subfolder (e.g. `"preview": "graphics/preview.png"`) if you prefer.
+
+The preview panel is 320 x 240 with 12 px of padding on each side, so an
+image that is roughly 4:3 looks best. Other aspect ratios still work --
+the launcher scales the image proportionally and centers it, so the
+extra space just shows as black bars.
+
+If the manifest points at a missing file, the launcher silently shows
+"PREVIEW NOT AVAILABLE" instead of crashing, so a typo never bricks the
+menu.
+
+## File paths inside your game
+
+When the launcher runs your game, it sets your game folder as the
+current working directory. That means inside your `main.py` you can read
+files using simple relative paths:
+
+```python
+sprite = pygame.image.load("graphics/snake.png")
+sound = pygame.mixer.Sound("sounds/eat.wav")
+```
+
+You **don't** need any special "find my own folder" code as long as you
+launch through the cabinet. Put your assets in subfolders like
+`graphics/`, `sounds/`, or `assets/` and reference them with the same
+short paths you'd use inside the folder.
+
+The one exception: if you want to run your game outside the launcher
+(say, by double-clicking `main.py`), the working directory may not be
+your game folder. In that case, anchoring paths to your script avoids
+surprises:
+
+```python
+from pathlib import Path
+
+GAME_DIR = Path(__file__).resolve().parent
+sprite = pygame.image.load(GAME_DIR / "graphics" / "snake.png")
+```
+
+But for the cabinet workflow, the simple relative paths are fine.
 
 ## What the launcher does at startup
 
@@ -89,9 +150,6 @@ too.
 * Make sure ESC (or a pygame `QUIT` event) cleanly closes your window.
   The launcher waits for your subprocess to exit before redrawing the
   menu.
-* Keep file paths relative to your `main.py` (use
-  `Path(__file__).resolve().parent` as the base). Don't hard-code
-  absolute paths -- they'll break on the cabinet.
-* If you want to ship your game to GitHub eventually, ask Mr. Navarro to
-  promote it into `games/sponsor/` and add an entry to
-  `settings.GameSettings.OPTIONS`.
+* Don't hard-code absolute paths like `C:\Users\me\Desktop\sprite.png`.
+  They will only work on your laptop. Use relative paths inside your
+  game folder (see "File paths inside your game" above).

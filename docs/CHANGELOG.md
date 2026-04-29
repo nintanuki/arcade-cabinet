@@ -1,3 +1,37 @@
+## 2026-04-29 — Clarify student README on relative paths and preview images (Claude Opus 4.7)
+
+**File:** games/student/README.md
+**Lines (at time of edit):** 47 (modified), 56-95 (new sections), 122-129 (modified)
+**Before:**
+    | `preview` | Path to a PNG/JPG screenshot, **relative to your game folder**. ...
+    ...
+    * Keep file paths relative to your `main.py` (use
+      `Path(__file__).resolve().parent` as the base). Don't hard-code
+      absolute paths -- they'll break on the cabinet.
+**After:**
+    | `preview` | Filename of a screenshot **relative to your game folder**
+    (see "Preview screenshots" below). ...
+
+    ## Preview screenshots
+    [walkthrough of saving a PNG, pointing at it from game.json,
+    panel size 320x240, missing-file fallback]
+
+    ## File paths inside your game
+    [explanation that the launcher sets cwd to the game folder, so
+    `pygame.image.load("graphics/foo.png")` works without
+    Path(__file__) gymnastics; advanced anchor-to-script tip is now
+    optional and clearly framed as the "outside the launcher" case]
+
+    * Don't hard-code absolute paths like `C:\Users\me\Desktop\sprite.png`.
+      They will only work on your laptop. ...
+**Why:** The first cut of the README told students to use
+`Path(__file__).resolve().parent` as if it were required. It isn't --
+the launcher runs each game with `cwd=game_dir` so plain relative paths
+work. The new sections explain the cwd behavior, walk through how the
+preview screenshot feature actually flows from game.json to the
+preview panel, and reframe the script-anchored pattern as an optional
+fallback for running games outside the launcher.
+
 ## 2026-04-29 — Split games into sponsor/student folders with auto-discovery (Claude Opus 4.7)
 
 **File:** games/sponsor/ (rename from games/)
