@@ -423,20 +423,30 @@ class ArcadeLauncher:
 		"""Render the launcher title, subtitle, game options, and CRT overlay."""
 		self.screen.fill(ColorSettings.BLACK)
 
-		# Draw the JIL logo in the top left corner if loaded, else draw a debug rectangle
-		if self.jil_logo_surface is not None:
-			self.screen.blit(self.jil_logo_surface, LauncherSettings.JIL_LOGO_POS)
-		else:
-			x, y = LauncherSettings.JIL_LOGO_POS
-			w, h = LauncherSettings.JIL_LOGO_SIZE
-			pygame.draw.rect(self.screen, (255, 0, 0), (x, y, w, h), 4)
-			# Optionally, draw text to indicate missing logo
-			font = pygame.font.SysFont(None, 24)
-			text_surface = font.render("NO LOGO", True, (255, 0, 0))
-			self.screen.blit(text_surface, (x + 4, y + h // 2 - 12))
-
+		# Calculate combined width of Logo + Spacing + Title
+		logo_w = LauncherSettings.JIL_LOGO_SIZE[0]
+		spacing = 20  # Adjust this to change the gap between logo and text
+		
 		title_surface = self.title_font.render(MenuSettings.TITLE_TEXT, False, ColorSettings.LIGHT_PURPLE)
-		title_rect = title_surface.get_rect(center=(ScreenSettings.WIDTH // 2, MenuSettings.TITLE_CENTER_Y))
+		title_w = title_surface.get_width()
+		
+		total_width = logo_w + spacing + title_w
+		
+		# Calculate the starting X so the group is centered
+		# Uses ScreenSettings.WIDTH from settings.py[cite: 2]
+		start_x = (ScreenSettings.WIDTH - total_width) // 2
+		
+		# Draw the Logo
+		# Uses MenuSettings.TITLE_CENTER_Y to stay aligned with the text[cite: 2]
+		logo_y = MenuSettings.TITLE_CENTER_Y - (LauncherSettings.JIL_LOGO_SIZE[1] // 2)
+		if self.jil_logo_surface is not None:
+			self.screen.blit(self.jil_logo_surface, (start_x, logo_y))
+		else:
+			# Fallback debug rect if logo missing[cite: 1]
+			pygame.draw.rect(self.screen, (255, 0, 0), (start_x, logo_y, *LauncherSettings.JIL_LOGO_SIZE), 2)
+
+		# Draw the Title
+		title_rect = title_surface.get_rect(midleft=(start_x + logo_w + spacing, MenuSettings.TITLE_CENTER_Y))
 		self.screen.blit(title_surface, title_rect)
 
 		subtitle_surface = self.subtitle_font.render(
@@ -448,9 +458,7 @@ class ArcadeLauncher:
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.SUBTITLE_CENTER_Y)
 		)
 		self.screen.blit(subtitle_surface, subtitle_rect)
-
 		self.draw_carousel_menu()
-
 		self.draw_preview_panel()
 
 		selected_label, _ = self.options[self.selected_index]
@@ -479,7 +487,6 @@ class ArcadeLauncher:
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.FOOTER_LINE_2_CENTER_Y)
 		)
 		self.screen.blit(hint_line_2_surface, hint_line_2_rect)
-
 		self.crt.draw()
 		pygame.display.flip()
 
