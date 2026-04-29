@@ -74,7 +74,18 @@ class ArcadeLauncher:
 		self.menu_move_sfx: pygame.mixer.Sound | None = None
 		self.menu_select_sfx: pygame.mixer.Sound | None = None
 
+		# Prepare logo path, but load after display is initialized
+		self.jil_logo_path = self.root_dir / "assets" / "graphics" / "graphics" / "jil_logo.webp"
+		self.jil_logo_surface = None
+
 		self.initialize_runtime()
+		# Now load the JIL logo image at native size (display is initialized)
+		try:
+			self.jil_logo_surface = pygame.image.load(str(self.jil_logo_path)).convert_alpha()
+			print(f"[DEBUG] Loaded JIL logo: {self.jil_logo_path} size={self.jil_logo_surface.get_size()}")
+		except (FileNotFoundError, pygame.error) as e:
+			print(f"[DEBUG] Failed to load JIL logo: {self.jil_logo_path} error={e}")
+			self.jil_logo_surface = None
 		self.load_menu_audio()
 
 		self.options = [(label, self.root_dir / relative_path) for label, relative_path in GameSettings.OPTIONS]
@@ -409,6 +420,16 @@ class ArcadeLauncher:
 	def draw(self) -> None:
 		"""Render the launcher title, subtitle, game options, and CRT overlay."""
 		self.screen.fill(ColorSettings.BLACK)
+
+		# Draw the JIL logo in the top left corner if loaded, else draw a debug rectangle
+		if self.jil_logo_surface is not None:
+			self.screen.blit(self.jil_logo_surface, (20, 20))
+		else:
+			pygame.draw.rect(self.screen, (255, 0, 0), (20, 20, 100, 100), 4)
+			# Optionally, draw text to indicate missing logo
+			font = pygame.font.SysFont(None, 24)
+			text_surface = font.render("NO LOGO", True, (255, 0, 0))
+			self.screen.blit(text_surface, (24, 60))
 
 		title_surface = self.title_font.render(MenuSettings.TITLE_TEXT, False, ColorSettings.LIGHT_PURPLE)
 		title_rect = title_surface.get_rect(center=(ScreenSettings.WIDTH // 2, MenuSettings.TITLE_CENTER_Y))
