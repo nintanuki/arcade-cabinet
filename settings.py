@@ -21,7 +21,7 @@ class LauncherSettings:
     MENU_SELECT_SOUND_CANDIDATES = (
         Path("assets") / "sound" / "sfx_menu_select3.wav",
     )
-    JIL_LOGO_PATH = Path("assets") / "graphics" / "graphics" / "jil_logo.webp"
+    JIL_LOGO_PATH = Path("assets") / "graphics" / "jil_logo.webp"
     JIL_LOGO_POS = (50, 110)
     JIL_LOGO_SIZE = (59, 69)
 
@@ -128,7 +128,7 @@ class GameSettings:
         ("Snake", Path("games") / "sponsor" / "snake" / "snake.py"),
         ("Space Invaders", Path("games") / "sponsor" / "space-invaders" / "main.py"),
         ("Star Hero", Path("games") / "sponsor" / "star-hero" / "main.py"),
-        ("Tetrominos", Path("games") / "sponsor" / "Tetrominos" / "main.py"),
+        ("Tetrominos", Path("games") / "sponsor" / "tetrominos" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
@@ -144,7 +144,7 @@ class GameSettings:
         "Snake": Path("assets") / "previews" / "snake.png",
         "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
         "Star Hero": Path("assets") / "previews" / "star_hero.png",
-        "Tetrominos": Path("assets") / "previews" / "Tetrominos.png",
+        "Tetrominos": Path("assets") / "previews" / "tetrominos.png",
     }
 
     LIMITED_CONTROLLER_SUPPORT_GAMES = {

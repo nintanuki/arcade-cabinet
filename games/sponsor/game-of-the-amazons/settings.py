@@ -14,6 +14,11 @@ class ScreenSettings:
     QUEEN_COLOR = (0, 0, 255)
     ARROW_COLOR = (0, 0, 0)
 
+class ColorSettings:
+    """Class to hold all the color constants used by overlays and UI."""
+    OVERLAY_BACKGROUND = (0, 0, 0)
+    SCREEN_BACKGROUND = (0, 0, 0)
+
 class InputSettings:
     """Controller button and axis mappings used by gameplay and menus.
 
