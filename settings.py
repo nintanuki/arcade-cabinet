@@ -86,6 +86,7 @@ class MenuSettings:
     # limited, mutually exclusive) always take slot 1. Wonky-physics promotes
     # into slot 1 when no controller warning applies, otherwise it sits in
     # slot 2 directly beneath the controller line.
+    ATTRIBUTION_LINE_CENTER_Y = 565
     WARNING_LINE_1_CENTER_Y = 585
     WARNING_LINE_2_CENTER_Y = 605
     UNDER_CONSTRUCTION_TEXT = "UNDER CONSTRUCTION"
@@ -124,7 +125,7 @@ class GameSettings:
         ("Snake", Path("games") / "snake" / "snake.py"),
         ("Space Invaders", Path("games") / "space-invaders" / "main.py"),
         ("Star Hero", Path("games") / "star-hero" / "main.py"),
-        ("Tetris", Path("games") / "tetris" / "main.py"),
+        ("Tetrominos", Path("games") / "Tetrominos" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
@@ -140,7 +141,7 @@ class GameSettings:
         "Snake": Path("assets") / "previews" / "snake.png",
         "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
         "Star Hero": Path("assets") / "previews" / "star_hero.png",
-        "Tetris": Path("assets") / "previews" / "tetris.png",
+        "Tetrominos": Path("assets") / "previews" / "Tetrominos.png",
     }
 
     LIMITED_CONTROLLER_SUPPORT_GAMES = {
@@ -159,4 +160,20 @@ class GameSettings:
         "Dungeon Warrior",
         "Game of the Amazons",
         "Ninja Frog",
+    }
+
+    GAME_ATTRIBUTIONS = {
+        "Air Hockey": "TRIBUTE BY MR. NAVARRO",
+        "Breakout": "MADE WITH CLEAR CODE TUTORIAL",
+        "Dungeon Digger": "ORIGINAL BY MR. NAVARRO",
+        "Dungeon Warrior": "ORIGINAL BY MR. NAVARRO",
+        "Game of the Amazons": "TRIBUTE BY MR. NAVARRO",
+        "Jezz Ball": "TRIBUTE BY MR. NAVARRO",
+        "Ninja Frog": "ORIGINAL BY MR. NAVARRO",
+        "Pong": "MADE WITH CLEAR CODE TUTORIAL",
+        "Runner": "MADE WITH CLEAR CODE TUTORIAL",
+        "Snake": "MADE WITH CLEAR CODE TUTORIAL",
+        "Space Invaders": "MADE WITH CLEAR CODE TUTORIAL",
+        "Star Hero": "ORIGINAL BY MR. NAVARRO",
+        "Tetrominos": "MADE WITH CLEAR CODE TUTORIAL",
     }

@@ -4,6 +4,7 @@ import random
 import subprocess
 import sys
 from pathlib import Path
+import warnings
 
 import pygame
 
@@ -311,12 +312,24 @@ class ArcadeLauncher:
 		Args:
 			selected_label (str): Label of the highlighted game option.
 		"""
-		slot_y_positions = (
-			MenuSettings.WARNING_LINE_1_CENTER_Y,
-			MenuSettings.WARNING_LINE_2_CENTER_Y,
-		)
-		warnings = self.collect_warning_lines(selected_label)
 		preview_center_x = MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2)
+
+        # 1. Always Draw Attribution (Line 1 in Blue)
+		attribution_text = GameSettings.GAME_ATTRIBUTIONS.get(selected_label, "BY UNKNOWN")
+		attr_surface = self.hint_font.render(attribution_text, False, ColorSettings.LIGHT_BLUE)
+		attr_rect = attr_surface.get_rect(
+            center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
+        )
+		self.screen.blit(attr_surface, attr_rect)
+
+        # 2. Draw Warnings (Line 2 and 3 in Red)[cite: 1]
+		slot_y_positions = (
+            MenuSettings.WARNING_LINE_1_CENTER_Y,
+            MenuSettings.WARNING_LINE_2_CENTER_Y,
+        )
+        
+		warnings = self.collect_warning_lines(selected_label) #[cite: 1]
+        
 		for slot_index, warning_text in enumerate(warnings):
 			warning_surface = self.hint_font.render(warning_text, False, ColorSettings.RED)
 			warning_rect = warning_surface.get_rect(
@@ -452,7 +465,7 @@ class ArcadeLauncher:
 		subtitle_surface = self.subtitle_font.render(
 			MenuSettings.SUBTITLE_TEXT,
 			False,
-			ColorSettings.LIGHT_BLUE,
+			ColorSettings.WHITE,
 		)
 		subtitle_rect = subtitle_surface.get_rect(
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.SUBTITLE_CENTER_Y)
@@ -467,7 +480,7 @@ class ArcadeLauncher:
 		hint_line_1_surface = self.hint_font.render(
 			MenuSettings.FOOTER_TEXT_LINE_1,
 			False,
-			ColorSettings.LIGHT_BLUE,
+			ColorSettings.WHITE,
 		)
 		hint_line_1_rect = hint_line_1_surface.get_rect(
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.FOOTER_LINE_1_CENTER_Y)
@@ -481,7 +494,7 @@ class ArcadeLauncher:
 		hint_line_2_surface = self.hint_font.render(
 			footer_line_2_text,
 			False,
-			ColorSettings.LIGHT_BLUE,
+			ColorSettings.WHITE,
 		)
 		hint_line_2_rect = hint_line_2_surface.get_rect(
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.FOOTER_LINE_2_CENTER_Y)
