@@ -1,6 +1,7 @@
 from __future__ import annotations
 import sys
 import pygame
+from ui.crt import CRT
 from settings import *
 
 class GameManager:
@@ -14,6 +15,7 @@ class GameManager:
         self.clock = pygame.time.Clock()
 
         self.setup_controllers()
+        self.crt = CRT(self.screen)
 
     # -------------------------
     # BOOT / SETUP
@@ -111,7 +113,7 @@ class GameManager:
         # self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
 
         # Apply CRT pass after world/UI rendering.
-        # self.crt.draw()
+        self.crt.draw()
 
     def run(self):
         """Run the main game loop until the player quits."""

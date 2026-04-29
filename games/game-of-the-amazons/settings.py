@@ -37,3 +37,7 @@ class InputSettings:
     JOY_AXIS_L2 = 4
     JOY_AXIS_R2 = 5
     JOY_TRIGGER_THRESHOLD = 0.5
+
+class AssetPaths:
+    """File paths for game assets."""
+    TV = "assets/graphics/tv.png"
