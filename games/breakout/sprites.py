@@ -36,13 +36,16 @@ class Projectile(pygame.sprite.Sprite):
 			self.kill()
 
 class Player(pygame.sprite.Sprite):
-	def __init__(self,groups,surfacemaker):
+	def __init__(self,groups,surfacemaker,joysticks=None):
 		super().__init__(groups)
 
 		# setup
 		self.display_surface = pygame.display.get_surface()
 		self.surfacemaker = surfacemaker
 		self.image = surfacemaker.get_surf('player',(WINDOW_WIDTH // 10,WINDOW_HEIGHT // 20))
+		# Cached reference to the live joystick list owned by the Game so the
+		# paddle reads the most up-to-date controllers across hot-plug events.
+		self.joysticks = joysticks if joysticks is not None else []
 
 		# position
 		self.rect = self.image.get_rect(midbottom = (WINDOW_WIDTH // 2,WINDOW_HEIGHT - 20))
@@ -58,7 +61,31 @@ class Player(pygame.sprite.Sprite):
 		self.laser_surf = pygame.image.load('graphics/other/laser.png').convert_alpha()
 		self.laser_rects = []
 
+	def controller_axis(self):
+		"""Return left-stick horizontal deflection past the deadzone.
+
+		Returns:
+			float: Signed deflection in [-1, 1], or 0.0 when no stick is engaged.
+		"""
+		for joystick in self.joysticks:
+			try:
+				axis_value = joystick.get_axis(LEFT_STICK_X_AXIS)
+			except pygame.error:
+				# A device disconnect can race with the polling call.
+				continue
+			if abs(axis_value) >= CONTROLLER_DEADZONE:
+				return axis_value
+		return 0.0
+
 	def input(self):
+		# Controller stick takes priority over keyboard so a connected pad
+		# does not get overridden by the always-zero pygame.key.get_pressed
+		# state when no key is held.
+		axis_deflection = self.controller_axis()
+		if axis_deflection != 0.0:
+			self.direction.x = axis_deflection
+			return
+
 		keys = pygame.key.get_pressed()
 		if keys[pygame.K_RIGHT]:
 			self.direction.x = 1

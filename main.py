@@ -226,13 +226,90 @@ class ArcadeLauncher:
 			self.screen.blit(fallback_surface, fallback_rect)
 
 		if selected_label in GameSettings.UNDER_CONSTRUCTION_GAMES:
-			construction_surface = self.option_font.render(
+			# White outline so the red label stays legible over busy
+			# preview screenshots — straight red text disappears against
+			# warm-toned panels (e.g. the dungeon previews).
+			self.draw_outlined_text(
 				MenuSettings.UNDER_CONSTRUCTION_TEXT,
-				False,
+				self.option_font,
 				ColorSettings.RED,
+				ColorSettings.WHITE,
+				preview_rect.center,
 			)
-			construction_rect = construction_surface.get_rect(center=preview_rect.center)
-			self.screen.blit(construction_surface, construction_rect)
+
+	def draw_outlined_text(
+		self,
+		text: str,
+		font: pygame.font.Font,
+		fg_color: tuple[int, int, int],
+		outline_color: tuple[int, int, int],
+		center: tuple[int, int],
+	) -> None:
+		"""Render text with a 1-pixel outline by stamping the outline color around the foreground.
+
+		Args:
+			text (str): String to render.
+			font (pygame.font.Font): Font used for both passes; rendering twice keeps
+				outline and foreground perfectly aligned.
+			fg_color (tuple[int, int, int]): Inner text color.
+			outline_color (tuple[int, int, int]): Outline color stamped at the eight
+				surrounding pixel offsets.
+			center (tuple[int, int]): Screen-space center for the rendered text.
+		"""
+		fg_surface = font.render(text, False, fg_color)
+		outline_surface = font.render(text, False, outline_color)
+		fg_rect = fg_surface.get_rect(center=center)
+		# All eight neighbors so the outline traces the full glyph silhouette,
+		# not just the cardinal sides.
+		outline_offsets = (
+			(-1, -1), (0, -1), (1, -1),
+			(-1, 0),           (1, 0),
+			(-1, 1),  (0, 1),  (1, 1),
+		)
+		for offset_x, offset_y in outline_offsets:
+			self.screen.blit(outline_surface, fg_rect.move(offset_x, offset_y))
+		self.screen.blit(fg_surface, fg_rect)
+
+	def collect_warning_lines(self, selected_label: str) -> list[str]:
+		"""Return red-text warnings for the selected game in render order.
+
+		Controller warnings (no / limited) are mutually exclusive and always
+		take the upper slot. The wonky-physics warning sits below if both
+		apply, and promotes into the upper slot when it is the only warning.
+
+		Args:
+			selected_label (str): Label of the highlighted game option.
+
+		Returns:
+			list[str]: Up to two strings, ordered from upper to lower slot.
+		"""
+		warnings: list[str] = []
+		if selected_label in GameSettings.NO_CONTROLLER_SUPPORT_GAMES:
+			warnings.append(MenuSettings.NO_CONTROLLER_SUPPORT_TEXT)
+		elif selected_label in GameSettings.LIMITED_CONTROLLER_SUPPORT_GAMES:
+			warnings.append(MenuSettings.LIMITED_CONTROLLER_SUPPORT_TEXT)
+		if selected_label in GameSettings.WONKY_PHYSICS_GAMES:
+			warnings.append(MenuSettings.WONKY_PHYSICS_TEXT)
+		return warnings
+
+	def draw_preview_warnings(self, selected_label: str) -> None:
+		"""Render warning lines under the preview panel for the selected game.
+
+		Args:
+			selected_label (str): Label of the highlighted game option.
+		"""
+		slot_y_positions = (
+			MenuSettings.WARNING_LINE_1_CENTER_Y,
+			MenuSettings.WARNING_LINE_2_CENTER_Y,
+		)
+		warnings = self.collect_warning_lines(selected_label)
+		preview_center_x = MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2)
+		for slot_index, warning_text in enumerate(warnings):
+			warning_surface = self.hint_font.render(warning_text, False, ColorSettings.RED)
+			warning_rect = warning_surface.get_rect(
+				center=(preview_center_x, slot_y_positions[slot_index])
+			)
+			self.screen.blit(warning_surface, warning_rect)
 
 	def show_loading_screen(self, duration_ms: int = 2200) -> None:
 		"""Show a temporary loading screen before launching a selected game."""
@@ -329,13 +406,6 @@ class ArcadeLauncher:
 			self.screen.blit(text_surface, text_rect)
 			self.menu_option_hitboxes[option_index] = text_rect.inflate(36, 16)
 
-			# if is_selected:
-			# 	cursor_surface = self.option_font.render(MenuSettings.CURSOR_SYMBOL, False, ColorSettings.YELLOW)
-			# 	cursor_rect = cursor_surface.get_rect(
-			# 		midright=(text_rect.left - MenuSettings.CURSOR_GAP, text_rect.centery)
-			# 	)
-			# 	self.screen.blit(cursor_surface, cursor_rect)
-
 	def draw(self) -> None:
 		"""Render the launcher title, subtitle, game options, and CRT overlay."""
 		self.screen.fill(ColorSettings.BLACK)
@@ -359,33 +429,7 @@ class ArcadeLauncher:
 		self.draw_preview_panel()
 
 		selected_label, _ = self.options[self.selected_index]
-		if selected_label in GameSettings.NO_CONTROLLER_SUPPORT_GAMES:
-			no_controller_surface = self.hint_font.render(
-				MenuSettings.NO_CONTROLLER_SUPPORT_TEXT,
-				False,
-				ColorSettings.RED,
-			)
-			no_controller_rect = no_controller_surface.get_rect(
-				center=(
-					MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2),
-					MenuSettings.NO_CONTROLLER_SUPPORT_CENTER_Y,
-				)
-			)
-			self.screen.blit(no_controller_surface, no_controller_rect)
-
-		if selected_label == "Air Hockey":
-			air_hockey_warning_surface = self.hint_font.render(
-				MenuSettings.AIR_HOCKEY_WARNING_TEXT,
-				False,
-				ColorSettings.RED,
-			)
-			air_hockey_warning_rect = air_hockey_warning_surface.get_rect(
-				center=(
-					MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2),
-					MenuSettings.AIR_HOCKEY_WARNING_CENTER_Y,
-				)
-			)
-			self.screen.blit(air_hockey_warning_surface, air_hockey_warning_rect)
+		self.draw_preview_warnings(selected_label)
 
 		hint_line_1_surface = self.hint_font.render(
 			MenuSettings.FOOTER_TEXT_LINE_1,

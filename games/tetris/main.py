@@ -19,6 +19,15 @@ from preview import Preview
 
 from random import choice
 
+# Controller button mapping shared with the rest of the arcade so the same
+# physical buttons keep the same meaning across every game.
+SELECT_BUTTON = 6
+START_BUTTON = 7
+L1_BUTTON = 4
+R1_BUTTON = 5
+QUIT_COMBO_BUTTONS = (START_BUTTON, SELECT_BUTTON, L1_BUTTON, R1_BUTTON)
+
+
 class Main:
 	def __init__(self):
 
@@ -28,15 +37,17 @@ class Main:
 		# window/screen, so toggling fullscreen still fills the display.
 		self.display_surface = pygame.display.set_mode(
 			(WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SCALED)
-		self.fullscreen = False
 		self.clock = pygame.time.Clock()
 		pygame.display.set_caption('Tetris')
+
+		self.setup_controllers()
 
 		# shapes
 		self.next_shapes = [choice(list(TETROMINOS.keys())) for shape in range(3)]
 
-		# components
-		self.game = Game(self.get_next_shape, self.update_score)
+		# components — Game reads the live joystick list every frame so
+		# D-pad input survives controller hot-plug.
+		self.game = Game(self.get_next_shape, self.update_score, self.connected_joysticks)
 		self.score = Score()
 		self.preview = Preview()
 
@@ -44,6 +55,38 @@ class Main:
 		self.music = pygame.mixer.Sound(join(BASE_PATH, 'sound', 'music.wav'))
 		self.music.set_volume(0.05)
 		self.music.play(-1)
+
+	def setup_controllers(self):
+		"""Cache currently-connected controllers so quit-combo polling is cheap.
+
+		Returns:
+			None.
+		"""
+		pygame.joystick.init()
+		self.connected_joysticks = [
+			pygame.joystick.Joystick(index)
+			for index in range(pygame.joystick.get_count())
+		]
+
+	def quit_combo_pressed(self):
+		"""Return True when L1 + R1 + START + SELECT are held on any controller.
+
+		Returns:
+			bool: True when the four buttons are held simultaneously on any pad.
+		"""
+		for joystick in self.connected_joysticks:
+			try:
+				if all(joystick.get_button(button) for button in QUIT_COMBO_BUTTONS):
+					return True
+			except pygame.error:
+				# A device disconnect can race with the polling call.
+				continue
+		return False
+
+	def close_game(self):
+		"""Shut down pygame and exit so the launcher reopens cleanly."""
+		pygame.quit()
+		exit()
 
 	def update_score(self, lines, score, level):
 		self.score.lines = lines
@@ -55,22 +98,25 @@ class Main:
 		self.next_shapes.append(choice(list(TETROMINOS.keys())))
 		return next_shape
 
-	def toggle_fullscreen(self):
-		pygame.display.toggle_fullscreen()
-		self.fullscreen = not self.fullscreen
-
 	def run(self):
 		while True:
+			if self.quit_combo_pressed():
+				self.close_game()
+
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
-					pygame.quit()
-					exit()
+					self.close_game()
 				if event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_F11:
-						self.toggle_fullscreen()
-					# Allow Escape to exit fullscreen
-					elif event.key == pygame.K_ESCAPE and self.fullscreen:
-						self.toggle_fullscreen()
+						pygame.display.toggle_fullscreen()
+					# ESC always exits the game and returns to the launcher,
+					# matching the L1+R1+START+SELECT controller combo.
+					elif event.key == pygame.K_ESCAPE:
+						self.close_game()
+				if event.type == pygame.JOYBUTTONDOWN:
+					# SELECT mirrors F11 so the controller has a fullscreen toggle.
+					if event.button == SELECT_BUTTON:
+						pygame.display.toggle_fullscreen()
 
 			# display
 			self.display_surface.fill(GRAY)

@@ -76,9 +76,14 @@ class MenuSettings:
     FOOTER_LINE_1_CENTER_Y = 670
     FOOTER_LINE_2_CENTER_Y = 695
     NO_CONTROLLER_SUPPORT_TEXT = "NO CONTROLLER SUPPORT (KEYBOARD/MOUSE ONLY)"
-    NO_CONTROLLER_SUPPORT_CENTER_Y = 585
-    AIR_HOCKEY_WARNING_TEXT = "STILL TUNING THE PHYSICS, EXPECT QUIRKS"
-    AIR_HOCKEY_WARNING_CENTER_Y = 605
+    LIMITED_CONTROLLER_SUPPORT_TEXT = "LIMITED CONTROLLER SUPPORT"
+    WONKY_PHYSICS_TEXT = "EXPECT WONKY PHYSICS, STILL WORKING ON IT"
+    # Two stacked warning slots under the preview. Controller warnings (no /
+    # limited, mutually exclusive) always take slot 1. Wonky-physics promotes
+    # into slot 1 when no controller warning applies, otherwise it sits in
+    # slot 2 directly beneath the controller line.
+    WARNING_LINE_1_CENTER_Y = 585
+    WARNING_LINE_2_CENTER_Y = 605
     UNDER_CONSTRUCTION_TEXT = "UNDER CONSTRUCTION"
 
 class ControlSettings:
@@ -134,11 +139,16 @@ class GameSettings:
         "Tetris": Path("assets") / "previews" / "tetris.png",
     }
 
-    NO_CONTROLLER_SUPPORT_GAMES = {
+    LIMITED_CONTROLLER_SUPPORT_GAMES = {
         "Air Hockey",
-        "Breakout",
         "Jezz Ball",
-        "Tetris",
+    }
+
+    NO_CONTROLLER_SUPPORT_GAMES: set[str] = set()
+
+    WONKY_PHYSICS_GAMES = {
+        "Air Hockey",
+        "Ninja Frog",
     }
 
     UNDER_CONSTRUCTION_GAMES = {

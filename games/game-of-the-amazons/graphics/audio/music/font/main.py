@@ -73,14 +73,38 @@ class GameManager:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.close_game()
-            # elif event.type == pygame.KEYDOWN:
-            #     self._handle_keydown(event)
-            # elif event.type == pygame.JOYBUTTONDOWN:
-            #     self._handle_joybuttondown(event)
-            # elif event.type == pygame.JOYHATMOTION:
-            #     self._handle_joyhatmotion(event)
-            # elif event.type == pygame.JOYAXISMOTION:
-            #     self._handle_joyaxismotion(event)
+            elif event.type == pygame.KEYDOWN:
+                self._handle_keydown(event)
+            elif event.type == pygame.JOYBUTTONDOWN:
+                self._handle_joybuttondown(event)
+
+    def _handle_keydown(self, event) -> None:
+        """Route one keyboard press for fullscreen and exit shortcuts.
+
+        Args:
+            event: pygame KEYDOWN event.
+        """
+        if event.key == pygame.K_F11:
+            pygame.display.toggle_fullscreen()
+        elif event.key == pygame.K_ESCAPE:
+            # ESC always exits the game and returns to the launcher, matching
+            # the L1+R1+START+SELECT controller combo.
+            self.close_game()
+
+    def _handle_joybuttondown(self, event) -> None:
+        """Route one controller button press.
+
+        Args:
+            event: pygame JOYBUTTONDOWN event.
+        """
+        # Catch the multi-button quit chord on press for instant response;
+        # the outer per-frame check covers held-state quits.
+        if self.quit_combo_pressed():
+            self.close_game()
+
+        # BACK (SELECT) is the global fullscreen toggle.
+        if event.button == InputSettings.JOY_BUTTON_BACK:
+            pygame.display.toggle_fullscreen()
 
     def _render_frame(self) -> None:
         """Compose one frame: world, HUD panels, modal overlays, then CRT."""

@@ -87,6 +87,14 @@ class CollisionManager:
         # Return a list of all solid rects that collide with the given rect.
         return [solid_rect for solid_rect in self.solid_rects if rect.colliderect(solid_rect)]
 
+QUIT_COMBO_BUTTONS = (
+    ControllerSettings.START_BUTTON,
+    ControllerSettings.SELECT_BUTTON,
+    ControllerSettings.L1_BUTTON,
+    ControllerSettings.R1_BUTTON,
+)
+
+
 class GameManager:
     def __init__(self):
         pygame.init()
@@ -113,18 +121,44 @@ class GameManager:
             joystick.init()
             self.joysticks.append(joystick)
 
+    def quit_combo_pressed(self):
+        """Return True if START + SELECT + L1 + R1 are held on any controller.
+
+        Returns:
+            bool: True when the four buttons are held simultaneously on any pad.
+        """
+        for joystick in self.joysticks:
+            try:
+                if all(joystick.get_button(button) for button in QUIT_COMBO_BUTTONS):
+                    return True
+            except pygame.error:
+                # A device disconnect can race with the polling call.
+                continue
+        return False
+
+    def close_game(self):
+        """Shut down pygame and exit so the launcher reopens cleanly."""
+        pygame.quit()
+        sys.exit()
+
     def run(self):
         while True:
+            if self.quit_combo_pressed():
+                self.close_game()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                    self.close_game()
 
                 # Handle fullscreen toggle
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_F11:
                         pygame.display.toggle_fullscreen()
-                    if event.key == pygame.K_z:
+                    elif event.key == pygame.K_ESCAPE:
+                        # ESC always exits the game and returns to the launcher,
+                        # matching the L1+R1+START+SELECT controller combo.
+                        self.close_game()
+                    elif event.key == pygame.K_z:
                         self.camera.toggle_zoom()
                 if event.type == pygame.JOYBUTTONDOWN:
                     if event.button == ControllerSettings.SELECT_BUTTON:

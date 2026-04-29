@@ -6,7 +6,7 @@ from os.path import join
 from timer import Timer
 
 class Game:
-	def __init__(self, get_next_shape, update_score):
+	def __init__(self, get_next_shape, update_score, joysticks=None):
 
 		# general
 		self.surface = pygame.Surface((GAME_WIDTH, GAME_HEIGHT))
@@ -17,6 +17,9 @@ class Game:
 		# game connection
 		self.get_next_shape = get_next_shape
 		self.update_score = update_score
+		# Cached reference to the live joystick list owned by Main so D-pad
+		# polling sees the most up-to-date controllers each frame.
+		self.joysticks = joysticks if joysticks is not None else []
 
 		# lines
 		self.line_surface = self.surface.copy()
@@ -42,6 +45,10 @@ class Game:
 			'rotate': Timer(ROTATE_WAIT_TIME)
 		}
 		self.timers['vertical move'].activate()
+
+		# Edge-detection memory for D-pad up so a held hat fires hard drop
+		# exactly once per push (one tap = one piece slammed to the floor).
+		self.previous_hat_y = 0
 
 		# score
 		self.current_level = 1
@@ -98,30 +105,81 @@ class Game:
 
 		self.surface.blit(self.line_surface, (0,0))
 
+	def controller_dpad(self):
+		"""Return the active D-pad direction as a signed (x, y) tuple.
+
+		Returns:
+			tuple[int, int]: Hat reading from the first joystick reporting a
+			pressed direction. ``(0, 0)`` when no D-pad is engaged.
+		"""
+		for joystick in self.joysticks:
+			try:
+				if joystick.get_numhats() <= 0:
+					continue
+				hat_x, hat_y = joystick.get_hat(0)
+			except pygame.error:
+				# A device disconnect can race with the polling call.
+				continue
+			if hat_x or hat_y:
+				return hat_x, hat_y
+		return 0, 0
+
+	def controller_rotate_held(self):
+		"""Return True when any rotate button (A or X) is held on any controller.
+
+		Returns:
+			bool: True when at least one rotate button is currently pressed.
+		"""
+		for joystick in self.joysticks:
+			try:
+				for button in ROTATE_BUTTONS:
+					if joystick.get_button(button):
+						return True
+			except pygame.error:
+				# A device disconnect can race with the polling call.
+				continue
+		return False
+
 	def input(self):
+		# Pygame's hat reports +1 for up and -1 for down, matching the screen
+		# convention the keyboard arrows already use here, so the OR-merge is
+		# direction-correct with no axis flip.
 		keys = pygame.key.get_pressed()
+		hat_x, hat_y = self.controller_dpad()
+
+		# D-pad up is now hard drop, edge-triggered so a held hat doesn't
+		# slam multiple pieces in quick succession. Keyboard K_UP keeps
+		# rotating because the request only changed the controller binding.
+		if hat_y == 1 and self.previous_hat_y != 1:
+			self.tetromino.hard_drop()
+		self.previous_hat_y = hat_y
+
+		left_held = keys[pygame.K_LEFT] or hat_x == -1
+		right_held = keys[pygame.K_RIGHT] or hat_x == 1
+		rotate_held = keys[pygame.K_UP] or self.controller_rotate_held()
+		down_held = keys[pygame.K_DOWN] or hat_y == -1
 
 		# checking horizontal movement
 		if not self.timers['horizontal move'].active:
-			if keys[pygame.K_LEFT]:
+			if left_held:
 				self.tetromino.move_horizontal(-1)
 				self.timers['horizontal move'].activate()
-			if keys[pygame.K_RIGHT]:
+			if right_held:
 				self.tetromino.move_horizontal(1)
 				self.timers['horizontal move'].activate()
 
 		# check for rotation
 		if not self.timers['rotate'].active:
-			if keys[pygame.K_UP]:
+			if rotate_held:
 				self.tetromino.rotate()
 				self.timers['rotate'].activate()
 
 		# down speedup
-		if not self.down_pressed and keys[pygame.K_DOWN]:
+		if not self.down_pressed and down_held:
 			self.down_pressed = True
 			self.timers['vertical move'].duration = self.down_speed_faster
 
-		if self.down_pressed and not keys[pygame.K_DOWN]:
+		if self.down_pressed and not down_held:
 			self.down_pressed = False
 			self.timers['vertical move'].duration = self.down_speed
 
@@ -205,6 +263,20 @@ class Tetromino:
 			for block in self.blocks:
 				self.field_data[int(block.pos.y)][int(block.pos.x)] = block
 			self.create_new_tetromino()
+
+	def hard_drop(self):
+		"""Slam the tetromino to the lowest legal row and lock it in place.
+
+		Mirrors what move_down does on a collision (write blocks into
+		field_data, then spawn the next piece) but skips the per-row
+		animation so D-pad up feels like an instant slam.
+		"""
+		while not self.next_move_vertical_collide(self.blocks, 1):
+			for block in self.blocks:
+				block.pos.y += 1
+		for block in self.blocks:
+			self.field_data[int(block.pos.y)][int(block.pos.x)] = block
+		self.create_new_tetromino()
 
 	# rotate
 	def rotate(self):

@@ -98,6 +98,10 @@ class GameManager:
         # other handlers still see the press.
         if event.key == pygame.K_F11:
             pygame.display.toggle_fullscreen()
+        elif event.key == pygame.K_ESCAPE:
+            # ESC always exits the game and returns to the launcher, matching
+            # the L1+R1+START+SELECT controller combo.
+            self.close_game()
         elif event.key == pygame.K_F1:
             # Toggle the temporary debug UI frames at runtime.
             DebugSettings.SHOW_UI_FRAMES = not DebugSettings.SHOW_UI_FRAMES

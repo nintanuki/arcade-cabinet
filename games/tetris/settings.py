@@ -49,3 +49,10 @@ TETROMINOS = {
 }
 
 SCORE_DATA = {1: 40, 2: 100, 3: 300, 4: 1200}
+
+# Controller button mapping shared with the rest of the arcade so the same
+# physical buttons keep the same meaning across every game. ROTATE_BUTTONS
+# is the set the player can press for rotate — A or X, their choice.
+A_BUTTON = 0
+X_BUTTON = 2
+ROTATE_BUTTONS = (A_BUTTON, X_BUTTON)
