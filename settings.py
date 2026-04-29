@@ -15,7 +15,7 @@ class ScreenSettings:
 class LauncherSettings:
     """Core launcher text and metadata."""
 
-    WINDOW_TITLE = "Mr. Navarro's Arcade"
+    WINDOW_TITLE = "CODING CLUB PYGAME ARCADE"
     MENU_MOVE_SOUND = Path("assets") / "sound" / "sfx_menu_move2.wav"
     MENU_SELECT_SOUND_CANDIDATES = (
         Path("assets") / "sound" / "sfx_menu_select3.wav",
@@ -46,7 +46,7 @@ class FontSettings:
 class MenuSettings:
     """Layout and copy for launcher menu rendering."""
 
-    TITLE_TEXT = "MR. NAVARRO'S ARCADE"
+    TITLE_TEXT = "CODING CLUB PYGAME ARCADE"
     SUBTITLE_TEXT = "CHOOSE A GAME TO PLAY"
     TITLE_CENTER_Y = 140
     SUBTITLE_CENTER_Y = 245
