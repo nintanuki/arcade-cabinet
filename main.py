@@ -4,7 +4,7 @@ import random
 import subprocess
 import sys
 from pathlib import Path
-import warnings
+
 
 import pygame
 
@@ -91,14 +91,18 @@ class ArcadeLauncher:
 			self.jil_logo_surface = None
 		self.load_menu_audio()
 
-		self.options = [(label, self.root_dir / relative_path) for label, relative_path in GameSettings.OPTIONS]
+		self.options = [
+			(label, self.root_dir / relative_path)
+			for label, relative_path in GameSettings.OPTIONS
+		]
 		self.preview_images = self.load_preview_images()
 		self.selected_index = 0
 		self.vertical_axis_engaged = False
 		self.status_message = ""
 		self.status_message_until = 0
 		self.menu_option_hitboxes: list[pygame.Rect] = [
-			pygame.Rect(0, 0, 0, 0) for _ in self.options
+			pygame.Rect(0, 0, 0, 0)
+			for _ in self.options
 		]
 
 	def show_status_message(self, message: str, duration_ms: int = 3500) -> None:

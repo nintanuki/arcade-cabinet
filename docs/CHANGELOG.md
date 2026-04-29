@@ -1,4 +1,3 @@
-
 ## 2026-04-29 Shrink JIL logo and move path/size to settings (GitHub Copilot GPT-4.1)
 
 **File:** settings.py
@@ -411,3 +410,23 @@ blitting the foreground last produces a 1-pixel white outline that traces
 the full glyph silhouette. Factored into a reusable helper so other red
 warnings can opt into the same treatment later without duplicating the
 nine-blit sequence.
+
+## 2026-04-29 — PEP-8 cleanup and remove unused import (GitHub Copilot GPT-4.1)
+
+**File:** main.py
+**Lines (at time of edit):** 7, 74-77 (modified)
+**Before:**
+import warnings
+self.options = [(label, self.root_dir / relative_path) for label, relative_path in GameSettings.OPTIONS]
+self.menu_option_hitboxes: list[pygame.Rect] = [pygame.Rect(0, 0, 0, 0) for _ in self.options]
+**After:**
+# (removed)
+self.options = [
+    (label, self.root_dir / relative_path)
+    for label, relative_path in GameSettings.OPTIONS
+]
+self.menu_option_hitboxes: list[pygame.Rect] = [
+    pygame.Rect(0, 0, 0, 0)
+    for _ in self.options
+]
+**Why:** Remove unused import and wrap long lines for PEP-8 compliance per TESTING.md.
