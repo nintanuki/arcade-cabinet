@@ -104,8 +104,10 @@ class GameSettings:
 
     OPTIONS = [
         ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
+        ("Breakout", Path("games") / "breakout" / "main.py"),
         ("Dungeon Digger", Path("games") / "dungeon-digger" / "main.py"),
         ("Dungeon Warrior", Path("games") / "dungeon-warrior" / "main.py"),
+        ("Game of the Amazons", Path("games") / "game-of-the-amazons" / "main.py"),
         ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
         ("Ninja Frog", Path("games") / "ninja-frog" / "main.py"),
         ("Pong", Path("games") / "pong" / "main.py"),
@@ -113,12 +115,15 @@ class GameSettings:
         ("Snake", Path("games") / "snake" / "snake.py"),
         ("Space Invaders", Path("games") / "space-invaders" / "main.py"),
         ("Star Hero", Path("games") / "star-hero" / "main.py"),
+        ("Tetris", Path("games") / "tetris" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
         "Air Hockey": Path("assets") / "previews" / "air_hockey.png",
+        "Breakout": Path("assets") / "previews" / "breakout.png",
         "Dungeon Digger": Path("assets") / "previews" / "dungeon_digger.png",
         "Dungeon Warrior": Path("assets") / "previews" / "dungeon_warrior.png",
+        "Game of the Amazons": Path("assets") / "previews" / "game_of_the_amazons.png",
         "Jezz Ball": Path("assets") / "previews" / "jezz_ball.png",
         "Ninja Frog": Path("assets") / "previews" / "ninja_frog.png",
         "Pong": Path("assets") / "previews" / "pong.png",
@@ -126,14 +131,18 @@ class GameSettings:
         "Snake": Path("assets") / "previews" / "snake.png",
         "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
         "Star Hero": Path("assets") / "previews" / "star_hero.png",
+        "Tetris": Path("assets") / "previews" / "tetris.png",
     }
 
     NO_CONTROLLER_SUPPORT_GAMES = {
-        "Jezz Ball",
         "Air Hockey",
+        "Breakout",
+        "Jezz Ball",
+        "Tetris",
     }
 
     UNDER_CONSTRUCTION_GAMES = {
-        "Ninja Frog",
         "Dungeon Warrior",
+        "Game of the Amazons",
+        "Ninja Frog",
     }
