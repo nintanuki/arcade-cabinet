@@ -12,6 +12,7 @@ class ScreenSettings:
     FPS = 60
 
 
+
 class LauncherSettings:
     """Core launcher text and metadata."""
 
@@ -20,6 +21,9 @@ class LauncherSettings:
     MENU_SELECT_SOUND_CANDIDATES = (
         Path("assets") / "sound" / "sfx_menu_select3.wav",
     )
+    JIL_LOGO_PATH = Path("assets") / "graphics" / "graphics" / "jil_logo.webp"
+    JIL_LOGO_POS = (50, 110)
+    JIL_LOGO_SIZE = (59, 69)
 
 
 class ColorSettings:

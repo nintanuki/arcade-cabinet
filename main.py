@@ -74,14 +74,16 @@ class ArcadeLauncher:
 		self.menu_move_sfx: pygame.mixer.Sound | None = None
 		self.menu_select_sfx: pygame.mixer.Sound | None = None
 
+
 		# Prepare logo path, but load after display is initialized
-		self.jil_logo_path = self.root_dir / "assets" / "graphics" / "graphics" / "jil_logo.webp"
+		self.jil_logo_path = self.root_dir / LauncherSettings.JIL_LOGO_PATH
 		self.jil_logo_surface = None
 
 		self.initialize_runtime()
-		# Now load the JIL logo image at native size (display is initialized)
+		# Now load the JIL logo image and scale to settings size (display is initialized)
 		try:
-			self.jil_logo_surface = pygame.image.load(str(self.jil_logo_path)).convert_alpha()
+			logo_img = pygame.image.load(str(self.jil_logo_path)).convert_alpha()
+			self.jil_logo_surface = pygame.transform.smoothscale(logo_img, LauncherSettings.JIL_LOGO_SIZE)
 			print(f"[DEBUG] Loaded JIL logo: {self.jil_logo_path} size={self.jil_logo_surface.get_size()}")
 		except (FileNotFoundError, pygame.error) as e:
 			print(f"[DEBUG] Failed to load JIL logo: {self.jil_logo_path} error={e}")
@@ -423,13 +425,15 @@ class ArcadeLauncher:
 
 		# Draw the JIL logo in the top left corner if loaded, else draw a debug rectangle
 		if self.jil_logo_surface is not None:
-			self.screen.blit(self.jil_logo_surface, (20, 20))
+			self.screen.blit(self.jil_logo_surface, LauncherSettings.JIL_LOGO_POS)
 		else:
-			pygame.draw.rect(self.screen, (255, 0, 0), (20, 20, 100, 100), 4)
+			x, y = LauncherSettings.JIL_LOGO_POS
+			w, h = LauncherSettings.JIL_LOGO_SIZE
+			pygame.draw.rect(self.screen, (255, 0, 0), (x, y, w, h), 4)
 			# Optionally, draw text to indicate missing logo
 			font = pygame.font.SysFont(None, 24)
 			text_surface = font.render("NO LOGO", True, (255, 0, 0))
-			self.screen.blit(text_surface, (24, 60))
+			self.screen.blit(text_surface, (x + 4, y + h // 2 - 12))
 
 		title_surface = self.title_font.render(MenuSettings.TITLE_TEXT, False, ColorSettings.LIGHT_PURPLE)
 		title_rect = title_surface.get_rect(center=(ScreenSettings.WIDTH // 2, MenuSettings.TITLE_CENTER_Y))

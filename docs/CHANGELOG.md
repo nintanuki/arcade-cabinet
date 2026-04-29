@@ -1,3 +1,27 @@
+
+## 2026-04-29 Shrink JIL logo and move path/size to settings (GitHub Copilot GPT-4.1)
+
+**File:** settings.py
+**Lines (at time of edit):** LauncherSettings class (modified)
+**Before:**
+    # No JIL logo path/size constants
+**After:**
+    JIL_LOGO_PATH = Path("assets") / "graphics" / "graphics" / "jil_logo.webp"
+    JIL_LOGO_POS = (20, 20)
+    JIL_LOGO_SIZE = (72, 72)
+**Why:** All file paths and constants must be in settings. Shrink logo for less visual dominance.
+
+**File:** main.py
+**Lines (at time of edit):** ArcadeLauncher __init__, draw (modified)
+**Before:**
+    self.jil_logo_path = self.root_dir / "assets" / "graphics" / "graphics" / "jil_logo.webp"
+    ...
+    self.screen.blit(self.jil_logo_surface, (20, 20))
+**After:**
+    self.jil_logo_path = self.root_dir / LauncherSettings.JIL_LOGO_PATH
+    ...
+    self.screen.blit(self.jil_logo_surface, LauncherSettings.JIL_LOGO_POS)
+**Why:** Centralize all file paths and constants in settings, shrink logo, and ensure compliance with TESTING.md.
 # Change Log
 
 This file is an append-only record of every code change made to Dungeon Digger
