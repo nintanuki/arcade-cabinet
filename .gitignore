@@ -122,3 +122,10 @@ dungeon-digger/leaderboard.txt
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Student-contributed games stay local to each cabinet so they never reach
+# GitHub. The launcher creates games/student/ at runtime if it's missing
+# so a fresh clone Just Works. The README is the only file we want tracked
+# inside that folder -- it documents the convention for students.
+games/student/*
+!games/student/README.md

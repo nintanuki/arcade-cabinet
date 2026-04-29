@@ -1,3 +1,118 @@
+## 2026-04-29 — Split games into sponsor/student folders with auto-discovery (Claude Opus 4.7)
+
+**File:** games/sponsor/ (rename from games/)
+**Lines (at time of edit):** (folder rename, no content changes)
+**Before:**
+    games/air-hockey/, games/breakout/, games/dungeon-digger/, ... (13 more)
+**After:**
+    games/sponsor/air-hockey/, games/sponsor/breakout/, ... (all 14 sponsor games)
+**Why:** Student-contributed games need a separate, .gitignored home so the
+public GitHub copy of the launcher only ships the curated sponsor list.
+Renaming the existing folders into a sponsor/ subfolder keeps everything
+the launcher already references and leaves room for a sibling student/
+folder discovered at runtime.
+
+**File:** settings.py
+**Lines (at time of edit):** 112-132 (modified), 184-214 (new)
+**Before:**
+    OPTIONS = [
+        ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
+        ...
+    ]
+    # No StudentGameSettings class.
+**After:**
+    OPTIONS = [
+        ("Air Hockey", Path("games") / "sponsor" / "air-hockey" / "main.py"),
+        ...
+    ]
+
+    class StudentGameSettings:
+        ROOT = Path("games") / "student"
+        ENTRY_FILENAME = "main.py"
+        MANIFEST_FILENAME = "game.json"
+        DEFAULT_ATTRIBUTION = "CREATED BY UNKNOWN STUDENT"
+        MANIFEST_KEY_LABEL = "label"
+        ... (other manifest keys)
+**Why:** Sponsor paths now live under sponsor/. New StudentGameSettings
+holds every constant the discovery code needs so main.py keeps no magic
+strings (per TESTING.md). DEFAULT_ATTRIBUTION uses the "CREATED BY ..."
+phrasing the cabinet owner asked for.
+
+**File:** main.py
+**Lines (at time of edit):** 1-22 (modified imports), 27-130 (new dataclass + discovery), 198-235 (modified __init__), 254-265 (modified load_preview_images), 332-340 (modified collect_warning_lines), 351-353 (modified draw_preview_warnings), 320-322 (modified draw_preview_panel)
+**Before:**
+    # No discovery, options came straight from GameSettings.OPTIONS, every
+    # warning/attribution lookup hit the GameSettings class directly.
+**After:**
+    @dataclass(frozen=True)
+    class StudentGameRecord: ...
+
+    def _read_student_manifest(manifest_path): ...
+
+    def discover_student_games(student_root) -> list[StudentGameRecord]: ...
+
+    # In __init__: copy GameSettings dicts/sets into instance state, then
+    # merge in discovered student games. draw/collect_* methods now read
+    # self.preview_paths, self.game_attributions, self.no_controller_games,
+    # self.limited_controller_games, self.wonky_physics_games, and
+    # self.under_construction_games instead of GameSettings.X.
+**Why:** The launcher needs to be agnostic to whatever lives in
+games/student/. A module-level discovery function keeps the scan logic
+testable, and routing every menu lookup through instance state means the
+sponsor + student data merges in one place. Bad manifests fail soft
+(empty dict) so one student's typo can't crash the launcher.
+
+**File:** .gitignore
+**Lines (at time of edit):** 126-130 (modified)
+**Before:**
+    # Ignore all student game subfolders and files
+    student_games/*
+**After:**
+    # Student-contributed games stay local to each cabinet ...
+    games/student/*
+    !games/student/README.md
+**Why:** The orphaned student_games/* line referred to a folder that
+never existed. The new games/student/* matches the launcher's actual
+discovery path, and the negative re-include keeps the convention README
+trackable on GitHub even though everything else stays local.
+
+**File:** games/student/README.md
+**Lines (at time of edit):** (new file)
+**After:**
+    Documentation of the discovery convention, the optional game.json
+    schema, and worked examples pointing at red-square/ and blue-circle/.
+**Why:** Students need a single document that explains how to add a game
+without reading the launcher source. The README is the only file
+whitelisted under games/student/, so it ships with the public repo.
+
+**File:** games/student/red-square/main.py
+**Lines (at time of edit):** (new file)
+**After:**
+    Tiny pygame demo: a red square that moves with the arrow keys, ESC
+    exits. No game.json, exercises every default in the discovery path
+    (folder name -> "Red Square", default attribution, no preview, no
+    warnings).
+**Why:** Smoke test for the no-manifest path and a copy-paste starting
+point for students.
+
+**File:** games/student/blue-circle/main.py
+**Lines (at time of edit):** (new file)
+**After:**
+    Pygame demo: a blue circle that moves with the arrow keys, ESC exits.
+    Has a sibling game.json that overrides the label and attribution.
+**Why:** Smoke test for the manifest path. Demonstrates the
+"CREATED BY <NAME>" attribution Mr. Navarro asked for.
+
+**File:** games/student/blue-circle/game.json
+**Lines (at time of edit):** (new file)
+**After:**
+    {
+        "label": "Blue Circle Demo",
+        "attribution": "CREATED BY ALEX EXAMPLE"
+    }
+**Why:** Minimal manifest illustrating the two most common overrides.
+Other manifest keys are documented in games/student/README.md.
+
 ## 2026-04-29 Shrink JIL logo and move path/size to settings (GitHub Copilot GPT-4.1)
 
 **File:** settings.py

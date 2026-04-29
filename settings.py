@@ -112,20 +112,23 @@ class CRTSettings:
 class GameSettings:
     """Game option metadata shown in the launcher menu."""
 
+    # Sponsor games are committed to the repo and curated here. Student games
+    # live in a sibling folder that is .gitignored and discovered at runtime
+    # (see StudentGameSettings and main.discover_student_games).
     OPTIONS = [
-        ("Air Hockey", Path("games") / "air-hockey" / "main.py"),
-        ("Breakout", Path("games") / "breakout" / "main.py"),
-        ("Dungeon Digger", Path("games") / "dungeon-digger" / "main.py"),
-        ("Dungeon Warrior", Path("games") / "dungeon-warrior" / "main.py"),
-        ("Game of the Amazons", Path("games") / "game-of-the-amazons" / "main.py"),
-        ("Jezz Ball", Path("games") / "jezz-ball" / "main.py"),
-        ("Ninja Frog", Path("games") / "ninja-frog" / "main.py"),
-        ("Pong", Path("games") / "pong" / "main.py"),
-        ("Runner", Path("games") / "runner" / "main.py"),
-        ("Snake", Path("games") / "snake" / "snake.py"),
-        ("Space Invaders", Path("games") / "space-invaders" / "main.py"),
-        ("Star Hero", Path("games") / "star-hero" / "main.py"),
-        ("Tetrominos", Path("games") / "Tetrominos" / "main.py"),
+        ("Air Hockey", Path("games") / "sponsor" / "air-hockey" / "main.py"),
+        ("Breakout", Path("games") / "sponsor" / "breakout" / "main.py"),
+        ("Dungeon Digger", Path("games") / "sponsor" / "dungeon-digger" / "main.py"),
+        ("Dungeon Warrior", Path("games") / "sponsor" / "dungeon-warrior" / "main.py"),
+        ("Game of the Amazons", Path("games") / "sponsor" / "game-of-the-amazons" / "main.py"),
+        ("Jezz Ball", Path("games") / "sponsor" / "jezz-ball" / "main.py"),
+        ("Ninja Frog", Path("games") / "sponsor" / "ninja-frog" / "main.py"),
+        ("Pong", Path("games") / "sponsor" / "pong" / "main.py"),
+        ("Runner", Path("games") / "sponsor" / "runner" / "main.py"),
+        ("Snake", Path("games") / "sponsor" / "snake" / "snake.py"),
+        ("Space Invaders", Path("games") / "sponsor" / "space-invaders" / "main.py"),
+        ("Star Hero", Path("games") / "sponsor" / "star-hero" / "main.py"),
+        ("Tetrominos", Path("games") / "sponsor" / "Tetrominos" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
@@ -177,3 +180,35 @@ class GameSettings:
         "Star Hero": "ORIGINAL BY MR. NAVARRO",
         "Tetrominos": "MADE WITH CLEAR CODE TUTORIAL",
     }
+
+
+class StudentGameSettings:
+    """Convention for student-contributed games discovered at runtime.
+
+    Student games live under ``games/student/<folder>/`` and are .gitignored,
+    so each cabinet keeps its own students' work without leaking to GitHub.
+    The launcher scans the folder at startup and appends every directory
+    containing ``ENTRY_FILENAME`` to the menu. An optional ``MANIFEST_FILENAME``
+    next to the entry file overrides the auto-derived metadata; the schema is
+    documented in ``games/student/README.md``.
+    """
+
+    # Folder convention. ROOT is relative to the launcher's root_dir.
+    ROOT = Path("games") / "student"
+    ENTRY_FILENAME = "main.py"
+    MANIFEST_FILENAME = "game.json"
+
+    # Defaults applied when no manifest is present, or when a manifest omits
+    # a field. The attribution intentionally invites the teacher to fill it
+    # in via game.json -- see the example in games/student/README.md.
+    DEFAULT_ATTRIBUTION = "CREATED BY UNKNOWN STUDENT"
+
+    # Manifest keys recognized by the launcher. Anything else is ignored so
+    # the schema stays forgiving for students experimenting with extras.
+    MANIFEST_KEY_LABEL = "label"
+    MANIFEST_KEY_ATTRIBUTION = "attribution"
+    MANIFEST_KEY_PREVIEW = "preview"
+    MANIFEST_KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    MANIFEST_KEY_UNDER_CONSTRUCTION = "under_construction"

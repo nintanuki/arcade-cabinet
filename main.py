@@ -1,8 +1,10 @@
 """Top-level launcher that allows players to choose which arcade game to run."""
 
+import json
 import random
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -17,7 +19,113 @@ from settings import (
 	LauncherSettings,
 	MenuSettings,
 	ScreenSettings,
+	StudentGameSettings,
 )
+
+
+@dataclass(frozen=True)
+class StudentGameRecord:
+	"""Discovered metadata for a single student-contributed game.
+
+	Sponsor games are curated in settings.GameSettings; student games are
+	scanned from disk so a teacher can drop a folder into games/student/
+	without editing any code. Records bundle every override the launcher
+	might apply (label, attribution, preview, warning flags) so the merge
+	step in ArcadeLauncher.__init__ stays straightforward.
+	"""
+
+	label: str
+	main_path: Path
+	attribution: str
+	preview_path: Path | None
+	no_controller: bool
+	limited_controller: bool
+	wonky_physics: bool
+	under_construction: bool
+
+
+def _read_student_manifest(manifest_path: Path) -> dict:
+	"""Load a student game manifest, returning {} on any read or parse error.
+
+	Args:
+		manifest_path (Path): Absolute path to the candidate game.json file.
+
+	Returns:
+		dict: Parsed manifest dictionary, or an empty dict if the file is
+		missing, unreadable, malformed JSON, or not a JSON object. The
+		launcher must keep starting even if one student's manifest is broken.
+	"""
+	if not manifest_path.is_file():
+		return {}
+	try:
+		parsed = json.loads(manifest_path.read_text(encoding="utf-8"))
+	except (OSError, json.JSONDecodeError):
+		return {}
+	return parsed if isinstance(parsed, dict) else {}
+
+
+def discover_student_games(student_root: Path) -> list[StudentGameRecord]:
+	"""Scan student_root for game folders and return one record per game.
+
+	A folder qualifies if it contains StudentGameSettings.ENTRY_FILENAME
+	(typically main.py). A sibling StudentGameSettings.MANIFEST_FILENAME
+	(game.json) may override label, attribution, preview, and warning
+	flags; any field omitted from the manifest falls back to the default.
+	The folder is created if missing so a fresh clone of the repo still
+	runs without errors -- the directory is .gitignored, not committed.
+
+	Args:
+		student_root (Path): Absolute path to the games/student/ directory.
+
+	Returns:
+		list[StudentGameRecord]: One record per discovered game, sorted by
+		folder name so menu order stays stable across runs.
+	"""
+	student_root.mkdir(parents=True, exist_ok=True)
+
+	records: list[StudentGameRecord] = []
+	for entry in sorted(student_root.iterdir()):
+		# Hidden folders (e.g. .git, .vscode) are intentionally skipped so a
+		# tooling directory dropped in by accident never shows up as a game.
+		if not entry.is_dir() or entry.name.startswith("."):
+			continue
+
+		main_path = entry / StudentGameSettings.ENTRY_FILENAME
+		if not main_path.is_file():
+			continue
+
+		# Folder name -> "Red Square" so a manifest is optional. Hyphens and
+		# underscores both turn into spaces because students use both.
+		default_label = entry.name.replace("-", " ").replace("_", " ").title()
+
+		manifest = _read_student_manifest(entry / StudentGameSettings.MANIFEST_FILENAME)
+		label_value = manifest.get(StudentGameSettings.MANIFEST_KEY_LABEL)
+		label = label_value if isinstance(label_value, str) and label_value else default_label
+
+		attribution_value = manifest.get(StudentGameSettings.MANIFEST_KEY_ATTRIBUTION)
+		attribution = (
+			attribution_value
+			if isinstance(attribution_value, str) and attribution_value
+			else StudentGameSettings.DEFAULT_ATTRIBUTION
+		)
+
+		preview_value = manifest.get(StudentGameSettings.MANIFEST_KEY_PREVIEW)
+		preview_path = entry / preview_value if isinstance(preview_value, str) and preview_value else None
+
+		records.append(
+			StudentGameRecord(
+				label=label,
+				main_path=main_path,
+				attribution=attribution,
+				preview_path=preview_path,
+				no_controller=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_NO_CONTROLLER)),
+				limited_controller=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_LIMITED_CONTROLLER)),
+				wonky_physics=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_WONKY_PHYSICS)),
+				under_construction=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_UNDER_CONSTRUCTION)),
+			)
+		)
+
+	return records
 
 
 class LauncherCRT:
@@ -91,10 +199,38 @@ class ArcadeLauncher:
 			self.jil_logo_surface = None
 		self.load_menu_audio()
 
+		# Sponsor games come straight from settings; student games are
+		# discovered on disk and merged in so a teacher can drop a folder
+		# into games/student/ without editing any code.
 		self.options = [
 			(label, self.root_dir / relative_path)
 			for label, relative_path in GameSettings.OPTIONS
 		]
+		self.preview_paths: dict[str, Path] = {
+			label: self.root_dir / relative_path
+			for label, relative_path in GameSettings.PREVIEW_IMAGES.items()
+		}
+		self.game_attributions: dict[str, str] = dict(GameSettings.GAME_ATTRIBUTIONS)
+		self.no_controller_games: set[str] = set(GameSettings.NO_CONTROLLER_SUPPORT_GAMES)
+		self.limited_controller_games: set[str] = set(GameSettings.LIMITED_CONTROLLER_SUPPORT_GAMES)
+		self.wonky_physics_games: set[str] = set(GameSettings.WONKY_PHYSICS_GAMES)
+		self.under_construction_games: set[str] = set(GameSettings.UNDER_CONSTRUCTION_GAMES)
+
+		student_games = discover_student_games(self.root_dir / StudentGameSettings.ROOT)
+		for record in student_games:
+			self.options.append((record.label, record.main_path))
+			self.game_attributions[record.label] = record.attribution
+			if record.preview_path is not None:
+				self.preview_paths[record.label] = record.preview_path
+			if record.no_controller:
+				self.no_controller_games.add(record.label)
+			if record.limited_controller:
+				self.limited_controller_games.add(record.label)
+			if record.wonky_physics:
+				self.wonky_physics_games.add(record.label)
+			if record.under_construction:
+				self.under_construction_games.add(record.label)
+
 		self.preview_images = self.load_preview_images()
 		self.selected_index = 0
 		self.vertical_axis_engaged = False
@@ -187,13 +323,18 @@ class ArcadeLauncher:
 		self._set_selected_index(self.selected_index + 1)
 
 	def load_preview_images(self) -> dict[str, pygame.Surface]:
-		"""Load menu preview screenshots and scale them to fit the preview panel."""
+		"""Load menu preview screenshots and scale them to fit the preview panel.
+
+		Iterates ``self.preview_paths`` (already merged from sponsor settings
+		and student-game discovery) so this method is agnostic to where each
+		preview originated. Missing or unreadable files are skipped silently
+		and the launcher falls back to its "PREVIEW NOT AVAILABLE" placeholder.
+		"""
 		preview_images: dict[str, pygame.Surface] = {}
 		max_preview_width = MenuSettings.PREVIEW_BOX_WIDTH - (MenuSettings.PREVIEW_INNER_PADDING * 2)
 		max_preview_height = MenuSettings.PREVIEW_BOX_HEIGHT - (MenuSettings.PREVIEW_INNER_PADDING * 2)
 
-		for label, relative_path in GameSettings.PREVIEW_IMAGES.items():
-			preview_path = self.root_dir / relative_path
+		for label, preview_path in self.preview_paths.items():
 			try:
 				preview_surface = pygame.image.load(str(preview_path)).convert()
 			except (FileNotFoundError, pygame.error):
@@ -243,7 +384,7 @@ class ArcadeLauncher:
 			fallback_rect = fallback_surface.get_rect(center=inner_rect.center)
 			self.screen.blit(fallback_surface, fallback_rect)
 
-		if selected_label in GameSettings.UNDER_CONSTRUCTION_GAMES:
+		if selected_label in self.under_construction_games:
 			# White outline so the red label stays legible over busy
 			# preview screenshots — straight red text disappears against
 			# warm-toned panels (e.g. the dungeon previews).
@@ -302,11 +443,11 @@ class ArcadeLauncher:
 			list[str]: Up to two strings, ordered from upper to lower slot.
 		"""
 		warnings: list[str] = []
-		if selected_label in GameSettings.NO_CONTROLLER_SUPPORT_GAMES:
+		if selected_label in self.no_controller_games:
 			warnings.append(MenuSettings.NO_CONTROLLER_SUPPORT_TEXT)
-		elif selected_label in GameSettings.LIMITED_CONTROLLER_SUPPORT_GAMES:
+		elif selected_label in self.limited_controller_games:
 			warnings.append(MenuSettings.LIMITED_CONTROLLER_SUPPORT_TEXT)
-		if selected_label in GameSettings.WONKY_PHYSICS_GAMES:
+		if selected_label in self.wonky_physics_games:
 			warnings.append(MenuSettings.WONKY_PHYSICS_TEXT)
 		return warnings
 
@@ -319,7 +460,7 @@ class ArcadeLauncher:
 		preview_center_x = MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2)
 
         # 1. Always Draw Attribution (Line 1 in Blue)
-		attribution_text = GameSettings.GAME_ATTRIBUTIONS.get(selected_label, "BY UNKNOWN")
+		attribution_text = self.game_attributions.get(selected_label, "BY UNKNOWN")
 		attr_surface = self.hint_font.render(attribution_text, False, ColorSettings.LIGHT_BLUE)
 		attr_rect = attr_surface.get_rect(
             center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
