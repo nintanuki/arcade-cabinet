@@ -585,7 +585,7 @@ class ArcadeLauncher:
 		logo_w = LauncherSettings.JIL_LOGO_SIZE[0]
 		spacing = 20  # Adjust this to change the gap between logo and text
 		
-		title_surface = self.title_font.render(MenuSettings.TITLE_TEXT, False, ColorSettings.LIGHT_PURPLE)
+		title_surface = self.title_font.render(MenuSettings.TITLE_TEXT, False, ColorSettings.GREEN)
 		title_w = title_surface.get_width()
 		
 		total_width = logo_w + spacing + title_w

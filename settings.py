@@ -16,7 +16,7 @@ class ScreenSettings:
 class LauncherSettings:
     """Core launcher text and metadata."""
 
-    WINDOW_TITLE = "CODING CLUB PYGAME ARCADE"
+    WINDOW_TITLE = "Coding Club Arcade"
     MENU_MOVE_SOUND = Path("assets") / "sound" / "sfx_menu_move2.wav"
     MENU_SELECT_SOUND_CANDIDATES = (
         Path("assets") / "sound" / "sfx_menu_select3.wav",
@@ -35,6 +35,7 @@ class ColorSettings:
     LIGHT_BLUE = (150, 210, 255)
     YELLOW = (255, 230, 0)
     RED = (255, 80, 80)
+    GREEN = (80, 255, 80)
 
 
 class FontSettings:
@@ -50,7 +51,7 @@ class FontSettings:
 class MenuSettings:
     """Layout and copy for launcher menu rendering."""
 
-    TITLE_TEXT = "CODING CLUB PYGAME ARCADE"
+    TITLE_TEXT = "CODING CLUB ARCADE"
     SUBTITLE_TEXT = "CHOOSE A GAME TO PLAY"
     TITLE_CENTER_Y = 140
     SUBTITLE_CENTER_Y = 245
