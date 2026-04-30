@@ -82,7 +82,7 @@ class MenuSettings:
     FOOTER_LINE_2_CENTER_Y = 695
     NO_CONTROLLER_SUPPORT_TEXT = "NO CONTROLLER SUPPORT (KEYBOARD/MOUSE ONLY)"
     LIMITED_CONTROLLER_SUPPORT_TEXT = "LIMITED CONTROLLER SUPPORT"
-    WONKY_PHYSICS_TEXT = "STILL WORKING ON IT, EXPECT WONKY PHYSICS"
+    WONKY_PHYSICS_TEXT = "STILL WORKING ON IT - EXPECT WONKY PHYSICS"
     # Two stacked warning slots under the preview. Controller warnings (no /
     # limited, mutually exclusive) always take slot 1. Wonky-physics promotes
     # into slot 1 when no controller warning applies, otherwise it sits in
