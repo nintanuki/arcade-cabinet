@@ -1,26 +1,39 @@
 class ColorSettings:
     """Class to hold all the color constants used by overlays, board, and UI."""
 
+    # Colors are defined as RGB tuples, and named after the closest matching color
+    COLOR_WORDS = {
+        "BLACK": (0, 0, 0),
+        "GAINSBORO": (220, 220, 220),
+        "WHITE_SMOKE": (240, 240, 240),
+        "CREAM_CAN": (240, 200, 80),
+        "DARK_GRAY": (170, 170, 170),
+        "DUTCH_WHITE": (240, 217, 181),
+        "BARLEY_CORN": (181, 136, 99),
+        "NERO": (40, 40, 40),
+        "ECLIPSE": (60, 60, 60),
+    }
+
     # CRT / overlay
-    OVERLAY_BACKGROUND = (0, 0, 0)
-    SCREEN_BACKGROUND = (0, 0, 0)
+    OVERLAY_BACKGROUND = COLOR_WORDS["BLACK"]
+    SCREEN_BACKGROUND = COLOR_WORDS["BLACK"]
 
     # Window borders
-    BORDER_DEFAULT = (220, 220, 220)
+    BORDER_DEFAULT = COLOR_WORDS["GAINSBORO"]
 
     # Text
-    TEXT_DEFAULT = (240, 240, 240)
-    TEXT_TITLE = (240, 200, 80)
-    TEXT_LABEL = (170, 170, 170)
+    TEXT_DEFAULT = COLOR_WORDS["WHITE_SMOKE"]
+    TEXT_TITLE = COLOR_WORDS["CREAM_CAN"]
+    TEXT_LABEL = COLOR_WORDS["DARK_GRAY"]
 
     # Board tiles (warm chess.com-style palette modeled on the reference image)
-    BOARD_LIGHT_TILE = (240, 217, 181)
-    BOARD_DARK_TILE = (181, 136, 99)
+    BOARD_LIGHT_TILE = COLOR_WORDS["DUTCH_WHITE"]
+    BOARD_DARK_TILE = COLOR_WORDS["BARLEY_CORN"]
 
     # Pieces (placeholders for later)
-    QUEEN_WHITE = (240, 240, 240)
-    QUEEN_BLACK = (40, 40, 40)
-    ARROW = (60, 60, 60)
+    QUEEN_WHITE = COLOR_WORDS["WHITE_SMOKE"]
+    QUEEN_BLACK = COLOR_WORDS["NERO"]
+    ARROW = COLOR_WORDS["ECLIPSE"]
 
 
 class GridSettings:
