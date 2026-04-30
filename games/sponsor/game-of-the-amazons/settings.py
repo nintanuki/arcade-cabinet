@@ -1,23 +1,94 @@
+class ColorSettings:
+    """Class to hold all the color constants used by overlays, board, and UI."""
+
+    # CRT / overlay
+    OVERLAY_BACKGROUND = (0, 0, 0)
+    SCREEN_BACKGROUND = (0, 0, 0)
+
+    # Window borders
+    BORDER_DEFAULT = (220, 220, 220)
+
+    # Text
+    TEXT_DEFAULT = (240, 240, 240)
+    TEXT_TITLE = (240, 200, 80)
+    TEXT_LABEL = (170, 170, 170)
+
+    # Board tiles (warm chess.com-style palette modeled on the reference image)
+    BOARD_LIGHT_TILE = (240, 217, 181)
+    BOARD_DARK_TILE = (181, 136, 99)
+
+    # Pieces (placeholders for later)
+    QUEEN_WHITE = (240, 240, 240)
+    QUEEN_BLACK = (40, 40, 40)
+    ARROW = (60, 60, 60)
+
+
+class GridSettings:
+    """Grid and tile dimensions for the 10x10 board."""
+
+    TILE_SIZE = 32
+    COLS = 10
+    ROWS = 10
+    BOARD_PIXELS = COLS * TILE_SIZE  # 320
+
+
+class UISettings:
+    """Window and UI layout coordinates derived from the tile size.
+
+    Every position is built up from a single grid unit (TILE_SIZE = 32),
+    so changing the tile size or HUD width re-flows the whole layout.
+    """
+
+    # All outer margins and the gap between board and HUD are one tile.
+    LEFT_MARGIN = GridSettings.TILE_SIZE
+    TOP_MARGIN = GridSettings.TILE_SIZE
+    BOTTOM_MARGIN = GridSettings.TILE_SIZE
+    RIGHT_MARGIN = GridSettings.TILE_SIZE
+    GAP = GridSettings.TILE_SIZE
+
+    # The board window is the rounded-corner container around the 10x10 board.
+    # BOARD_INNER_PADDING keeps the rounded border from clipping tile pixels.
+    BOARD_INNER_PADDING = 8
+    BOARD_WINDOW_SIZE = GridSettings.BOARD_PIXELS + 2 * BOARD_INNER_PADDING  # 336
+    BOARD_WINDOW_X = LEFT_MARGIN  # 32
+    BOARD_WINDOW_Y = TOP_MARGIN   # 32
+
+    # Top-left pixel of the actual playable board (inside the inner padding).
+    BOARD_ORIGIN_X = BOARD_WINDOW_X + BOARD_INNER_PADDING  # 40
+    BOARD_ORIGIN_Y = BOARD_WINDOW_Y + BOARD_INNER_PADDING  # 40
+
+    # HUD: thin sidebar to the right of the board.
+    HUD_WIDTH = 200
+    HUD_HEIGHT = BOARD_WINDOW_SIZE                                   # 336
+    HUD_X = BOARD_WINDOW_X + BOARD_WINDOW_SIZE + GAP                 # 400
+    HUD_Y = TOP_MARGIN                                               # 32
+    HUD_TEXT_PADDING = 14
+
+    # Window chrome
+    BORDER_WIDTH = 2
+    BORDER_RADIUS = 5
+
+
 class ScreenSettings:
     """Class to hold all the settings related to the screen."""
-    WIDTH = 800
-    HEIGHT = 600
-    RESOLUTION = (WIDTH,HEIGHT)
+
+    # Screen size derives from the layout above so the two can never disagree.
+    WIDTH = UISettings.HUD_X + UISettings.HUD_WIDTH + UISettings.RIGHT_MARGIN     # 632
+    HEIGHT = UISettings.TOP_MARGIN + UISettings.BOARD_WINDOW_SIZE + UISettings.BOTTOM_MARGIN  # 400
+    RESOLUTION = (WIDTH, HEIGHT)
     FPS = 60
     CRT_ALPHA_RANGE = (75, 90)
     CRT_SCANLINE_HEIGHT = 3
     TITLE = "Game of the Amazons"
 
-    # Colors
-    BACKGROUND_COLOR = (255, 255, 255)
-    BOARD_COLOR = (200, 200, 200)
-    QUEEN_COLOR = (0, 0, 255)
-    ARROW_COLOR = (0, 0, 0)
 
-class ColorSettings:
-    """Class to hold all the color constants used by overlays and UI."""
-    OVERLAY_BACKGROUND = (0, 0, 0)
-    SCREEN_BACKGROUND = (0, 0, 0)
+class FontSettings:
+    """Font sizes used by the HUD."""
+
+    HUD_TITLE_SIZE = 24
+    HUD_LABEL_SIZE = 16
+    HUD_VALUE_SIZE = 22
+
 
 class InputSettings:
     """Controller button and axis mappings used by gameplay and menus.
@@ -42,6 +113,7 @@ class InputSettings:
     JOY_AXIS_L2 = 4
     JOY_AXIS_R2 = 5
     JOY_TRIGGER_THRESHOLD = 0.5
+
 
 class AssetPaths:
     """File paths for game assets."""

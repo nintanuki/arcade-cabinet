@@ -1,7 +1,10 @@
 from __future__ import annotations
 import sys
 import pygame
+from core.board import Board
+from ui.board_view import BoardView
 from ui.crt import CRT
+from ui.hud import HUD
 from settings import *
 
 class GameManager:
@@ -15,6 +18,12 @@ class GameManager:
         self.clock = pygame.time.Clock()
 
         self.setup_controllers()
+
+        # Game state and views.
+        self.board = Board()
+        self.board_view = BoardView(self.board)
+        self.hud = HUD()
+
         self.crt = CRT(self.screen)
 
     # -------------------------
@@ -58,7 +67,7 @@ class GameManager:
                 return True
         return False
 
-        # -------------------------
+    # -------------------------
     # MAIN LOOP
     # -------------------------
 
@@ -109,8 +118,11 @@ class GameManager:
             pygame.display.toggle_fullscreen()
 
     def _render_frame(self) -> None:
-        """Compose one frame: world, HUD panels, modal overlays, then CRT."""
-        # self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
+        """Compose one frame: background, board, HUD, then CRT."""
+        self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
+
+        self.board_view.draw(self.screen)
+        self.hud.draw(self.screen)
 
         # Apply CRT pass after world/UI rendering.
         self.crt.draw()
