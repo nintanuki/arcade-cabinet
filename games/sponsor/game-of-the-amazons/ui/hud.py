@@ -130,7 +130,7 @@ class HUD:
             y += 12
 
         restart_surf = self.label_font.render(
-            "PRESS R TO RESTART", True, ColorSettings.TEXT_LABEL
+            "PRESS START TO PLAY AGAIN", True, ColorSettings.TEXT_LABEL
         )
         surface.blit(restart_surf, (x, y))
 

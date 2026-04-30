@@ -111,50 +111,7 @@ class GameManager:
     # INPUT
     # -------------------------
 
-    def _process_events(self) -> None:
-        """Drain pygame's event queue and dispatch by event type.
-
-        Returns:
-            None.
-        """
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.close_game()
-            elif event.type == pygame.KEYDOWN:
-                self._handle_keydown(event)
-            elif event.type == pygame.JOYBUTTONDOWN:
-                self._handle_joybuttondown(event)
-
-    def _handle_keydown(self, event) -> None:
-        """Route one keyboard press for fullscreen, exit, navigation, and selection.
-
-        Args:
-            event: pygame KEYDOWN event.
-
-        Returns:
-            None.
-        """
-        if event.key == pygame.K_F11:
-            pygame.display.toggle_fullscreen()
-            return
-        if event.key == pygame.K_ESCAPE:
-            # ESC always exits the game and returns to the launcher, matching
-            # the L1+R1+START+SELECT controller combo.
-            self.close_game()
-            return
-
-        if self.turn.game_over:
-            # During game over only allow the restart shortcut; ignore cursor
-            # navigation and SPACE so stray input cannot edit the final board.
-            if event.key == pygame.K_r:
-                self.reset_game()
-            return
-
-        if self._handle_navigation(event):
-            return
-
-        if event.key == pygame.K_SPACE:
-            self._handle_space_press()
+    
 
     def _handle_navigation(self, event) -> bool:
         """Translate arrow keys into cursor movement.
@@ -179,8 +136,8 @@ class GameManager:
             return True
         return False
 
-    def _handle_space_press(self) -> None:
-        """Treat SPACE as the per-phase confirm for the human player.
+    def _handle_confirm_action(self) -> None:
+        """Route the confirm button (SPACE / A) to the appropriate phase handler.
 
         Returns:
             None.
@@ -189,7 +146,7 @@ class GameManager:
         # queue a follow-up before the previous move has settled.
         if self.piece_animation.is_animating or self.arrow_animation.is_animating:
             return
-        # Only the human (WHITE) drives selection through SPACE.
+        # Only the human (WHITE) drives selection through the confirm button.
         if self.turn.current_player != "WHITE":
             return
 
@@ -239,6 +196,26 @@ class GameManager:
         self.arrow_animation.start(self.shoot_origin, target)
         self.audio.play('shoot')
 
+    def _handle_space_press(self) -> None:
+        """Treat SPACE as the per-phase confirm for the human player.
+
+        Returns:
+            None.
+        """
+        self._handle_confirm_action()
+
+    def _handle_joyhatmotion(self, event) -> None:
+        # event.value is (x, y) -> (-1, 0) is left, (0, 1) is up
+        dx, dy = event.value
+        
+        # Movement logic (Clamped to board 0-9)
+        if dx == -1 and self.cursor_pos[0] > 0: self.cursor_pos[0] -= 1
+        elif dx == 1 and self.cursor_pos[0] < 9: self.cursor_pos[0] += 1
+        
+        # Pygame 'Up' is 1, but your grid logic says Y increases as it goes up
+        if dy == 1 and self.cursor_pos[1] < 9: self.cursor_pos[1] += 1
+        elif dy == -1 and self.cursor_pos[1] > 0: self.cursor_pos[1] -= 1
+
     def _handle_joybuttondown(self, event) -> None:
         """Route one controller button press.
 
@@ -256,6 +233,61 @@ class GameManager:
         # BACK (SELECT) is the global fullscreen toggle.
         if event.button == InputSettings.JOY_BUTTON_BACK:
             pygame.display.toggle_fullscreen()
+
+        # Confirm Button (A / Button 0)
+        if event.button == InputSettings.JOY_BUTTON_A:
+            self._handle_confirm_action()
+
+        if self.turn.game_over:
+            if event.button == InputSettings.JOY_BUTTON_START:
+                self.reset_game()
+
+    def _handle_keydown(self, event) -> None:
+        """Route one keyboard press for fullscreen, exit, navigation, and selection.
+
+        Args:
+            event: pygame KEYDOWN event.
+
+        Returns:
+            None.
+        """
+        if event.key == pygame.K_F11:
+            pygame.display.toggle_fullscreen()
+            return
+        if event.key == pygame.K_ESCAPE:
+            # ESC always exits the game and returns to the launcher, matching
+            # the L1+R1+START+SELECT controller combo.
+            self.close_game()
+            return
+
+        if self.turn.game_over:
+            # During game over only allow the restart shortcut; ignore cursor
+            # navigation and SPACE so stray input cannot edit the final board.
+            if event.key == pygame.K_RETURN:
+                self.reset_game()
+            return
+
+        if self._handle_navigation(event):
+            return
+
+        if event.key == pygame.K_SPACE:
+            self._handle_space_press()
+
+    def _process_events(self) -> None:
+        """Drain pygame's event queue and dispatch by event type.
+
+        Returns:
+            None.
+        """
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.close_game()
+            elif event.type == pygame.KEYDOWN:
+                self._handle_keydown(event)
+            elif event.type == pygame.JOYBUTTONDOWN:
+                self._handle_joybuttondown(event)
+            elif event.type == pygame.JOYHATMOTION:
+                self._handle_joyhatmotion(event)
 
     # -------------------------
     # PHASE TRANSITIONS

@@ -162,7 +162,6 @@ class GameSettings:
 
     UNDER_CONSTRUCTION_GAMES = {
         "Dungeon Warrior",
-        "Game of the Amazons",
         "Ninja Frog",
     }
 

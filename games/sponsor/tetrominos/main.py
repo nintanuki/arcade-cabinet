@@ -11,6 +11,7 @@ if _HERE not in sys.path:
 from settings import *
 from sys import exit
 from os.path import join
+from ui.crt import CRT
 
 # components
 from game import Game
@@ -55,6 +56,8 @@ class Main:
 		self.music = pygame.mixer.Sound(join(BASE_PATH, 'sound', 'music.wav'))
 		self.music.set_volume(0.05)
 		self.music.play(-1)
+
+		self.crt  = CRT(self.display_surface)
 
 	def setup_controllers(self):
 		"""Cache currently-connected controllers so quit-combo polling is cheap.
@@ -125,6 +128,9 @@ class Main:
 			self.game.run()
 			self.score.run()
 			self.preview.run(self.next_shapes)
+
+			# overlay
+			self.crt.draw()
 
 			# updating the game
 			pygame.display.update()

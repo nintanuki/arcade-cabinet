@@ -56,3 +56,13 @@ SCORE_DATA = {1: 40, 2: 100, 3: 300, 4: 1200}
 A_BUTTON = 0
 X_BUTTON = 2
 ROTATE_BUTTONS = (A_BUTTON, X_BUTTON)
+
+class ScreenSettings:
+    WIDTH = WINDOW_WIDTH
+    HEIGHT = WINDOW_HEIGHT
+    RESOLUTION = (WIDTH, HEIGHT)
+    CRT_SCANLINE_HEIGHT = 4
+    CRT_ALPHA_RANGE = (50, 100)
+
+class AssetPaths:
+    TV = "graphics/tv.png"
