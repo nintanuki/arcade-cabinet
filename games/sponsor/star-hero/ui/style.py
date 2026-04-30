@@ -5,7 +5,7 @@ class Style():
     """Render all HUD, menu, pause, and game-over UI layers for Star Hero."""
 
     def __init__(self, screen: pygame.Surface, audio) -> None:
-        """Initialize fonts, shared screen/audio references, and title-screen ship art.
+        """Initialize fonts, shared screen/audio references, hearts, and title art.
 
         Args:
             screen (pygame.Surface): The active display surface used for all UI blits.
@@ -19,10 +19,30 @@ class Style():
 
         self.audio = audio # Audio reference used to read and display the current volume
 
+        # Heart icon used by the in-game HUD. Loading once here means
+        # display_hearts can stay a pure rendering call with no I/O.
+        self.heart_surf = pygame.image.load(AssetPaths.HEART).convert_alpha()
+        heart_width = self.heart_surf.get_size()[0]
+        self.heart_x_start_pos = ScreenSettings.WIDTH - (
+            heart_width * PlayerSettings.MAX_HEALTH + UISettings.HEART_RIGHT_MARGIN
+        )
+
         # Load image of ship for intro and game over screens
         self.player_ship = pygame.image.load(AssetPaths.PLAYER).convert_alpha()
         self.player_ship = pygame.transform.rotozoom(self.player_ship,0,0.2)
         self.player_ship_rect = self.player_ship.get_rect(center = (ScreenSettings.CENTER))
+
+    def display_hearts(self, hearts: int) -> None:
+        """Draw the player's remaining hearts in the top-right HUD.
+
+        Args:
+            hearts (int): Current heart count to render.
+        """
+        heart_width = self.heart_surf.get_size()[0]
+        for heart_index in range(hearts):
+            # Step right by (icon width + spacing) for each successive heart.
+            x = self.heart_x_start_pos + (heart_index * (heart_width + UISettings.HEART_SPACING))
+            self.screen.blit(self.heart_surf, (x, UISettings.HEART_TOP_MARGIN))
 
     def display_title(self):
         """Draw the game title on the intro screen."""
@@ -284,17 +304,17 @@ class Style():
         ]
 
         # --- 3. Layout Anchors ---
-        right_margin = 10
-        row_spacing = 15
+        right_margin = UISettings.STATUS_RIGHT_MARGIN
+        row_spacing = UISettings.STATUS_ROW_SPACING
 
         # Meter sits directly below the hearts row in the top-right HUD.
-        meter_width = 100
-        meter_height = 8
+        meter_width = UISettings.BOOST_METER_WIDTH
+        meter_height = UISettings.BOOST_METER_HEIGHT
         meter_x = ScreenSettings.WIDTH - right_margin - meter_width
-        meter_y = UISettings.HEART_TOP_MARGIN + UISettings.HEART_SPRITE_SIZE[1] + 9
+        meter_y = UISettings.HEART_TOP_MARGIN + UISettings.HEART_SPRITE_SIZE[1] + UISettings.BOOST_METER_TOP_GAP
 
         # Push text rows below the meter so there is clear separation.
-        start_y = meter_y + meter_height + 10
+        start_y = meter_y + meter_height + UISettings.BOOST_METER_BOTTOM_GAP
 
         for i, (label, value_segments) in enumerate(rows):
             # Render the white label
@@ -313,7 +333,10 @@ class Style():
                 self.screen.blit(surf, (value_x, y_pos))
                 value_x += surf.get_width()
 
-        bombs_top_right = (ScreenSettings.WIDTH - right_margin, start_y + (len(rows) * row_spacing) + 16)
+        bombs_top_right = (
+            ScreenSettings.WIDTH - right_margin,
+            start_y + (len(rows) * row_spacing) + UISettings.BOMBS_ROW_TOP_GAP,
+        )
         self._draw_bomb_icons(player.bombs, bombs_top_right)
 
         # --- 4. Boost/Brake Meter ---

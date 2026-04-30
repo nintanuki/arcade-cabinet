@@ -21,7 +21,7 @@ class CRT:
 
     def create_crt_lines(self):
         """Draws evenly-spaced horizontal scanlines onto the TV overlay surface to simulate a CRT monitor."""
-        line_height = 3
+        line_height = ScreenSettings.CRT_SCANLINE_HEIGHT
         line_amount = int(ScreenSettings.HEIGHT / line_height)
         for line in range(line_amount):
             y_pos = line * line_height

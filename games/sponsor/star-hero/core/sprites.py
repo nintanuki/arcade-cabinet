@@ -149,10 +149,10 @@ class BombProjectile(pygame.sprite.Sprite):
         self.pos_y = float(self.rect.y)
         self.speed = BombSettings.PROJECTILE_SPEED
         self.flash_timer = 0
-        self.current_color = (10, 10, 10)
-        self.base_color = (10, 10, 10)
-        self.flash_color = (55, 55, 55)
-        self.outline_color = (255, 40, 40)
+        self.base_color = BombSettings.PROJECTILE_BASE_COLOR
+        self.flash_color = BombSettings.PROJECTILE_FLASH_COLOR
+        self.current_color = self.base_color
+        self.outline_color = BombSettings.PROJECTILE_OUTLINE_COLOR
         self._redraw()
 
     def _redraw(self):
@@ -168,7 +168,7 @@ class BombProjectile(pygame.sprite.Sprite):
             hex_points.append((round(x), round(y)))
 
         pygame.draw.polygon(self.image, self.current_color, hex_points)
-        pygame.draw.polygon(self.image, self.outline_color, hex_points, 2)
+        pygame.draw.polygon(self.image, self.outline_color, hex_points, BombSettings.PROJECTILE_OUTLINE_WIDTH)
 
     def move(self, speed_multiplier=1.0):
         """Advance projectile upward with frame-scaled world speed.
@@ -228,8 +228,15 @@ class BombBlast(pygame.sprite.Sprite):
         diameter = max(2, self.radius * 2)
         self.image = pygame.Surface((diameter, diameter), pygame.SRCALPHA)
         center = (diameter // 2, diameter // 2)
-        pygame.draw.circle(self.image, (255, 255, 255, BombSettings.BLAST_ALPHA), center, self.radius)
-        pygame.draw.circle(self.image, (255, 255, 255, 235), center, self.radius, 3)
+        fill_rgb = BombSettings.BLAST_FILL_COLOR
+        pygame.draw.circle(self.image, (*fill_rgb, BombSettings.BLAST_ALPHA), center, self.radius)
+        pygame.draw.circle(
+            self.image,
+            (*fill_rgb, BombSettings.BLAST_RING_ALPHA),
+            center,
+            self.radius,
+            BombSettings.BLAST_RING_WIDTH,
+        )
         self.rect = self.image.get_rect(center=self.center)
 
     def update(self):
@@ -616,9 +623,9 @@ class Player(pygame.sprite.Sprite):
             
         
         if self.laser_level >= 3 or self.rainbow_beam_active:
-            self.audio.channel_10.play(self.audio.hyper_sound)
+            self.audio.play('hyper')
         else:
-            self.audio.channel_3.play(self.audio.laser_sound)
+            self.audio.play('laser')
 
     def activate_powerup(self, powerup):
         """
@@ -734,11 +741,11 @@ class Player(pygame.sprite.Sprite):
                 self.confused = False
                 self.image = self.original_image # Reset to original colors
             else:
-                # Create a purple-tinted version of the ship
-                # This creates a copy and "multiplies" the colors with purple
+                # Tint the ship by multiplying its pixels with the configured
+                # purple/magenta. BLEND_RGBA_MULT preserves alpha so the
+                # silhouette stays correct.
                 tinted_surf = self.original_image.copy()
-                # (200, 0, 255) is a bright purple/magenta
-                tinted_surf.fill((200, 0, 255, 255), special_flags=pygame.BLEND_RGBA_MULT)
+                tinted_surf.fill(AlienSettings.CONFUSION_PLAYER_TINT, special_flags=pygame.BLEND_RGBA_MULT)
                 self.image = tinted_surf
 
 class Alien(pygame.sprite.Sprite):
@@ -796,11 +803,15 @@ class Alien(pygame.sprite.Sprite):
         # Confusion attack attributes (for blue aliens)
         self.is_confusing = False
         self.confusion_start_time = 0
-        self.has_projected = False 
+        self.has_projected = False
         # Only blue aliens have a chance to cause confusion
         self.can_confuse = (color == 'blue' and random.random() < AlienSettings.CONFUSION_CHANCE)
 
         self.confusion_growth = 0  # Starts at 0, will increase to ScreenSettings.HEIGHT
+        # Cache for the per-frame beam surface so draw and collision can both
+        # consume the exact same pixels without rebuilding (or double-stepping
+        # confusion_growth).
+        self.confusion_beam_surf = None
 
     def apply_movement(self, delta_x, delta_y):
         """Apply sub-pixel deltas and keep rect coordinates synchronized.
@@ -860,9 +871,63 @@ class Alien(pygame.sprite.Sprite):
                 self.frame_index = 0
             self.image = self.frames[int(self.frame_index)]
 
+    def update_confusion_beam(self):
+        """Grow this frame's confusion beam and cache the resulting surface.
+
+        Called once per frame from update(); both rendering and collision
+        read the same cached surface to keep growth advancing exactly once
+        per frame. The cached surface is None when the alien is not
+        currently projecting the beam.
+        """
+        if not self.is_confusing:
+            self.confusion_beam_surf = None
+            return
+
+        # Grow the beam toward the bottom of the screen, capped to screen
+        # height so it cannot extend forever.
+        if self.confusion_growth < ScreenSettings.HEIGHT:
+            self.confusion_growth += AlienSettings.CONFUSION_BEAM_GROWTH_PER_FRAME
+
+        # Trapezoid: narrow at the alien's belly, fans out by a fraction of
+        # the current beam length so longer beams look more menacing.
+        top_width = AlienSettings.CONFUSION_BEAM_TOP_WIDTH
+        bottom_width = top_width + (self.confusion_growth * AlienSettings.CONFUSION_BEAM_WIDEN_RATIO)
+
+        beam_polygon = [
+            (self.rect.centerx - top_width // 2, self.rect.bottom),
+            (self.rect.centerx + top_width // 2, self.rect.bottom),
+            (self.rect.centerx + bottom_width // 2, self.rect.bottom + self.confusion_growth),
+            (self.rect.centerx - bottom_width // 2, self.rect.bottom + self.confusion_growth),
+        ]
+
+        field_surf = pygame.Surface((ScreenSettings.WIDTH, ScreenSettings.HEIGHT), pygame.SRCALPHA)
+        pygame.draw.polygon(field_surf, AlienSettings.CONFUSION_BEAM_COLOR, beam_polygon)
+        self.confusion_beam_surf = field_surf
+
+    def draw_confusion_beam(self, screen):
+        """Blit this frame's cached confusion-beam surface onto ``screen``.
+
+        Args:
+            screen (pygame.Surface): Destination surface for the beam blit.
+        """
+        if self.confusion_beam_surf is not None:
+            screen.blit(self.confusion_beam_surf, (0, 0))
+
+    def get_confusion_beam_mask(self):
+        """Return a pixel-perfect mask of this frame's confusion beam, or None.
+
+        Used by ``CollisionManager`` to detect player overlap with the beam.
+
+        Returns:
+            pygame.mask.Mask | None: Beam mask anchored at screen origin, or None.
+        """
+        if self.confusion_beam_surf is None:
+            return None
+        return pygame.mask.from_surface(self.confusion_beam_surf, threshold=1)
+
     def destroy(self):
-        """Destroys the alien if it moves off the bottom of the screen. Called every frame in update()."""
-        if self.rect.y >= self.screen_height + 50: # added 50 to give the score time to decrease
+        """Destroys the alien once it falls past the configured bottom margin."""
+        if self.rect.y >= self.screen_height + AlienSettings.OFFSCREEN_MARGIN:
             self.kill()
 
     def update(self, speed_multiplier=1.0):
@@ -873,6 +938,7 @@ class Alien(pygame.sprite.Sprite):
         """
         self.calculate_movement(speed_multiplier)
         self.animate()
+        self.update_confusion_beam()
         self.destroy()
 
 class PowerUp(pygame.sprite.Sprite):

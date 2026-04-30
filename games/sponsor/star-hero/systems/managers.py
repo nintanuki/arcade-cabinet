@@ -8,10 +8,10 @@ from core.sprites import Laser, Alien, PowerUp
 
 
 class CollisionManager:
-    """Handles all collision logic in one place"""
+    """Resolves all per-frame sprite-to-sprite collisions in one place."""
+
     def __init__(self, game):
-        """
-        Initializes the CollisionManager with a reference to the main game object.
+        """Store the shared game reference used by every collision check.
 
         Args:
             game (GameManager): The main game manager instance.
@@ -19,12 +19,13 @@ class CollisionManager:
         self.game = game
 
     def _player_lasers(self):
-        """Checks for collisions between player lasers and aliens"""
-        if not self.game.player.sprite.lasers: return
+        """Destroy aliens hit by player lasers and dispatch the kill effect."""
+        if not self.game.player.sprite.lasers:
+            return
         for laser in self.game.player.sprite.lasers:
             aliens_hit = pygame.sprite.spritecollide(laser, self.game.aliens, True)
             if aliens_hit:
-                # Laser only dies if it is NOT piercing
+                # Piercing lasers continue through enemies, otherwise the laser dies on impact.
                 if not laser.is_piercing:
                     laser.kill()
 
@@ -32,7 +33,7 @@ class CollisionManager:
                     self.game.handle_alien_destroyed(alien)
 
     def _player_bombs(self):
-        """Checks collisions for active bomb projectiles and starts bomb blasts on impact."""
+        """Detonate any bomb projectile that strikes an alien and start a blast."""
         player = self.game.player.sprite
         for bomb in player.bomb_projectiles.sprites():
             aliens_hit = pygame.sprite.spritecollide(bomb, self.game.aliens, True)
@@ -47,7 +48,7 @@ class CollisionManager:
             self.game.trigger_bomb_blast(blast_center)
 
     def _bomb_blasts(self):
-        """Applies bomb blast damage to aliens in the expanding area."""
+        """Apply expanding-blast damage to aliens caught inside the radius."""
         for blast in self.game.bomb_blasts:
             nearby_aliens = pygame.sprite.spritecollide(blast, self.game.aliens, False)
             for alien in nearby_aliens:
@@ -64,7 +65,7 @@ class CollisionManager:
                     self.game.handle_alien_destroyed(alien)
 
     def _alien_lasers(self):
-        """Checks for collisions between alien lasers and the player"""
+        """Damage the player when an alien laser overlaps the ship."""
         player = self.game.player.sprite
         for laser in self.game.alien_lasers:
             if pygame.sprite.spritecollide(laser, self.game.player, False):
@@ -73,8 +74,8 @@ class CollisionManager:
                     self.game.session.player_damage()
 
     def _ship_collisions(self):
-        """Checks for collisions between the player's ship and aliens"""
-        # Damage player if their ship collides with an alien
+        """Damage the player and award score when a ship-to-alien collision occurs."""
+        # Damage player if their ship collides with an alien.
         aliens_crash = pygame.sprite.spritecollide(self.game.player.sprite, self.game.aliens, True)
         for alien in aliens_crash:
             self.game.scores.score += alien.value
@@ -84,40 +85,63 @@ class CollisionManager:
             self.game.session.player_damage()
 
     def _powerups(self):
-        """Checks for collisions between player and powerups, applying effects and playing sounds as necessary"""
+        """Apply the effects of powerups the player has just walked over."""
         powerups_collected = pygame.sprite.spritecollide(self.game.player.sprite, self.game.powerups, True)
         for powerup in powerups_collected:
             if powerup.powerup_type == 'heal' and self.game.hearts < PlayerSettings.MAX_HEALTH: # Only heal if player isn't at full health
-                self.game.audio.channel_8.play(self.game.audio.powerup_heart)
+                self.game.audio.play('powerup_heart')
                 self.game.hearts += 1
             else:
                 # Only play sound if it's a new powerup activation, not if player already has it active
                 if powerup.powerup_type == 'laser_upgrade':
                     if self.game.player.sprite.laser_level < 4:
-                        self.game.audio.channel_8.play(self.game.audio.powerup_twin)
+                        self.game.audio.play('powerup_twin')
                 elif powerup.powerup_type in ['rapid_fire', 'rainbow_beam', 'shield', 'bomb']:
-                    self.game.audio.channel_8.play(self.game.audio.powerup_weapon)
+                    self.game.audio.play('powerup_weapon')
 
                 self.game.player.sprite.activate_powerup(powerup)
 
+    def _confusion_beams(self):
+        """Confuse the player when any blue-alien beam mask overlaps the ship.
+
+        Each ``Alien`` reports its own current beam mask via
+        ``get_confusion_beam_mask``. Doing the overlap test here keeps
+        gameplay-only state changes (shield strip, confusion timer) out of
+        the rendering path in ``main.py``. The shield is stripped on every
+        contact so picking up a fresh shield mid-beam still gets melted
+        immediately, matching pre-refactor behavior.
+        """
+        player = self.game.player.sprite
+        for alien in self.game.aliens:
+            beam_mask = alien.get_confusion_beam_mask()
+            if beam_mask is None:
+                continue
+            if beam_mask.overlap(player.mask, player.rect.topleft):
+                player.shield_active = False
+                if not player.confused:
+                    player.confused = True
+                    player.confusion_timer = pygame.time.get_ticks()
+
     def update(self):
-        """Checks all collisions"""
+        """Run every collision check for the current frame."""
         self._player_lasers()
         self._player_bombs()
         self._bomb_blasts()
         self._alien_lasers()
         self._ship_collisions()
         self._powerups()
+        self._confusion_beams()
 
 
 class ScoreManager:
-    """
-    Manages score, high score, leaderboard I/O, and initials entry state.
+    """Manages score, high score, leaderboard I/O, and initials entry state."""
 
-    Args:
-        game (GameManager): The main game manager instance, used for accessing score and saving data.
-    """
     def __init__(self, game):
+        """Initialize score, leaderboard cache, and initials-entry state.
+
+        Args:
+            game (GameManager): The main game manager instance.
+        """
         self.game = game
         self.score = 0
         self.save_data = {
@@ -144,7 +168,7 @@ class ScoreManager:
             print('No file created yet')
 
     def reset(self) -> None:
-        """Resets score and initials entry state for a new game."""
+        """Reset score and initials-entry state in preparation for a new run."""
         self.score = 0
         self.entering_initials = False
         self.initials = FontSettings.DEFAULT_INITIALS
@@ -153,7 +177,7 @@ class ScoreManager:
         self.score_processed = False
 
     def _sort_and_trim_leaderboard(self) -> None:
-        """Sorts the leaderboard and keeps only the top 10 scores, also updates high score."""
+        """Sort the leaderboard descending, keep top 10, and refresh the high score."""
         # Sort descending by score and keep only the top 10 entries.
         self.save_data['leaderboard'] = sorted(
             self.save_data.get('leaderboard', []),
@@ -167,15 +191,14 @@ class ScoreManager:
             self.save_data['high_score'] = 0
 
     def save_scores(self) -> None:
-        """Saves the current leaderboard and high score to a file."""
+        """Write the leaderboard and high score to disk."""
         self._sort_and_trim_leaderboard()
         score_file_path = os.path.join(AssetPaths.BASE_DIR, 'high_score.txt')
         with open(score_file_path, 'w') as high_score_file:
             json.dump(self.save_data, high_score_file)
 
     def qualifies_for_leaderboard(self, score: int) -> bool:
-        """
-        Checks if the given score qualifies for the leaderboard.
+        """Return True if ``score`` would earn a leaderboard slot.
 
         Args:
             score (int): The player's final score to check.
@@ -189,14 +212,14 @@ class ScoreManager:
         return score > leaderboard[-1]['score']
 
     def start_initial_entry(self) -> None:
-        """Initiates the process of entering initials for a new high score."""
+        """Begin the initials-entry flow for a qualifying high-score run."""
         self.entering_initials = True
         self.initials = FontSettings.DEFAULT_INITIALS
         self.initials_index = 0
         self.pending_score = self.score
 
     def submit_initials(self) -> None:
-        """Submits the entered initials and score to the leaderboard."""
+        """Commit the entered initials/score to the leaderboard and persist."""
         leaderboard = self.save_data.get('leaderboard', [])
         # If this name already exists on the board, update it only if the new score is higher.
         # Otherwise add a fresh entry so duplicate names don't bloat the leaderboard.
@@ -217,7 +240,7 @@ class ScoreManager:
         self.score_processed = True
 
     def finalize_game_over_score(self) -> None:
-        """Checks if the score qualifies for the leaderboard and starts initials entry or saves directly."""
+        """On game over, route to initials entry or persist the score directly."""
         if self.score_processed:
             return
         if self.qualifies_for_leaderboard(self.score):
@@ -228,8 +251,7 @@ class ScoreManager:
             self.score_processed = True
 
     def _move_initials_cursor(self, step: int) -> None:
-        """
-        Move initials cursor left/right and clamp to valid range.
+        """Move the initials-entry cursor and clamp to the valid range.
 
         Args:
             step (int): Direction to move (-1 for left, 1 for right).
@@ -237,8 +259,7 @@ class ScoreManager:
         self.initials_index = max(0, min(2, self.initials_index + step))
 
     def _cycle_initials_char(self, step: int) -> None:
-        """
-        Rotate the selected initials character by one alphabet step.
+        """Rotate the highlighted initials character by one alphabet step.
 
         Args:
             step (int): Direction to cycle (1 for forward, -1 for backward).
@@ -254,8 +275,14 @@ class ScoreManager:
 
 
 class SessionStateManager:
-    """Manages game session state: active/paused/player-alive flags, run resets, pause, and player damage."""
+    """Tracks active/paused/alive state, run resets, the pause loop, and player damage."""
+
     def __init__(self, game):
+        """Store the shared game reference and seed session-state flags.
+
+        Args:
+            game (GameManager): The main game manager instance.
+        """
         self.game = game
         self.game_active = False
         self.paused = False
@@ -263,7 +290,7 @@ class SessionStateManager:
         self.play_intro_music = True
 
     def reset_for_new_game(self) -> None:
-        """Resets all necessary game state to start a new game."""
+        """Reset every per-run game-state field so a fresh run can start."""
         game = self.game
         game.scores.reset()
         game.hearts = PlayerSettings.MAX_HEALTH
@@ -315,18 +342,15 @@ class SessionStateManager:
             bg.scroll_speed = ScreenSettings.DEFAULT_BG_SCROLL_SPEED
 
         # Stop any lingering audio/effects from previous game
-        game.audio.channel_4.stop()  # low health alarms
-        game.audio.channel_9.stop()  # tractor beam if active
+        game.audio.stop_alarms()
 
         # Make sure death timer isn't still hanging around
         pygame.time.set_timer(game.spawner.player_death_timer, 0)
 
     def pause(self) -> None:
-        """Pauses game when ESC or START is pressed."""
+        """Toggle pause, then drain events on a tight inner loop while paused."""
         game = self.game
         self.paused = not self.paused
-        # Stop confusion-beam loop while paused to prevent lingering audio.
-        game.audio.channel_9.stop()
         while self.paused:
             if game.quit_combo_pressed():
                 game.close_game()
@@ -335,7 +359,7 @@ class SessionStateManager:
                 if event.type == pygame.QUIT:
                     game.close_game()
 
-                if game._handle_joystick_hotplug(event):
+                if game.handle_joystick_hotplug(event):
                     continue
 
                 if event.type == pygame.KEYDOWN:
@@ -353,32 +377,24 @@ class SessionStateManager:
                 if event.type == pygame.JOYBUTTONDOWN:
                     if game.quit_combo_pressed():
                         game.close_game()
-                    if event.button == 7:
+                    if event.button == ControllerSettings.START_BUTTON:
                         self.unpause_game()
-                    if event.button == 6:
+                    if event.button == ControllerSettings.BACK_BUTTON:
                         pygame.display.toggle_fullscreen()
-                    # if event.button == 4:
-                    #     game.adjust_master_volume(-0.1, show_overlay=True)
-                    # if event.button == 5:
-                    #     game.adjust_master_volume(0.1, show_overlay=True)
 
             game.screen.fill((0, 0, 0))
             game.style.update('pause', game.scores.save_data, game.scores.score)
             pygame.display.update()
 
     def unpause_game(self) -> None:
-        """Handles unpausing logic."""
+        """Resume music channels and play the unpause SFX."""
         game = self.game
-        game.audio.channel_0.unpause()
-        game.audio.channel_1.unpause()
-        game.audio.channel_7.play(game.audio.unpause_sound)
+        game.audio.unpause_music()
+        game.audio.play('unpause')
         self.paused = False
 
     def player_damage(self) -> None:
-        """
-        Handles logic for when the player takes damage.
-        If the player has any active upgrade or powerup, that is stripped instead of losing a heart.
-        """
+        """Apply a hit: strip an active upgrade if any, otherwise lose a heart."""
         game = self.game
         player = game.player.sprite
         if player and player.shield_active:
@@ -394,7 +410,7 @@ class SessionStateManager:
 
         if has_upgrade:
             # Play the same alarm as losing the first heart
-            game.audio.channel_4.play(game.audio.low_health_alarm1)
+            game.audio.play('alarm_med')
             player.trigger_damage_effect()
             return
 
@@ -404,13 +420,13 @@ class SessionStateManager:
             player.trigger_damage_effect()
 
         if game.hearts == 2:
-            game.audio.channel_4.play(game.audio.low_health_alarm1)
+            game.audio.play('alarm_med')
         elif game.hearts == 1:
-            game.audio.channel_4.play(game.audio.low_health_alarm2)
+            game.audio.play('alarm_low')
 
         if game.hearts <= 0:
             game.explode(player.rect.centerx, player.rect.centery)
-            game.audio.channel_1.pause()
+            game.audio.channels['bg_music'].pause()
             self.player_alive = False
             player.ready = False
             player.shoot_button_held = True
@@ -418,8 +434,14 @@ class SessionStateManager:
 
 
 class SpawnDirector:
-    """Manages spawn timers, alien/powerup spawning, alien shooting, and adaptive difficulty."""
+    """Owns spawn timers, alien/powerup spawning, alien shooting, and adaptive difficulty."""
+
     def __init__(self, game):
+        """Allocate timers and store the shared game reference.
+
+        Args:
+            game (GameManager): The main game manager instance.
+        """
         self.game = game
 
         self.alien_spawn_timer = pygame.event.custom_type()
@@ -428,24 +450,21 @@ class SpawnDirector:
         self.alien_laser_timer = pygame.event.custom_type()
         pygame.time.set_timer(self.alien_laser_timer, AlienSettings.LASER_RATE)
 
-        # Custom timer for player death delay before showing game over screen
+        # Custom timer for player death delay before showing game over screen.
         self.player_death_timer = pygame.event.custom_type()
-        self.volume_display_timer = pygame.event.custom_type()
 
     def spawn_aliens(self, alien_color: str) -> None:
-        """
-        Spawns a new alien of the given color.
+        """Spawn one alien of the requested color and play its arrival cue.
 
         Args:
             alien_color (str): The color of the alien, which determines its behavior and point value.
         """
         self.game.aliens.add(Alien(alien_color, *ScreenSettings.RESOLUTION))
         if alien_color == 'blue':
-            self.game.audio.channel_5.play(self.game.audio.ufo_sound)
+            self.game.audio.play('ufo')
 
     def spawn_powerup(self, pos: tuple[int, int], color: str) -> None:
-        """
-        Spawns a new powerup at the given position.
+        """Spawn one powerup at the given position.
 
         Args:
             pos (tuple[int, int]): The (x, y) position to spawn the powerup.
@@ -454,44 +473,50 @@ class SpawnDirector:
         self.game.powerups.add(PowerUp(pos, color))
 
     def alien_shoot(self) -> None:
-        """Spawns a new alien laser from a random alien."""
-        game = self.game
-        if game.aliens.sprites():
-            attacking_aliens = [alien for alien in game.aliens.sprites() if alien.color != 'blue']
-            if attacking_aliens:
-                random_alien = random.choice(attacking_aliens)
+        """Pick one non-blue alien at random and have it fire a laser.
 
-                if random_alien.color == 'green':
-                    # Green aliens fire a double shot — two lasers spread either side of center.
-                    offset = 10
-                    game.alien_lasers.add(
-                        Laser(
-                            pos=(random_alien.rect.centerx - offset, random_alien.rect.centery),
-                            speed=LaserSettings.ALIEN_LASER_SPEED,
-                            colors=LaserSettings.COLORS['alien'],
-                            width=LaserSettings.DEFAULT_WIDTH
-                        )
-                    )
-                    game.alien_lasers.add(
-                        Laser(
-                            pos=(random_alien.rect.centerx + offset, random_alien.rect.centery),
-                            speed=LaserSettings.ALIEN_LASER_SPEED,
-                            colors=LaserSettings.COLORS['alien'],
-                            width=LaserSettings.DEFAULT_WIDTH
-                        )
-                    )
-                else:
-                    game.alien_lasers.add(
-                        Laser(
-                            random_alien.rect.center,
-                            LaserSettings.ALIEN_LASER_SPEED,
-                            LaserSettings.COLORS['alien'],
-                            LaserSettings.DEFAULT_WIDTH
-                        )
-                    )
+        Green aliens fire a paired left/right shot; everything else fires a
+        single laser from the alien's center.
+        """
+        game = self.game
+        if not game.aliens.sprites():
+            return
+        attacking_aliens = [alien for alien in game.aliens.sprites() if alien.color != 'blue']
+        if not attacking_aliens:
+            return
+        random_alien = random.choice(attacking_aliens)
+
+        if random_alien.color == 'green':
+            # Green aliens fire a double shot — two lasers spread either side of center.
+            offset = 10
+            game.alien_lasers.add(
+                Laser(
+                    pos=(random_alien.rect.centerx - offset, random_alien.rect.centery),
+                    speed=LaserSettings.ALIEN_LASER_SPEED,
+                    colors=LaserSettings.COLORS['alien'],
+                    width=LaserSettings.DEFAULT_WIDTH,
+                )
+            )
+            game.alien_lasers.add(
+                Laser(
+                    pos=(random_alien.rect.centerx + offset, random_alien.rect.centery),
+                    speed=LaserSettings.ALIEN_LASER_SPEED,
+                    colors=LaserSettings.COLORS['alien'],
+                    width=LaserSettings.DEFAULT_WIDTH,
+                )
+            )
+        else:
+            game.alien_lasers.add(
+                Laser(
+                    random_alien.rect.center,
+                    LaserSettings.ALIEN_LASER_SPEED,
+                    LaserSettings.COLORS['alien'],
+                    LaserSettings.DEFAULT_WIDTH,
+                )
+            )
 
     def adjust_difficulty(self) -> None:
-        """Gradually decreases timers as score increases."""
+        """Tighten spawn/laser timers and speed up the background as score climbs."""
         game = self.game
         # Each full DIFFICULTY_STEP points earned unlocks one more level of difficulty.
         steps = game.scores.score // AlienSettings.DIFFICULTY_STEP
@@ -518,30 +543,8 @@ class SpawnDirector:
         for bg in game.background.sprites():
             bg.scroll_speed = new_bg_speed
 
-    def get_bomb_drop_chance(self, alien_value: int) -> float:
-        """
-        Returns a rare bomb-drop chance weighted by alien point value.
-
-        Args:
-            alien_value (int): The point value of the defeated alien.
-
-        Returns:
-            float: Drop chance between BOMB_DROP_BASE and BOMB_DROP_BASE + BOMB_DROP_BONUS.
-        """
-        all_values = AlienSettings.POINTS.values()
-        min_value = min(all_values)
-        max_value = max(all_values)
-        if max_value == min_value:
-            # All alien types are worth the same — use the flat base chance.
-            return AlienSettings.BOMB_DROP_BASE
-        # Linear interpolation: rarer (higher-value) aliens drop bombs more often.
-        # value_ratio == 0.0 for the weakest alien, 1.0 for the strongest.
-        value_ratio = (alien_value - min_value) / (max_value - min_value)
-        return AlienSettings.BOMB_DROP_BASE + (AlienSettings.BOMB_DROP_BONUS * value_ratio)
-
     def try_spawn_alien_drop(self, alien: Alien) -> None:
-        """
-        Evaluates whether a destroyed alien should drop a powerup and spawns it if so.
+        """Roll the destroyed alien's drop table and spawn a powerup if it hits.
 
         Args:
             alien (Alien): The alien that was destroyed, used to determine drop chances and type.
