@@ -167,7 +167,7 @@ class GameSettings:
     }
 
     GAME_ATTRIBUTIONS = {
-        "Air Hockey": "TRIBUTE BY MR. NAVARRO",
+        "Air Hockey": "ORIGINAL BY MR. NAVARRO",
         "Breakout": "MADE WITH CLEAR CODE TUTORIAL",
         "Dungeon Digger": "ORIGINAL BY MR. NAVARRO",
         "Dungeon Warrior": "ORIGINAL BY MR. NAVARRO",
