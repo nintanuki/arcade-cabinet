@@ -2,6 +2,7 @@ from __future__ import annotations
 import sys
 import pygame
 from core.board import Board
+from core.turn_manager import TurnManager
 from ui.board_view import BoardView
 from ui.crt import CRT
 from ui.hud import HUD
@@ -21,6 +22,7 @@ class GameManager:
 
         # Game state and views.
         self.board = Board()
+        self.turn = TurnManager(self.board)
         self.board_view = BoardView(self.board)
         self.hud = HUD()
 
@@ -115,12 +117,18 @@ class GameManager:
 
             if self.selected_pos is None:
                 # Attempt to select a piece
-                if current_tile.piece:
+                # only allow selecting pieces of the current player's color
+                allowed_piece = "white_queen" if self.turn.current_player == "WHITE" else "black_queen"
+                if current_tile.piece == allowed_piece:
                     self.selected_pos = (col, row)
             else:
-                # Move selected piece to new tile
-                self.board.move_piece(self.selected_pos, (col, row))
-                self.selected_pos = None
+                # Move selected piece
+                if self.board.move_piece(self.selected_pos, (col, row)):
+                    self.selected_pos = None
+                    self.turn.switch_turn() # Trigger the turn switch
+                else:
+                    # If move was invalid, just deselect
+                    self.selected_pos = None
 
     def _handle_joybuttondown(self, event) -> None:
         """Route one controller button press.
