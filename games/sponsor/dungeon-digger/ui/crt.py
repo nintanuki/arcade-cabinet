@@ -11,29 +11,30 @@ class CRT:
         and storing a reference to the screen for drawing.
 
         Args:
-            screen: Display surface to render the CRT effect onto.
+            screen (pygame.Surface): The main display surface that the CRT
+                overlay will be composited onto each frame.
         """
+        super().__init__()
         self.screen = screen
-        self.base_tv = pygame.image.load(AssetPaths.TV).convert_alpha()
-        self.base_tv = pygame.transform.scale(self.base_tv, ScreenSettings.RESOLUTION)
+        self.tv = pygame.image.load(AssetPaths.TV).convert_alpha()
+        self.tv = pygame.transform.scale(self.tv,(ScreenSettings.RESOLUTION))
 
-    def create_crt_lines(self, surf):
-        """Draw horizontal scan lines across a surface to mimic CRT artifacts.
-
-        Args:
-            surf: Surface receiving the scanline overlay.
-        """
+    def create_crt_lines(self):
+        """Draws evenly-spaced horizontal scanlines onto the TV overlay surface to simulate a CRT monitor."""
         line_height = ScreenSettings.CRT_SCANLINE_HEIGHT
-        for y in range(0, ScreenSettings.HEIGHT, line_height):
-            pygame.draw.line(surf, ColorSettings.OVERLAY_BACKGROUND, (0, y), (ScreenSettings.WIDTH, y), 1)
+        line_amount = int(ScreenSettings.HEIGHT / line_height)
+        for line in range(line_amount):
+            y_pos = line * line_height
+            pygame.draw.line(self.tv,'black',(0,y_pos),(ScreenSettings.WIDTH,y_pos),1)
 
     def draw(self):
-        """Draws the CRT effect by copying the base TV image, applying a random alpha for flickering,
-        adding scan lines, and blitting it on top of the current screen."""
-        # Copy per frame so the overlay effect does not accumulate between frames.
-        tv = self.base_tv.copy()
+        """
+        Composites the CRT overlay onto the screen.
 
-        tv.set_alpha(random.randint(*ScreenSettings.CRT_ALPHA_RANGE))
-        self.create_crt_lines(tv)
-
-        self.screen.blit(tv, (0, 0))
+        Randomizes the TV overlay's alpha each frame within CRT_ALPHA_RANGE to
+        simulate the subtle flicker of a real CRT monitor, then draws scanlines
+        and blits the overlay on top of the rendered game scene.
+        """
+        self.tv.set_alpha(random.randint(*ScreenSettings.CRT_ALPHA_RANGE))
+        self.create_crt_lines()
+        self.screen.blit(self.tv,(0,0))
