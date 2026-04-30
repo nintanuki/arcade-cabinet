@@ -135,3 +135,4 @@ class AssetPaths:
     """File paths for game assets."""
     TV = "assets/graphics/tv.png"
     WHITE_QUEEN = "assets/graphics/white_queen.png"
+    BLACK_QUEEN = "assets/graphics/black_queen.png"

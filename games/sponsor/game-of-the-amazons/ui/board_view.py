@@ -14,10 +14,17 @@ class BoardView:
             board: A core.board.Board instance.
         """
         self.board = board
-        self.white_queen_img = pygame.image.load(AssetPaths.WHITE_QUEEN).convert_alpha()
-        self.white_queen_img = pygame.transform.scale(
-            self.white_queen_img, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE)
-        ) # is this necessary? It's already 32x32
+
+        self.pieces = {
+            "white_queen": pygame.image.load(AssetPaths.WHITE_QUEEN).convert_alpha(),
+            "black_queen": pygame.image.load(AssetPaths.BLACK_QUEEN).convert_alpha(),
+        }
+
+        # Scale both
+        for key in self.pieces:
+            self.pieces[key] = pygame.transform.scale(
+                self.pieces[key], (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE)
+            )
 
     def _draw_tiles(self, surface):
         """Fill each of the 100 tiles with its light or dark color."""
@@ -36,9 +43,9 @@ class BoardView:
 
     def _draw_pieces(self, surface):
         for tile in self.board.all_tiles():
-            if tile.piece == "white_queen":
+            if tile.piece in self.pieces:
                 x, y = grid_to_pixel_topleft(tile.col, tile.row)
-                surface.blit(self.white_queen_img, (x, y))
+                surface.blit(self.pieces[tile.piece], (x, y))
 
     def _draw_cursor(self, surface, cursor_pos, selected_pos):
         # Draw moving cursor (white outline)

@@ -21,7 +21,6 @@ class GameManager:
 
         # Game state and views.
         self.board = Board()
-        self.board.tile_at(3, 3).piece = "white_queen" # just putting this here to test
         self.board_view = BoardView(self.board)
         self.hud = HUD()
 

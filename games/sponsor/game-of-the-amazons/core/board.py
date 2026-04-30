@@ -10,6 +10,7 @@ Internal grid coordinates use (col, row) zero-indexed so 'a1' is grid
 when converting to pixels we flip the row index.
 """
 from __future__ import annotations
+from typing import Optional
 from settings import GridSettings, UISettings
 
 
@@ -47,7 +48,7 @@ class Tile:
     def __init__(self, col: int, row: int):
         self.col = col   # 0..9, columns a..j
         self.row = row   # 0..9, rows 1..10
-        self.piece = None  # placeholder for queens / arrows later
+        self.piece: Optional[str] = None  # placeholder for queens / arrows later
 
     @property
     def name(self) -> str:
@@ -78,6 +79,7 @@ class Board:
             [Tile(col, row) for row in range(self.rows)]
             for col in range(self.cols)
         ]
+        self.setup_amazons()
 
     def tile_at(self, col: int, row: int) -> Tile:
         """Look up a tile by zero-indexed (col, row) coords."""
@@ -94,6 +96,49 @@ class Board:
             for row in range(self.rows):
                 yield self.tiles[col][row]
 
+    def setup_amazons(self):
+        """Initializes the board with pieces at the starting positions."""
+        # White Queens
+        self.tile_by_name("a4").piece = "white_queen"
+        self.tile_by_name("d1").piece = "white_queen"
+        self.tile_by_name("g1").piece = "white_queen"
+        self.tile_by_name("j4").piece = "white_queen"
+        
+        # Black Queens
+        self.tile_by_name("a7").piece = "black_queen"
+        self.tile_by_name("d10").piece = "black_queen"
+        self.tile_by_name("g10").piece = "black_queen"
+        self.tile_by_name("j7").piece = "black_queen"
+
+    def is_valid_path(self, start_pos: tuple[int, int], end_pos: tuple[int, int]) -> bool:
+        """Checks if the path is a valid queen move and is unobstructed."""
+        sc, sr = start_pos
+        ec, er = end_pos
+
+        if (sc, sr) == (ec, er): return False
+        
+        diff_c = ec - sc
+        diff_r = er - sr
+        
+        # Must be horizontal, vertical, or diagonal
+        if not (diff_c == 0 or diff_r == 0 or abs(diff_c) == abs(diff_r)):
+            return False
+
+        # Determine step direction (-1, 0, or 1)
+        step_c = (diff_c // abs(diff_c)) if diff_c != 0 else 0
+        step_r = (diff_r // abs(diff_r)) if diff_r != 0 else 0
+
+        # Traverse the path to check for obstacles
+        curr_c, curr_r = sc + step_c, sr + step_r
+        while (curr_c, curr_r) != (ec, er):
+            if self.tile_at(curr_c, curr_r).piece is not None:
+                return False
+            curr_c += step_c
+            curr_r += step_r
+
+        # Destination must also be empty
+        return self.tile_at(ec, er).piece is None
+
     def move_piece(self, start_pos: tuple[int, int], end_pos: tuple[int, int]):
         """
         Moves a piece from start (col, row) to end (col, row).
@@ -102,8 +147,10 @@ class Board:
             start_pos: A tuple (col, row) for the piece's current position.
             end_pos: A tuple (col, row) for the piece's new position.
         """
-        start_tile = self.tile_at(*start_pos)
-        end_tile = self.tile_at(*end_pos)
-        
-        end_tile.piece = start_tile.piece
-        start_tile.piece = None
+        if self.is_valid_path(start_pos, end_pos):
+            start_tile = self.tile_at(*start_pos)
+            end_tile = self.tile_at(*end_pos)
+            end_tile.piece = start_tile.piece
+            start_tile.piece = None
+            return True
+        return False
