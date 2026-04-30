@@ -132,10 +132,10 @@ class Audio:
         self.muted = AudioSettings.DEBUG_MUTE
         half = self._half_effective_volume()
 
-        self.intro_music.set_volume(half)
+        self.intro_music.set_volume(self._effective_volume())
         for track in self.bgm_tracks:
-            track.set_volume(half)
-        self.player_down.set_volume(half)
+            track.set_volume(self._effective_volume())
+        self.player_down.set_volume(self._effective_volume())
         self.laser_sound.set_volume(half)
         self.hyper_sound.set_volume(half)
         self.explosion_sound.set_volume(half)
