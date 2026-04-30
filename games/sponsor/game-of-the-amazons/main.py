@@ -71,14 +71,6 @@ class GameManager:
     # MAIN LOOP
     # -------------------------
 
-    def _tick_between_level_flow(self) -> None:
-        """Advance level-transition, door-unlock, treasure-conversion, and game-over timers."""
-        if self.ui_state == 'playing':
-            self.intermission.update_level_transition()
-            self.intermission.update_door_unlock_sequence()
-            self.intermission.update_treasure_conversion()
-        self.score_manager.update_game_over_flow()
-
     def _process_events(self) -> None:
         """Drain pygame's event queue and dispatch by event type."""
         for event in pygame.event.get():
