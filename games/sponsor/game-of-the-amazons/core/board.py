@@ -93,3 +93,17 @@ class Board:
         for col in range(self.cols):
             for row in range(self.rows):
                 yield self.tiles[col][row]
+
+    def move_piece(self, start_pos: tuple[int, int], end_pos: tuple[int, int]):
+        """
+        Moves a piece from start (col, row) to end (col, row).
+        
+        Args:
+            start_pos: A tuple (col, row) for the piece's current position.
+            end_pos: A tuple (col, row) for the piece's new position.
+        """
+        start_tile = self.tile_at(*start_pos)
+        end_tile = self.tile_at(*end_pos)
+        
+        end_tile.piece = start_tile.piece
+        start_tile.piece = None

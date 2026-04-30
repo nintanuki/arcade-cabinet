@@ -21,8 +21,13 @@ class GameManager:
 
         # Game state and views.
         self.board = Board()
+        self.board.tile_at(3, 3).piece = "white_queen" # just putting this here to test
         self.board_view = BoardView(self.board)
         self.hud = HUD()
+
+        # Cursor State
+        self.cursor_pos = [0, 0] # [col, row]
+        self.selected_pos = None # None or (col, row)
 
         self.crt = CRT(self.screen)
 
@@ -94,6 +99,30 @@ class GameManager:
             # the L1+R1+START+SELECT controller combo.
             self.close_game()
 
+        # --- Navigation ---
+        if event.key == pygame.K_UP and self.cursor_pos[1] < 9:
+            self.cursor_pos[1] += 1
+        elif event.key == pygame.K_DOWN and self.cursor_pos[1] > 0:
+            self.cursor_pos[1] -= 1
+        elif event.key == pygame.K_LEFT and self.cursor_pos[0] > 0:
+            self.cursor_pos[0] -= 1
+        elif event.key == pygame.K_RIGHT and self.cursor_pos[0] < 9:
+            self.cursor_pos[0] += 1
+
+        # --- Selection Logic ---
+        elif event.key == pygame.K_SPACE:
+            col, row = self.cursor_pos
+            current_tile = self.board.tile_at(col, row)
+
+            if self.selected_pos is None:
+                # Attempt to select a piece
+                if current_tile.piece:
+                    self.selected_pos = (col, row)
+            else:
+                # Move selected piece to new tile
+                self.board.move_piece(self.selected_pos, (col, row))
+                self.selected_pos = None
+
     def _handle_joybuttondown(self, event) -> None:
         """Route one controller button press.
 
@@ -113,7 +142,8 @@ class GameManager:
         """Compose one frame: background, board, HUD, then CRT."""
         self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
 
-        self.board_view.draw(self.screen)
+        # Pass cursor states to the view
+        self.board_view.draw(self.screen, self.cursor_pos, self.selected_pos)
         self.hud.draw(self.screen)
 
         # Apply CRT pass after world/UI rendering.

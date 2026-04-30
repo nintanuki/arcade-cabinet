@@ -12,6 +12,8 @@ class ColorSettings:
         "BARLEY_CORN": (181, 136, 99),
         "NERO": (40, 40, 40),
         "ECLIPSE": (60, 60, 60),
+        "YELLOW": (255, 255, 0),
+        "WHITE": (255, 255, 255),
     }
 
     # CRT / overlay
@@ -132,3 +134,4 @@ class InputSettings:
 class AssetPaths:
     """File paths for game assets."""
     TV = "assets/graphics/tv.png"
+    WHITE_QUEEN = "assets/graphics/white_queen.png"
