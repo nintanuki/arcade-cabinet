@@ -45,6 +45,7 @@ class GridSettings:
     COLS = 10
     ROWS = 10
     BOARD_PIXELS = COLS * TILE_SIZE  # 320
+    ANIMATION_SPEED = 4 # pixels per frame for piece movement animation
 
 
 class UISettings:

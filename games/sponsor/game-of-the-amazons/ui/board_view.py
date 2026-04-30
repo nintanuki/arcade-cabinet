@@ -75,18 +75,14 @@ class BoardView:
             UISettings.BORDER_RADIUS,
         )
 
-    def draw(self, surface, cursor_pos, selected_pos):
-        """Render the board window border and every tile.
-
-        Tiles are drawn before the border so the rounded corners cleanly
-        mask the tile rectangles at the four corners of the board.
-
-        Args:
-            surface: Target surface (typically the main screen).
-            cursor_pos: (col, row) of the current cursor position.
-            selected_pos: (col, row) of the currently selected tile, or None if no selection.
-        """
+    def draw(self, surface, cursor_pos, selected_pos, anim_data=None):
         self._draw_tiles(surface)
-        self._draw_pieces(surface)
+        self._draw_pieces(surface) # Draws pieces still on the board
+        
+        # Draw the 'ghost' piece mid-animation
+        if anim_data:
+            piece_type, pos_px = anim_data
+            surface.blit(self.pieces[piece_type], pos_px)
+
         self._draw_cursor(surface, cursor_pos, selected_pos)
         self._draw_window_border(surface)

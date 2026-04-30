@@ -3,6 +3,7 @@ import sys
 import pygame
 from core.board import Board
 from core.turn_manager import TurnManager
+from core.animation import PieceAnimator
 from ui.board_view import BoardView
 from ui.crt import CRT
 from ui.hud import HUD
@@ -25,6 +26,7 @@ class GameManager:
         self.turn = TurnManager(self.board)
         self.board_view = BoardView(self.board)
         self.hud = HUD()
+        self.piece_animation = PieceAnimator()
 
         # Cursor State
         self.cursor_pos = [0, 0] # [col, row]
@@ -112,6 +114,10 @@ class GameManager:
 
         # --- Selection Logic ---
         elif event.key == pygame.K_SPACE:
+            # Prevent input if an animation is already playing
+            if self.piece_animation.is_animating:
+                return
+
             col, row = self.cursor_pos
             current_tile = self.board.tile_at(col, row)
 
@@ -122,10 +128,14 @@ class GameManager:
                 if current_tile.piece == allowed_piece:
                     self.selected_pos = (col, row)
             else:
-                # Move selected piece
-                if self.board.move_piece(self.selected_pos, (col, row)):
+                # CHECK if valid, but DON'T move it yet
+                if self.board.is_valid_path(self.selected_pos, (col, row)):
+                    piece_type = self.board.tile_at(*self.selected_pos).piece
+                    # Start the visual slide
+                    self.piece_animation.start(piece_type, self.selected_pos, (col, row))
+                    # Remove from board temporarily so it doesn't draw in two places
+                    self.board.tile_at(*self.selected_pos).piece = None 
                     self.selected_pos = None
-                    self.turn.switch_turn() # Trigger the turn switch
                 else:
                     # If move was invalid, just deselect
                     self.selected_pos = None
@@ -145,12 +155,43 @@ class GameManager:
         if event.button == InputSettings.JOY_BUTTON_BACK:
             pygame.display.toggle_fullscreen()
 
+    def _update_game_state(self):
+        """Advances animations and checks AI timers."""
+        # 1. Process active animations[cite: 6]
+        if self.piece_animation.update():
+            self._finalize_move()
+
+        # 2. Check if AI needs to start a move
+        if not self.piece_animation.is_animating and self.turn.current_player == "BLACK":
+            ai_move = self.turn.update_ai() 
+            if ai_move:
+                self._start_move_sequence(*ai_move)
+
+    def _start_move_sequence(self, start_pos, end_pos):
+        """Initiates the transition from logic to animation[cite: 6, 7]."""
+        piece_type = self.board.tile_at(*start_pos).piece
+        self.piece_animation.start(piece_type, start_pos, end_pos)
+        self.board.tile_at(*start_pos).piece = None # Hide from board[cite: 7]
+
+    def _finalize_move(self):
+        """Place the piece on its new tile and swap turns[cite: 7, 8]."""
+        move_data = self.piece_animation.moving_piece
+        target = move_data['end_grid']
+        self.board.tile_at(*target).piece = move_data['type']
+        self.piece_animation.moving_piece = None
+        self.turn.switch_turn()
+
     def _render_frame(self) -> None:
         """Compose one frame: background, board, HUD, then CRT."""
         self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
 
+        self.hud.current_player = self.turn.current_player
+
+        # Ask the animator if there's a piece to draw that isn't on the board yet
+        anim_data = self.piece_animation.get_render_data()
+
         # Pass cursor states to the view
-        self.board_view.draw(self.screen, self.cursor_pos, self.selected_pos)
+        self.board_view.draw(self.screen, self.cursor_pos, self.selected_pos, anim_data)
         self.hud.draw(self.screen)
 
         # Apply CRT pass after world/UI rendering.
@@ -162,6 +203,7 @@ class GameManager:
             if self.quit_combo_pressed():
                 self.close_game()
             self._process_events()
+            self._update_game_state()
             self._render_frame()
             pygame.display.flip()
             self.clock.tick(ScreenSettings.FPS)
