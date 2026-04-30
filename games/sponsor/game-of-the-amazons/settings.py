@@ -85,6 +85,7 @@ class ScreenSettings:
 class FontSettings:
     """Font sizes used by the HUD."""
 
+    FONT = "assets/font/Pixeled.ttf"
     HUD_TITLE_SIZE = 24
     HUD_LABEL_SIZE = 16
     HUD_VALUE_SIZE = 22
