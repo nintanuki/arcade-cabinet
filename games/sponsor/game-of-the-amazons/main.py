@@ -7,6 +7,7 @@ from core.animation import PieceAnimator, ArrowAnimator
 from ui.board_view import BoardView
 from ui.crt import CRT
 from ui.hud import HUD
+from systems.audio import AudioManager
 from settings import *
 
 
@@ -50,7 +51,7 @@ class GameManager:
         self.shoot_origin = None
 
         self.crt = CRT(self.screen)
-
+        self.audio = AudioManager()
     # -------------------------
     # BOOT / SETUP
     # -------------------------
@@ -236,6 +237,7 @@ class GameManager:
         if not self.board.is_valid_path(self.shoot_origin, target):
             return
         self.arrow_animation.start(self.shoot_origin, target)
+        self.audio.play('shoot')
 
     def _handle_joybuttondown(self, event) -> None:
         """Route one controller button press.
@@ -297,6 +299,7 @@ class GameManager:
             arrow_target = self.turn.consume_pending_arrow_target()
             if arrow_target is not None:
                 self.arrow_animation.start(self.shoot_origin, arrow_target)
+                self.audio.play('shoot')
 
     def _finalize_arrow(self):
         """Stamp the arrow on its tile, clear flight state, and end the turn.

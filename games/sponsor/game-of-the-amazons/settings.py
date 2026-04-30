@@ -136,6 +136,10 @@ class InputSettings:
     JOY_AXIS_R2 = 5
     JOY_TRIGGER_THRESHOLD = 0.5
 
+class AudioSettings:
+    """Global audio settings and state."""
+    MUTE = False
+
 
 class AssetPaths:
     """File paths for game assets."""
@@ -143,3 +147,9 @@ class AssetPaths:
     WHITE_QUEEN = "assets/graphics/white_queen.png"
     BLACK_QUEEN = "assets/graphics/black_queen.png"
     ARROW_SHEET = "assets/graphics/Arrow.png"
+
+    SHOOT_SOUND = "assets/audio/sfx_weapon_singleshot1.wav"
+
+class DebugSettings:
+    """Global debug flags."""
+    MUTE = False
