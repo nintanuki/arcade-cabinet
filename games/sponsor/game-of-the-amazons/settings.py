@@ -46,6 +46,11 @@ class GridSettings:
     ROWS = 10
     BOARD_PIXELS = COLS * TILE_SIZE  # 320
     ANIMATION_SPEED = 4 # pixels per frame for piece movement animation
+    ARROW_ANIMATION_SPEED = 8 # pixels per frame for the in-flight arrow
+    ARROW_FRAME_DURATION = 4 # frames to hold each fletching pose before advancing
+    # Black "blocked" markers fill most of the tile but stay inside the borders so
+    # the queen-cursor outline is still visible when hovering.
+    BLOCKED_RADIUS = TILE_SIZE // 2 - 4
 
 
 class UISettings:
@@ -137,3 +142,4 @@ class AssetPaths:
     TV = "assets/graphics/tv.png"
     WHITE_QUEEN = "assets/graphics/white_queen.png"
     BLACK_QUEEN = "assets/graphics/black_queen.png"
+    ARROW_SHEET = "assets/graphics/Arrow.png"
