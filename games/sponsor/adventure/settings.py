@@ -56,7 +56,7 @@ class ScreenSettings:
     FPS = 60
     CRT_ALPHA_RANGE = (75, 90)
     CRT_SCANLINE_HEIGHT = 3
-    TITLE = "Dungeon Warrior"
+    TITLE = "Adventure"
 
 class GridSettings:
     """Grid and tile scaling values used for map layout and sprite snapping."""

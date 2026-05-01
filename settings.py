@@ -117,10 +117,10 @@ class GameSettings:
     # live in a sibling folder that is .gitignored and discovered at runtime
     # (see StudentGameSettings and main.discover_student_games).
     OPTIONS = [
+        ("Adventure", Path("games") / "sponsor" / "adventure" / "main.py"),
         ("Air Hockey", Path("games") / "sponsor" / "air-hockey" / "main.py"),
         ("Breakout", Path("games") / "sponsor" / "breakout" / "main.py"),
         ("Dungeon Digger", Path("games") / "sponsor" / "dungeon-digger" / "main.py"),
-        ("Dungeon Warrior", Path("games") / "sponsor" / "dungeon-warrior" / "main.py"),
         ("Game of the Amazons", Path("games") / "sponsor" / "game-of-the-amazons" / "main.py"),
         ("Jezz Ball", Path("games") / "sponsor" / "jezz-ball" / "main.py"),
         ("Ninja Frog", Path("games") / "sponsor" / "ninja-frog" / "main.py"),
@@ -129,14 +129,14 @@ class GameSettings:
         ("Snake", Path("games") / "sponsor" / "snake" / "snake.py"),
         ("Space Invaders", Path("games") / "sponsor" / "space-invaders" / "main.py"),
         ("Star Hero", Path("games") / "sponsor" / "star-hero" / "main.py"),
-        ("Tetrominos", Path("games") / "sponsor" / "tetrominos" / "main.py"),
+        ("Tetris", Path("games") / "sponsor" / "tetris" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
+        "Adventure": Path("assets") / "previews" / "adventure.png",
         "Air Hockey": Path("assets") / "previews" / "air_hockey.png",
         "Breakout": Path("assets") / "previews" / "breakout.png",
         "Dungeon Digger": Path("assets") / "previews" / "dungeon_digger.png",
-        "Dungeon Warrior": Path("assets") / "previews" / "dungeon_warrior.png",
         "Game of the Amazons": Path("assets") / "previews" / "game_of_the_amazons.png",
         "Jezz Ball": Path("assets") / "previews" / "jezz_ball.png",
         "Ninja Frog": Path("assets") / "previews" / "ninja_frog.png",
@@ -145,7 +145,7 @@ class GameSettings:
         "Snake": Path("assets") / "previews" / "snake.png",
         "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
         "Star Hero": Path("assets") / "previews" / "star_hero.png",
-        "Tetrominos": Path("assets") / "previews" / "tetrominos.png",
+        "Tetris": Path("assets") / "previews" / "tetris.png",
     }
 
     LIMITED_CONTROLLER_SUPPORT_GAMES = {
@@ -161,15 +161,15 @@ class GameSettings:
     }
 
     UNDER_CONSTRUCTION_GAMES = {
-        "Dungeon Warrior",
+        "Adventure",
         "Ninja Frog",
     }
 
     GAME_ATTRIBUTIONS = {
+        "Adventure": "ORIGINAL BY MR. NAVARRO",
         "Air Hockey": "ORIGINAL BY MR. NAVARRO",
         "Breakout": "MADE WITH CLEAR CODE TUTORIAL",
         "Dungeon Digger": "ORIGINAL BY MR. NAVARRO",
-        "Dungeon Warrior": "ORIGINAL BY MR. NAVARRO",
         "Game of the Amazons": "TRIBUTE BY MR. NAVARRO",
         "Jezz Ball": "TRIBUTE BY MR. NAVARRO",
         "Ninja Frog": "ORIGINAL BY MR. NAVARRO",
@@ -178,7 +178,7 @@ class GameSettings:
         "Snake": "MADE WITH CLEAR CODE TUTORIAL",
         "Space Invaders": "MADE WITH CLEAR CODE TUTORIAL",
         "Star Hero": "ORIGINAL BY MR. NAVARRO",
-        "Tetrominos": "MADE WITH CLEAR CODE TUTORIAL",
+        "Tetris": "MADE WITH CLEAR CODE TUTORIAL",
     }
 
 
