@@ -70,7 +70,7 @@ Action-style dungeon crawler companion piece to Dungeon Digger. README: [games/s
 ### Air Hockey
 A two-paddle air hockey / pong-style table game. Everything is drawn directly in Pygame with no sprite assets. README: [games/sponsor/air-hockey/README.md](games/sponsor/air-hockey/README.md).
 - Status: Playable. Physics are still being tuned, expect wonkiness.
-- Input: Keyboard and limited controller support.
+- Input: Mouse and limited controller support.
 
 ### Breakout
 Bounce a ball off a paddle to clear rows of colored blocks; collect upgrades for extra hearts, lasers, paddle size, and ball speed. README: [games/sponsor/breakout/README.md](games/sponsor/breakout/README.md).
@@ -89,7 +89,7 @@ Implementation of the abstract strategy board game (queens that move and shoot a
 ### Jezz Ball
 Trap bouncing balls behind walls you draw on a shrinking play field. README: [games/sponsor/jezz-ball/README.md](games/sponsor/jezz-ball/README.md).
 - Status: Playable.
-- Input: Keyboard/mouse and limited controller support.
+- Input: Mouse and limited controller support.
 
 ### Ninja Frog
 Side-scrolling platformer starring a ninja frog, with tilemap levels and a tile viewer dev tool. README: [games/sponsor/ninja-frog/README.md](games/sponsor/ninja-frog/README.md).
