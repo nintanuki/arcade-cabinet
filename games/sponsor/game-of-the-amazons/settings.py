@@ -149,6 +149,7 @@ class AssetPaths:
     ARROW_SHEET = "assets/graphics/Arrow.png"
 
     SHOOT_SOUND = "assets/audio/sfx_weapon_singleshot1.wav"
+    MOVE_SOUND = "assets/audio/sfx_movement_footstepsloop4_fast.wav"
 
 class DebugSettings:
     """Global debug flags."""

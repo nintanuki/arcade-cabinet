@@ -174,6 +174,7 @@ class GameManager:
         if self.board.is_valid_path(self.selected_pos, (col, row)):
             piece_type = self.board.tile_at(*self.selected_pos).piece
             self.piece_animation.start(piece_type, self.selected_pos, (col, row))
+            self.audio.play("move")
             # Hide the queen from the board while it is mid-slide so it does
             # not get drawn twice.
             self.board.tile_at(*self.selected_pos).piece = None
@@ -305,6 +306,7 @@ class GameManager:
         """
         piece_type = self.board.tile_at(*start_pos).piece
         self.piece_animation.start(piece_type, start_pos, end_pos)
+        self.audio.play("move")
         self.board.tile_at(*start_pos).piece = None  # Hide from board
 
     def _finalize_move(self):

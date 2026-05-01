@@ -6,6 +6,7 @@ class AudioManager:
     
     CHANNEL_IDS = {
         'shoot': 0,
+        'move': 1,
     }
 
     def __init__(self):
@@ -17,7 +18,7 @@ class AudioManager:
         pygame.mixer.set_num_channels(len(self.CHANNEL_IDS))
 
         self.shoot_sound = self._load_sound(AssetPaths.SHOOT_SOUND)
-
+        self.move_sound = self._load_sound(AssetPaths.MOVE_SOUND)
         self.channels = {
             name: pygame.mixer.Channel(channel_id)
             for name, channel_id in self.CHANNEL_IDS.items()
@@ -46,6 +47,7 @@ class AudioManager:
         
     SOUND_BINDINGS = {
         'shoot':           ('shoot',       'shoot_sound'),
+        'move':            ('move',        'move_sound'),
     }
 
     def play(self, name: str) -> None:
