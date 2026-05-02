@@ -197,9 +197,9 @@ class CategorySettings:
     # category is highlighted. Student games carry their own attribution
     # from their game.json manifest, so STUDENT is intentionally absent.
     ATTRIBUTIONS = {
-        ORIGINAL: "ORIGINAL BY MR. NAVARRO",
-        TRIBUTE: "TRIBUTE BY MR. NAVARRO",
-        TUTORIAL: "MADE WITH CLEAR CODE TUTORIAL",
+        ORIGINAL: "ORIGINAL GAME BY MR. NAVARRO",
+        TRIBUTE: "TRIBUTE GAME BY MR. NAVARRO",
+        TUTORIAL: "MADE FOLLOWING CLEAR CODE TUTORIALS",
     }
 
 
