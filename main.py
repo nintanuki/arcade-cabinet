@@ -676,45 +676,151 @@ class ArcadeLauncher:
 			)
 
 	def _draw_description(self, node: MenuNode, inner_rect: pygame.Rect) -> None:
-		"""Render a wrapped category description centered inside the preview panel."""
+		"""Render a wrapped category description centered inside the preview panel.
+
+		Specific phrases listed in MenuSettings.DESCRIPTION_HIGHLIGHTS render
+		in their assigned colors; everything else falls back to white. Each
+		line is centered horizontally based on its total rendered width so a
+		colored phrase doesn't pull the line off-axis.
+		"""
 		description = (node.description or "").upper()
 		if not description.strip():
 			return
-		lines = self._wrap_text(description, self.description_font, inner_rect.width)
+		color_map = self._build_description_color_map(description)
+		lines = self._wrap_description_with_colors(
+			description, color_map, self.description_font, inner_rect.width
+		)
 		if not lines:
 			return
 		line_height = self.description_font.get_linesize()
 		spacing = MenuSettings.DESCRIPTION_LINE_SPACING
 		block_height = len(lines) * line_height + (len(lines) - 1) * spacing
 		start_y = inner_rect.centery - block_height // 2
-		for index, line in enumerate(lines):
-			line_surface = self.description_font.render(line, False, ColorSettings.WHITE)
-			line_rect = line_surface.get_rect(
-				midtop=(inner_rect.centerx, start_y + index * (line_height + spacing))
-			)
-			self.screen.blit(line_surface, line_rect)
-
-	def _wrap_text(self, text: str, font: pygame.font.Font, max_width: int) -> list[str]:
-		"""Greedy word-wrap a string into lines that fit within ``max_width`` pixels."""
-		words = text.split()
-		lines: list[str] = []
-		current = ""
-		for word in words:
-			candidate = (current + " " + word).strip() if current else word
-			if font.size(candidate)[0] <= max_width:
-				current = candidate
+		for index, runs in enumerate(lines):
+			if not runs:
 				continue
-			if current:
-				lines.append(current)
-				current = word
+			run_surfaces = [
+				self.description_font.render(segment, False, color)
+				for segment, color in runs
+			]
+			total_width = sum(surface.get_width() for surface in run_surfaces)
+			x = inner_rect.centerx - total_width // 2
+			y = start_y + index * (line_height + spacing)
+			for surface in run_surfaces:
+				self.screen.blit(surface, (x, y))
+				x += surface.get_width()
+
+	def _build_description_color_map(self, text: str) -> list[tuple[int, int, int]]:
+		"""Return a per-character color list for ``text`` (already uppercased).
+
+		Default color is white. Each entry in MenuSettings.DESCRIPTION_HIGHLIGHTS
+		paints its phrase characters with the assigned color when found at a
+		word boundary. Longer phrases win over shorter ones if they overlap,
+		because they are applied first.
+		"""
+		color_map: list[tuple[int, int, int]] = [ColorSettings.WHITE] * len(text)
+		highlights = sorted(
+			MenuSettings.DESCRIPTION_HIGHLIGHTS.items(),
+			key=lambda item: -len(item[0]),
+		)
+		for phrase, color in highlights:
+			needle = phrase.upper()
+			if not needle:
+				continue
+			search_from = 0
+			while True:
+				idx = text.find(needle, search_from)
+				if idx < 0:
+					break
+				before_ok = idx == 0 or not text[idx - 1].isalnum()
+				end = idx + len(needle)
+				after_ok = end == len(text) or not text[end].isalnum()
+				if before_ok and after_ok:
+					for i in range(idx, end):
+						color_map[i] = color
+				search_from = idx + 1
+		return color_map
+
+	def _wrap_description_with_colors(
+		self,
+		text: str,
+		color_map: list[tuple[int, int, int]],
+		font: pygame.font.Font,
+		max_width: int,
+	) -> list[list[tuple[str, tuple[int, int, int]]]]:
+		"""Greedy word-wrap ``text`` into per-line color runs.
+
+		Each line in the returned list is a sequence of (segment, color)
+		pairs to render side-by-side. Single inter-word spaces are added
+		back at render time and inherit the color of the following word.
+		"""
+		# Tokenize into (word_text, start_index_in_text) pairs.
+		words: list[tuple[str, int]] = []
+		i = 0
+		n = len(text)
+		while i < n:
+			if text[i].isspace():
+				i += 1
+				continue
+			start = i
+			while i < n and not text[i].isspace():
+				i += 1
+			words.append((text[start:i], start))
+
+		# Greedy line packing: keep adding words while the joined line still fits.
+		raw_lines: list[list[tuple[str, int]]] = []
+		current_line: list[tuple[str, int]] = []
+		current_str = ""
+		for word, start in words:
+			candidate = (current_str + " " + word).strip() if current_str else word
+			if font.size(candidate)[0] <= max_width:
+				current_line.append((word, start))
+				current_str = candidate
+				continue
+			if current_line:
+				raw_lines.append(current_line)
+				current_line = [(word, start)]
+				current_str = word
 			else:
-				# Single token longer than the box -- accept the overflow
-				# rather than infinite-loop trying to wrap it.
-				lines.append(word)
-				current = ""
-		if current:
-			lines.append(current)
-		return lines
+				# Single word wider than the box -- emit it on its own line
+				# rather than infinite-looping trying to fit it.
+				raw_lines.append([(word, start)])
+				current_line = []
+				current_str = ""
+		if current_line:
+			raw_lines.append(current_line)
+
+		# For each line, walk word-by-word and merge same-colored chars into runs.
+		rendered_lines: list[list[tuple[str, tuple[int, int, int]]]] = []
+		for line in raw_lines:
+			chars: list[str] = []
+			colors: list[tuple[int, int, int]] = []
+			for word_index, (word, start) in enumerate(line):
+				if word_index > 0:
+					# Inter-word space inherits the next word's color so a
+					# highlight phrase that spans multiple words renders as
+					# one continuous colored run.
+					chars.append(" ")
+					colors.append(color_map[start])
+				for offset, ch in enumerate(word):
+					chars.append(ch)
+					colors.append(color_map[start + offset])
+			runs: list[tuple[str, tuple[int, int, int]]] = []
+			if not chars:
+				rendered_lines.append(runs)
+				continue
+			run_text = chars[0]
+			run_color = colors[0]
+			for ch, color in zip(chars[1:], colors[1:]):
+				if color == run_color:
+					run_text += ch
+				else:
+					runs.append((run_text, run_color))
+					run_text = ch
+					run_color = color
+			runs.append((run_text, run_color))
+			rendered_lines.append(runs)
+		return rendered_lines
 
 	def draw_outlined_text(
 		self,

@@ -43,6 +43,7 @@ class ColorSettings:
     LIGHT_BLUE = (150, 210, 255)
     CYAN = (80, 255, 255)
     YELLOW = (255, 230, 0)
+    ORANGE = (255, 170, 80)
     RED = (255, 80, 80)
     GREEN = (80, 255, 80)
 
@@ -96,6 +97,18 @@ class MenuSettings:
     PREVIEW_INNER_PADDING = 12
     # Vertical gap between wrapped description lines inside the preview box.
     DESCRIPTION_LINE_SPACING = 4
+    # Phrases that should render in a non-default color when they appear in
+    # a category description. Matched case-insensitively against word
+    # boundaries, with longer phrases preferred when they overlap.
+    DESCRIPTION_HIGHLIGHTS = {
+        "Mr. Navarro": ColorSettings.LIGHT_PURPLE,
+        "Coding Club": ColorSettings.LIGHT_PURPLE,
+        "John I. Leonard": ColorSettings.ORANGE,
+        "Python": ColorSettings.GREEN,
+        "Pygame": ColorSettings.GREEN,
+        "Clear Code": ColorSettings.LIGHT_BLUE,
+        "YouTube": ColorSettings.RED,
+    }
     FOOTER_TEXT_LINE_1 = "PRESS SELECT ON CONTROLLER OR F11 ON KEYBOARD TO TOGGLE FULLSCREEN WHILE IN GAME."
     FOOTER_TEXT_LINE_2 = "PRESS START + SELECT + L1 + R1 OR CLOSE THE GAME WINDOW TO RETURN TO THIS MENU."
     FOOTER_LINE_1_CENTER_Y = 670
@@ -182,8 +195,8 @@ class CategorySettings:
 
     DESCRIPTIONS = {
         STUDENT: (
-            "Games created by John I. Leonard students. Make your own "
-            "game in Coding Club and yours can show up here too."
+            "Games created by John I. Leonard students. Build something "
+            "with pygame in Coding Club and your game can show up here too."
         ),
         ORIGINAL: "Mr. Navarro's original games created in Pygame.",
         TRIBUTE: "Classic games re-created in Pygame.",
