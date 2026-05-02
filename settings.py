@@ -52,7 +52,7 @@ class FontSettings:
 
     FILE = Path("assets") / "font" / "Pixeled.ttf"
     TITLE_SIZE = 44
-    SUBTITLE_SIZE = 24
+    SUBTITLE_SIZE = 12
     OPTION_SIZE = 16
     HINT_SIZE = 10
     # Description text rendered inside the preview box on category screens.
@@ -218,9 +218,11 @@ class GroupSettings:
     }
 
     DESCRIPTIONS = {
-        MR_NAVARRO: "Games created by Mr. Navarro.",
+        MR_NAVARRO: (
+            "Games created by Mr. Navarro"
+            " using the Pygame library in Python."
+        )
     }
-
 
 class MenuTreeSettings:
     """Top-level launcher navigation tree.
