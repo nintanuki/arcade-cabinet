@@ -84,7 +84,8 @@ Turn-based dungeon crawler. Dig for treasure, find the key, unlock the door, and
 
 ### Game of the Amazons
 Implementation of the abstract strategy board game (queens that move and shoot arrows to reduce the playable territory). README: [games/sponsor/game-of-the-amazons/README.md](games/sponsor/game-of-the-amazons/README.md).
-- Status: Under construction.
+- Status: Playable.
+- Input: Keyboard and controller.
 
 ### Jezz Ball
 Trap bouncing balls behind walls you draw on a shrinking play field. README: [games/sponsor/jezz-ball/README.md](games/sponsor/jezz-ball/README.md).
@@ -133,7 +134,7 @@ For full rules and the complete control scheme of each game, see the per-game RE
 - Pong / Air Hockey: Outscore your opponent.
 - Breakout / Jezz Ball: Clear the play field.
 - Snake / Runner / Space Invaders / Tetris: Last as long as possible while score climbs.
-- Adventure, Game of the Amazons, Ninja Frog: Under construction — playable extent varies.
+- Adventure, Ninja Frog: Under construction — playable extent varies.
 
 ## Attributions
 

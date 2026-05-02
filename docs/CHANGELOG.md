@@ -1,4 +1,107 @@
-## 2026-04-29 — Clarify student README on relative paths and preview images (Claude Opus 4.7)
+## 2026-05-01 — main.py cleanup: indentation, cite artifacts, debug prints, magic spacing (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** 24-30 (modified)
+**Before:**
+    JIL_LOGO_PATH = Path("assets") / "graphics" / "jil_logo.webp"
+    JIL_LOGO_POS = (50, 110)
+    JIL_LOGO_SIZE = (59, 69)
+**After:**
+    JIL_LOGO_PATH = Path("assets") / "graphics" / "jil_logo.webp"
+    JIL_LOGO_POS = (50, 110)
+    JIL_LOGO_SIZE = (59, 69)
+    # Horizontal gap between the JIL logo and the launcher title text. ...
+    JIL_LOGO_TITLE_SPACING = 20
+**Why:** TESTING.md mandates that constants live in settings.py (no magic
+numbers). Pulls the logo/title gap out of `draw()` into a named constant so
+the layout knob is discoverable next to the other JIL logo settings.
+
+**File:** main.py
+**Lines (at time of edit):** 191-199 (modified)
+**Before:**
+    print(f"[DEBUG] Loaded JIL logo: {self.jil_logo_path} size={...}")
+    ...
+    print(f"[DEBUG] Failed to load JIL logo: {self.jil_logo_path} error={e}")
+    self.jil_logo_surface = None
+**After:**
+    # Comment block explaining why the logo loads after initialize_runtime;
+    # both [DEBUG] print statements removed; silent fallback to None on error.
+**Why:** [DEBUG] prints leaked to stdout on every launch even in production.
+Behavior on missing/corrupt logo is unchanged (still falls back to the
+placeholder rect in draw()), the prints were the only thing removed.
+
+**File:** main.py
+**Lines (at time of edit):** 460-481 (modified)
+**Before:**
+    Mixed tabs+spaces indentation throughout draw_preview_warnings; numbered
+    "# 1. Always Draw Attribution" / "# 2. Draw Warnings" comments with
+    [cite: 1] artifacts; trailing-whitespace-only blank lines between blocks.
+**After:**
+    Function is fully tab-indented; comments rewritten to explain *why*
+    (slot ordering) rather than restate the code; [cite: 1] artifacts and
+    whitespace-only blank lines removed.
+**Why:** Mixed indentation is a TabError waiting to bite the next edit even
+though it currently parses (the offending lines were comments / continuation
+lines inside parens). The numbered "Step 1 / Step 2" comments were
+copy-paste leftovers from a Notion/Gemini paste, hence the [cite: 1]
+markers; replaced with intent comments per TESTING.md ("comments must
+explain why, not just what").
+
+**File:** main.py
+**Lines (at time of edit):** 582-600 (modified)
+**Before:**
+    spacing = 20  # Adjust this to change the gap between logo and text
+    ...
+    # Uses ScreenSettings.WIDTH from settings.py[cite: 2]
+    ...
+    # Uses MenuSettings.TITLE_CENTER_Y to stay aligned with the text[cite: 2]
+    ...
+    # Fallback debug rect if logo missing[cite: 1]
+**After:**
+    Uses LauncherSettings.JIL_LOGO_TITLE_SPACING in both places the gap is
+    referenced; the redundant "Uses X from settings.py" comments and their
+    [cite: 2] / [cite: 1] artifacts are gone; trailing-whitespace blank
+    lines collapsed.
+**Why:** Same "no magic numbers" + "comments explain why, not what" rules
+as the warning-block cleanup. The fallback rect color stays at (255, 0, 0)
+deliberately — that hot-red flag is meant to be visually distinct from
+ColorSettings.RED so a missing-asset bug can't be confused with normal UI.
+
+## 2026-05-01 — README resync after sponsor/student split (Claude Opus 4.7)
+
+**File:** README.md
+**Lines (at time of edit):** 5-20 (modified), 62-126 (modified), 130-136 (modified), 138-145 (modified)
+**Before:**
+    Lineup listed "Dungeon Warrior"; per-game README links pointed at
+    `games/<name>/README.md` (pre sponsor/student-split paths); status /
+    input lines were stale (Air Hockey + Jezz Ball claimed "no controller
+    support" though they're now in LIMITED_CONTROLLER_SUPPORT_GAMES;
+    Breakout + Tetris claimed "keyboard only" despite their 2026-04-29
+    controller-support work; Game of the Amazons listed Under Construction);
+    Star Hero attributions linked to non-existent `games/star-hero/graphics/`
+    paths (real files now sit under `games/sponsor/star-hero/assets/...`);
+    Dungeon Warrior attributions section pointed at a deleted folder.
+**After:**
+    Lineup uses "Adventure" (matches settings.GameSettings.OPTIONS); every
+    per-game README link rewritten with `games/sponsor/...` prefix; new
+    sentence under the lineup explains the sponsor/student split and links
+    to games/student/README.md; Status / Input lines for Adventure, Air
+    Hockey, Breakout, Game of the Amazons, Jezz Ball, Ninja Frog, Tetris
+    now agree with the LIMITED_CONTROLLER_SUPPORT_GAMES /
+    NO_CONTROLLER_SUPPORT_GAMES / WONKY_PHYSICS_GAMES /
+    UNDER_CONSTRUCTION_GAMES sets; Game of the Amazons promoted to
+    Playable; quick-reference under-construction list trimmed to
+    Adventure + Ninja Frog; Attributions section rewritten with
+    sponsor/-prefixed paths and replaces Dungeon Warrior with Adventure's
+    graphics/sound/music attributions.
+**Why:** The 2026-04-29 sponsor/student-split CHANGELOG entry only renamed
+the folders + updated settings.py; the top-level README was never resynced,
+leaving every per-game link broken on GitHub. The same pass also picked up
+the controller-support drift (status flags moved during the controller-work
+sprint but the README was not updated). Source of truth for Status / Input
+lines is `settings.GameSettings`; the README now mirrors it 1:1.
+
+
 
 **File:** games/student/README.md
 **Lines (at time of edit):** 47 (modified), 56-95 (new sections), 122-129 (modified)

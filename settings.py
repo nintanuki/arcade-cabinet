@@ -24,6 +24,10 @@ class LauncherSettings:
     JIL_LOGO_PATH = Path("assets") / "graphics" / "jil_logo.webp"
     JIL_LOGO_POS = (50, 110)
     JIL_LOGO_SIZE = (59, 69)
+    # Horizontal gap between the JIL logo and the launcher title text. The
+    # title group (logo + gap + title) is centered as a single unit, so this
+    # value is what controls how tightly the two read together.
+    JIL_LOGO_TITLE_SPACING = 20
 
 
 class ColorSettings:

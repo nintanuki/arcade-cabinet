@@ -189,13 +189,13 @@ class ArcadeLauncher:
 		self.jil_logo_surface = None
 
 		self.initialize_runtime()
-		# Now load the JIL logo image and scale to settings size (display is initialized)
+		# Logo loads after initialize_runtime so the surface convert_alpha()
+		# call has a real display context. A missing or corrupt file is
+		# non-fatal; the draw path falls back to a placeholder rect.
 		try:
 			logo_img = pygame.image.load(str(self.jil_logo_path)).convert_alpha()
 			self.jil_logo_surface = pygame.transform.smoothscale(logo_img, LauncherSettings.JIL_LOGO_SIZE)
-			print(f"[DEBUG] Loaded JIL logo: {self.jil_logo_path} size={self.jil_logo_surface.get_size()}")
-		except (FileNotFoundError, pygame.error) as e:
-			print(f"[DEBUG] Failed to load JIL logo: {self.jil_logo_path} error={e}")
+		except (FileNotFoundError, pygame.error):
 			self.jil_logo_surface = None
 		self.load_menu_audio()
 
@@ -459,22 +459,20 @@ class ArcadeLauncher:
 		"""
 		preview_center_x = MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2)
 
-        # 1. Always Draw Attribution (Line 1 in Blue)
+		# Attribution always renders first in light blue (slot 0 above the warnings).
 		attribution_text = self.game_attributions.get(selected_label, "BY UNKNOWN")
 		attr_surface = self.hint_font.render(attribution_text, False, ColorSettings.LIGHT_BLUE)
 		attr_rect = attr_surface.get_rect(
-            center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
-        )
+			center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
+		)
 		self.screen.blit(attr_surface, attr_rect)
 
-        # 2. Draw Warnings (Line 2 and 3 in Red)[cite: 1]
+		# Up to two warning lines (red) render in stacked slots beneath the attribution.
 		slot_y_positions = (
-            MenuSettings.WARNING_LINE_1_CENTER_Y,
-            MenuSettings.WARNING_LINE_2_CENTER_Y,
-        )
-        
-		warnings = self.collect_warning_lines(selected_label) #[cite: 1]
-        
+			MenuSettings.WARNING_LINE_1_CENTER_Y,
+			MenuSettings.WARNING_LINE_2_CENTER_Y,
+		)
+		warnings = self.collect_warning_lines(selected_label)
 		for slot_index, warning_text in enumerate(warnings):
 			warning_surface = self.hint_font.render(warning_text, False, ColorSettings.RED)
 			warning_rect = warning_surface.get_rect(
@@ -581,30 +579,24 @@ class ArcadeLauncher:
 		"""Render the launcher title, subtitle, game options, and CRT overlay."""
 		self.screen.fill(ColorSettings.BLACK)
 
-		# Calculate combined width of Logo + Spacing + Title
+		# Center the JIL logo + title group horizontally as one unit so the
+		# fixed gap between them stays the same regardless of title length.
 		logo_w = LauncherSettings.JIL_LOGO_SIZE[0]
-		spacing = 20  # Adjust this to change the gap between logo and text
-		
 		title_surface = self.title_font.render(MenuSettings.TITLE_TEXT, False, ColorSettings.GREEN)
 		title_w = title_surface.get_width()
-		
-		total_width = logo_w + spacing + title_w
-		
-		# Calculate the starting X so the group is centered
-		# Uses ScreenSettings.WIDTH from settings.py[cite: 2]
+		total_width = logo_w + LauncherSettings.JIL_LOGO_TITLE_SPACING + title_w
 		start_x = (ScreenSettings.WIDTH - total_width) // 2
-		
-		# Draw the Logo
-		# Uses MenuSettings.TITLE_CENTER_Y to stay aligned with the text[cite: 2]
 		logo_y = MenuSettings.TITLE_CENTER_Y - (LauncherSettings.JIL_LOGO_SIZE[1] // 2)
 		if self.jil_logo_surface is not None:
 			self.screen.blit(self.jil_logo_surface, (start_x, logo_y))
 		else:
-			# Fallback debug rect if logo missing[cite: 1]
+			# Fallback rect when the logo file is missing — the placeholder
+			# stays visible so a missing-asset bug is impossible to ignore.
 			pygame.draw.rect(self.screen, (255, 0, 0), (start_x, logo_y, *LauncherSettings.JIL_LOGO_SIZE), 2)
 
-		# Draw the Title
-		title_rect = title_surface.get_rect(midleft=(start_x + logo_w + spacing, MenuSettings.TITLE_CENTER_Y))
+		title_rect = title_surface.get_rect(
+			midleft=(start_x + logo_w + LauncherSettings.JIL_LOGO_TITLE_SPACING, MenuSettings.TITLE_CENTER_Y)
+		)
 		self.screen.blit(title_surface, title_rect)
 
 		subtitle_surface = self.subtitle_font.render(
