@@ -118,6 +118,10 @@ class MenuSettings:
     # free-form note sits in slot 2 directly beneath it. If only the note is
     # present, it promotes into slot 1.
     ATTRIBUTION_LINE_CENTER_Y = 565
+    # Vertical gap between wrapped caption lines under the preview. Captions
+    # that fit in one line keep the original WARNING_LINE_*_CENTER_Y layout
+    # intact; longer captions wrap and push the warning slots down.
+    CAPTION_LINE_SPACING = -10
     WARNING_LINE_1_CENTER_Y = 585
     WARNING_LINE_2_CENTER_Y = 605
     UNDER_CONSTRUCTION_TEXT = "UNDER CONSTRUCTION"
@@ -338,15 +342,15 @@ class GameSettings:
         "Breakout": "THE CLASSIC BLOCK-BREAKING ARCADE GAME",
         "Dungeon Digger": "DUNGEON CRAWLING RPG WITH TURN-BASED AND TEXT-BASED FLAVOR",
         "Game of the Amazons": "CLASSIC STRATEGY GAME USING CHESS PIECES",
-        "Jezz Ball": "THE CLASSIC MICROSOFT GAME FOR WHEN THE INTERNET IS DOWN",
+        "Jezz Ball": "THE CLASSIC MICROSOFT GAME FOR WHEN THE INTERNET WAS DOWN",
         "Ninja Frog": "JUST ME MESSING AROUND WITH PLATFORMING MECHANICS",
         "Pazaak": "CARD GAME FROM STAR WARS: KNIGHTS OF THE OLD REPUBLIC, SIMILAR TO BLACKJACK",
         "Pong": "THE FIRST COMMERCIALLY SUCCESSFUL VIDEO GAME",
         "Puzzle League": "LIKE TETRIS ATTACK/PANEL DE PON OR POKEMON PUZZLE LEAGUE",
-        "Runner": "THIS IS WHEN OOP FINALLY CLICKED FOR ME",
+        "Runner": "THIS IS WHEN OBJECT-ORIENTED PROGRAMMING FINALLY CLICKED FOR ME",
         "Snake": "THE CLASSIC SNAKE GAME THAT ORIGINATED ON NOKIA PHONES",
         "Space Invaders": "CLASSIC ARCADE GAME, STAR HERO'S CODE IS BASED ON THIS ONE",
-        "Star Hero": "THE FIRST REAL GAME I EVER MADE, INSPIRED BY GALAGA AND STAR FOX",
+        "Star Hero": "THE FIRST PROPER GAME I EVER MADE, INSPIRED BY GALAGA AND STAR FOX",
         "Tetris": "THE GREATEST PUZZLE VIDEO GAME OF ALL TIME",
     }
 

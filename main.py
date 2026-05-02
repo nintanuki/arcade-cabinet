@@ -868,8 +868,9 @@ class ArcadeLauncher:
 
 		The caption is a per-game description for sponsor games (pulled from
 		GameSettings.GAME_DESCRIPTIONS) and the manifest-supplied byline for
-		student games. If a game has no caption set, the line is skipped and
-		the warning slots render in their normal positions below.
+		student games. If a caption is wider than the preview box it wraps
+		onto multiple lines, and the warning slots are pushed down by the
+		extra lines so they always sit below the caption block.
 		"""
 		node = self.current_node()
 		if node is None or node.kind != "game":
@@ -877,27 +878,66 @@ class ArcadeLauncher:
 
 		preview_center_x = MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2)
 
+		# Wrap the caption against the preview-box width so a long
+		# description flows onto a second/third line instead of bleeding
+		# horizontally past the panel above it.
+		caption_lines: list[str] = []
 		caption_text = node.attribution
 		if caption_text:
-			caption_surface = self.hint_font.render(
-				caption_text.upper(), False, ColorSettings.WHITE
+			caption_lines = self._wrap_simple(
+				caption_text.upper(), self.hint_font, MenuSettings.PREVIEW_BOX_WIDTH
 			)
-			caption_rect = caption_surface.get_rect(
-				center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
-			)
-			self.screen.blit(caption_surface, caption_rect)
 
-		slot_y_positions = (
-			MenuSettings.WARNING_LINE_1_CENTER_Y,
-			MenuSettings.WARNING_LINE_2_CENTER_Y,
+		line_height = self.hint_font.get_linesize()
+		line_spacing = MenuSettings.CAPTION_LINE_SPACING
+		last_caption_center_y = (
+			MenuSettings.ATTRIBUTION_LINE_CENTER_Y - (line_height + line_spacing)
 		)
+		for index, line in enumerate(caption_lines):
+			center_y = MenuSettings.ATTRIBUTION_LINE_CENTER_Y + index * (line_height + line_spacing)
+			line_surface = self.hint_font.render(line, False, ColorSettings.WHITE)
+			line_rect = line_surface.get_rect(center=(preview_center_x, center_y))
+			self.screen.blit(line_surface, line_rect)
+			last_caption_center_y = center_y
+
+		# Single-line captions keep the original warning Y positions intact;
+		# wrapped captions push the warnings down so they sit below the
+		# caption block instead of overlapping it.
+		warning_gap = MenuSettings.WARNING_LINE_2_CENTER_Y - MenuSettings.WARNING_LINE_1_CENTER_Y
+		pushed_warning_1_y = last_caption_center_y + (line_height + line_spacing)
+		warning_1_y = max(MenuSettings.WARNING_LINE_1_CENTER_Y, pushed_warning_1_y)
+		warning_2_y = warning_1_y + warning_gap
+
 		warnings = self.collect_warning_lines(node)
+		slot_y_positions = (warning_1_y, warning_2_y)
 		for slot_index, warning_text in enumerate(warnings):
 			warning_surface = self.hint_font.render(warning_text, False, ColorSettings.RED)
 			warning_rect = warning_surface.get_rect(
 				center=(preview_center_x, slot_y_positions[slot_index])
 			)
 			self.screen.blit(warning_surface, warning_rect)
+
+	def _wrap_simple(self, text: str, font: pygame.font.Font, max_width: int) -> list[str]:
+		"""Greedy word-wrap a single-color string into lines fitting ``max_width`` pixels."""
+		words = text.split()
+		lines: list[str] = []
+		current = ""
+		for word in words:
+			candidate = (current + " " + word).strip() if current else word
+			if font.size(candidate)[0] <= max_width:
+				current = candidate
+				continue
+			if current:
+				lines.append(current)
+				current = word
+			else:
+				# Single word wider than the box -- emit it on its own line
+				# rather than infinite-looping trying to fit it.
+				lines.append(word)
+				current = ""
+		if current:
+			lines.append(current)
+		return lines
 
 	def draw(self) -> None:
 		"""Render the launcher title, subtitle, current menu, preview, and CRT overlay."""
