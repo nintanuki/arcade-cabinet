@@ -7,5 +7,5 @@
   - Mr. Navarro's Games
     - Original Games (Star Hero, Dungeon Digger,etc)
     - Tribute Games (Amazons, Pazaak, etc)
-    - Made with Tutorial (Runner, Space Invaders, etc)
+    - Made using a Tutorial (Runner, Space Invaders, etc)
   - Student Games
