@@ -28,6 +28,10 @@ class LauncherSettings:
     # title group (logo + gap + title) is centered as a single unit, so this
     # value is what controls how tightly the two read together.
     JIL_LOGO_TITLE_SPACING = 20
+    # Color of the placeholder rect drawn when the JIL logo file is missing.
+    # Deliberately hotter than ColorSettings.RED so a missing-asset bug
+    # cannot be visually confused with a normal red UI element.
+    JIL_LOGO_PLACEHOLDER_COLOR = (255, 0, 0)
 
 
 class ColorSettings:

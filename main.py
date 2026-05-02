@@ -592,7 +592,12 @@ class ArcadeLauncher:
 		else:
 			# Fallback rect when the logo file is missing — the placeholder
 			# stays visible so a missing-asset bug is impossible to ignore.
-			pygame.draw.rect(self.screen, (255, 0, 0), (start_x, logo_y, *LauncherSettings.JIL_LOGO_SIZE), 2)
+			pygame.draw.rect(
+				self.screen,
+				LauncherSettings.JIL_LOGO_PLACEHOLDER_COLOR,
+				(start_x, logo_y, *LauncherSettings.JIL_LOGO_SIZE),
+				2,
+			)
 
 		title_rect = title_surface.get_rect(
 			midleft=(start_x + logo_w + LauncherSettings.JIL_LOGO_TITLE_SPACING, MenuSettings.TITLE_CENTER_Y)

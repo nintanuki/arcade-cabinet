@@ -1,3 +1,99 @@
+# Change Log
+
+This file is an append-only record of every code change made to Mr. Navarro's
+Arcade by a human, AI assistant, or copilot tool. Read it before making changes
+so you know the current state of the codebase.
+
+## Format
+
+Each entry covers one logical change (which may touch multiple files). Use the
+template below, with one `**File:** ... **Why:** ...` block per file touched.
+
+    ## YYYY-MM-DD HH:MM — short summary
+
+    **File:** path/to/file.py
+    **Lines (at time of edit):** 38-52 (modified)
+    **Before:**
+        [old code]
+    **After:**
+        [new code]
+    **Why:** explanation
+
+## Conventions
+
+* The newest entry is added immediately below the `---` separator, so the
+  file reads newest-first. Older entries shift down as new ones are
+  prepended; never insert a new entry above the header or in the middle of
+  the timeline.
+* Line numbers reflect the file as it existed at the moment of the edit. Edits
+  above shift line numbers below, so older entries will not match the current
+  file. Never go back and "fix" old line numbers.
+* Entries are append-only. Never delete history. If a later edit reverts an
+  earlier one, write a new entry that references the original.
+* For new files, write `(new file)` instead of a line range. The "Before"
+  block can be omitted or marked `(file did not exist)`.
+* For deletes, write `(deleted)` and put the removed code in "Before" with no
+  "After" block.
+* Keep "Before" / "After" blocks short. If a change is huge, summarize with a
+  diff-style excerpt of the most important lines plus a sentence describing the
+  rest, instead of pasting the entire file.
+
+---
+
+## 2026-05-01 — Reorganize CHANGELOG header + extract logo-placeholder color constant (Claude Opus 4.7)
+
+**File:** docs/CHANGELOG.md
+**Lines (at time of edit):** 276-312 (deleted), 1-40 (new)
+**Before:**
+    The "# Change Log / ## Format / ## Conventions / ---" header was buried
+    around line 276, between the 2026-04-29 "Shrink JIL logo" entry and the
+    2026-04-29 "Tetris meets the four launcher criteria" entry. Some recent
+    entries (including the 2026-05-01 entries above this one) had been
+    prepended above the buried header; older entries sat below it. The
+    header description still said "made to Dungeon Digger" — a leftover
+    from when this CHANGELOG was the dungeon-digger per-game log before
+    being adopted as the project-wide log.
+**After:**
+    Single header block at the top of the file (project-wide wording, not
+    "Dungeon Digger"); entries follow newest-first directly below the
+    `---` separator. New convention bullet at the top of the Conventions
+    list explicitly says newest entries go right under `---`, so future
+    copilot runs do not drift the header back into the middle of the file.
+**Why:** A previous copilot pass started prepending new entries above the
+header instead of below it, which buried the header further every time
+and made the convention block effectively invisible. Pulling the header
+back to the top and stating the ordering rule explicitly should keep
+this from regressing.
+
+**File:** settings.py
+**Lines (at time of edit):** 31-34 (added)
+**Before:**
+    JIL_LOGO_TITLE_SPACING = 20
+**After:**
+    JIL_LOGO_TITLE_SPACING = 20
+    # Color of the placeholder rect drawn when the JIL logo file is missing.
+    # Deliberately hotter than ColorSettings.RED so a missing-asset bug
+    # cannot be visually confused with a normal red UI element.
+    JIL_LOGO_PLACEHOLDER_COLOR = (255, 0, 0)
+**Why:** TESTING.md "no magic numbers" rule. The hardcoded `(255, 0, 0)`
+in main.py's missing-logo fallback is now a named constant so the intent
+("hotter than the UI red on purpose") is documented in settings.
+
+**File:** main.py
+**Lines (at time of edit):** 593-599 (modified)
+**Before:**
+    pygame.draw.rect(self.screen, (255, 0, 0), (start_x, logo_y, *LauncherSettings.JIL_LOGO_SIZE), 2)
+**After:**
+    pygame.draw.rect(
+        self.screen,
+        LauncherSettings.JIL_LOGO_PLACEHOLDER_COLOR,
+        (start_x, logo_y, *LauncherSettings.JIL_LOGO_SIZE),
+        2,
+    )
+**Why:** Mirrors settings.py change. Wrapped onto multiple lines because
+the call exceeded a reasonable line length once the constant name went
+in; lines up with the rest of the file's PEP-8 wrapping conventions.
+
 ## 2026-05-01 — main.py cleanup: indentation, cite artifacts, debug prints, magic spacing (Claude Opus 4.7)
 
 **File:** settings.py
@@ -101,7 +197,7 @@ the controller-support drift (status flags moved during the controller-work
 sprint but the README was not updated). Source of truth for Status / Input
 lines is `settings.GameSettings`; the README now mirrors it 1:1.
 
-
+## 2026-04-29 — Clarify student README on relative paths and preview images (Claude Opus 4.7)
 
 **File:** games/student/README.md
 **Lines (at time of edit):** 47 (modified), 56-95 (new sections), 122-129 (modified)
@@ -273,43 +369,6 @@ Other manifest keys are documented in games/student/README.md.
     ...
     self.screen.blit(self.jil_logo_surface, LauncherSettings.JIL_LOGO_POS)
 **Why:** Centralize all file paths and constants in settings, shrink logo, and ensure compliance with TESTING.md.
-# Change Log
-
-This file is an append-only record of every code change made to Dungeon Digger
-by a human, AI assistant, or copilot tool. Read it before making changes so you
-know the current state of the codebase.
-
-## Format
-
-Each entry covers one logical change (which may touch multiple files). Use the
-template below, with one `**File:** ... **Why:** ...` block per file touched.
-
-    ## YYYY-MM-DD HH:MM — short summary
-
-    **File:** path/to/file.py
-    **Lines (at time of edit):** 38-52 (modified)
-    **Before:**
-        [old code]
-    **After:**
-        [new code]
-    **Why:** explanation
-
-## Conventions
-
-* Line numbers reflect the file as it existed at the moment of the edit. Edits
-  above shift line numbers below, so older entries will not match the current
-  file. Never go back and "fix" old line numbers.
-* Entries are append-only. Never delete history. If a later edit reverts an
-  earlier one, write a new entry that references the original.
-* For new files, write `(new file)` instead of a line range. The "Before"
-  block can be omitted or marked `(file did not exist)`.
-* For deletes, write `(deleted)` and put the removed code in "Before" with no
-  "After" block.
-* Keep "Before" / "After" blocks short. If a change is huge, summarize with a
-  diff-style excerpt of the most important lines plus a sentence describing the
-  rest, instead of pasting the entire file.
-
----
 
 ## 2026-04-29 — Tetris meets the four launcher criteria (Claude Opus 4.7)
 
