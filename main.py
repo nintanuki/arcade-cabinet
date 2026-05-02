@@ -922,7 +922,7 @@ class ArcadeLauncher:
 		subtitle_surface = self.subtitle_font.render(
 			MenuSettings.SUBTITLE_TEXT,
 			False,
-			ColorSettings.WHITE,
+			ColorSettings.LIGHT_BLUE,
 		)
 		subtitle_rect = subtitle_surface.get_rect(
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.SUBTITLE_CENTER_Y)
@@ -936,7 +936,7 @@ class ArcadeLauncher:
 		hint_line_1_surface = self.hint_font.render(
 			MenuSettings.FOOTER_TEXT_LINE_1,
 			False,
-			ColorSettings.CYAN,
+			ColorSettings.LIGHT_BLUE,
 		)
 		hint_line_1_rect = hint_line_1_surface.get_rect(
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.FOOTER_LINE_1_CENTER_Y)
@@ -950,7 +950,7 @@ class ArcadeLauncher:
 		hint_line_2_surface = self.hint_font.render(
 			footer_line_2_text,
 			False,
-			ColorSettings.CYAN,
+			ColorSettings.LIGHT_BLUE,
 		)
 		hint_line_2_rect = hint_line_2_surface.get_rect(
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.FOOTER_LINE_2_CENTER_Y)
