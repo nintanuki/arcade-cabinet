@@ -41,6 +41,7 @@ class ColorSettings:
     WHITE = (240, 240, 240)
     LIGHT_PURPLE = (210, 170, 255)
     LIGHT_BLUE = (150, 210, 255)
+    CYAN = (80, 255, 255)
     YELLOW = (255, 230, 0)
     RED = (255, 80, 80)
     GREEN = (80, 255, 80)
@@ -51,9 +52,12 @@ class FontSettings:
 
     FILE = Path("assets") / "font" / "Pixeled.ttf"
     TITLE_SIZE = 44
-    SUBTITLE_SIZE = 14
+    SUBTITLE_SIZE = 24
     OPTION_SIZE = 16
     HINT_SIZE = 10
+    # Description text rendered inside the preview box on category screens.
+    # Smaller than option text so multi-line copy still fits the panel.
+    DESCRIPTION_SIZE = 10
 
 
 class MenuSettings:
@@ -77,6 +81,12 @@ class MenuSettings:
     CAROUSEL_SELECTED_ALPHA = 255
     CAROUSEL_ALPHA_STEP = 70
     CAROUSEL_MIN_ALPHA = 90
+    # The carousel only kicks in when a menu has more than this many items.
+    # Smaller menus render as a plain vertical list so 2-5 entries do not
+    # waste the on-screen real estate the carousel illusion needs.
+    CAROUSEL_THRESHOLD = 5
+    LIST_ITEM_SPACING = 36
+    LIST_CURSOR_TEXT = "> "
     PREVIEW_BOX_X = 650
     PREVIEW_BOX_Y = 310
     PREVIEW_BOX_WIDTH = 320
@@ -84,26 +94,27 @@ class MenuSettings:
     PREVIEW_BORDER_WIDTH = 2
     PREVIEW_BORDER_RADIUS = 22
     PREVIEW_INNER_PADDING = 12
+    # Vertical gap between wrapped description lines inside the preview box.
+    DESCRIPTION_LINE_SPACING = 4
     FOOTER_TEXT_LINE_1 = "PRESS SELECT ON CONTROLLER OR F11 ON KEYBOARD TO TOGGLE FULLSCREEN WHILE IN GAME."
     FOOTER_TEXT_LINE_2 = "PRESS START + SELECT + L1 + R1 OR CLOSE THE GAME WINDOW TO RETURN TO THIS MENU."
     FOOTER_LINE_1_CENTER_Y = 670
     FOOTER_LINE_2_CENTER_Y = 695
-    NO_CONTROLLER_SUPPORT_TEXT = "NO CONTROLLER SUPPORT (KEYBOARD/MOUSE ONLY)"
-    LIMITED_CONTROLLER_SUPPORT_TEXT = "LIMITED CONTROLLER SUPPORT"
-    WONKY_PHYSICS_TEXT = "STILL WORKING ON IT - EXPECT WONKY PHYSICS"
-    # Two stacked warning slots under the preview. Controller warnings (no /
-    # limited, mutually exclusive) always take slot 1. Wonky-physics promotes
-    # into slot 1 when no controller warning applies, otherwise it sits in
-    # slot 2 directly beneath the controller line.
+    # Two stacked warning slots under the preview. The input-scheme label
+    # (when set to anything other than STANDARD) takes slot 1; the optional
+    # free-form note sits in slot 2 directly beneath it. If only the note is
+    # present, it promotes into slot 1.
     ATTRIBUTION_LINE_CENTER_Y = 565
     WARNING_LINE_1_CENTER_Y = 585
     WARNING_LINE_2_CENTER_Y = 605
     UNDER_CONSTRUCTION_TEXT = "UNDER CONSTRUCTION"
 
+
 class ControlSettings:
     """Input mappings for keyboard and controller navigation."""
 
     CONTROLLER_BUTTON_A = 0
+    CONTROLLER_BUTTON_B = 1
     CONTROLLER_BUTTON_SELECT = 6
     CONTROLLER_BUTTON_START = 7
     CONTROLLER_NAV_AXIS = 1
@@ -118,12 +129,133 @@ class CRTSettings:
     ALPHA_RANGE = (75, 90)
 
 
-class GameSettings:
-    """Game option metadata shown in the launcher menu."""
+class InputSchemeSettings:
+    """Identifiers and display labels for a game's input requirements.
 
-    # Sponsor games are committed to the repo and curated here. Student games
-    # live in a sibling folder that is .gitignored and discovered at runtime
-    # (see StudentGameSettings and main.discover_student_games).
+    A game whose entry is missing from GameSettings.GAME_INPUT_SCHEMES, or
+    whose entry is STANDARD, shows no input-scheme warning -- it is assumed
+    to work fully with the cabinet controller and the keyboard fallbacks.
+    Any other key renders the matching LABELS string in red under the
+    attribution.
+    """
+
+    STANDARD = "standard"
+    LIMITED_CONTROLLER = "limited_controller"
+    NO_CONTROLLER = "no_controller"
+    MOUSE_ONLY = "mouse_only"
+    MOUSE_AND_KEYBOARD = "mouse_and_keyboard"
+    KEYBOARD_ONLY = "keyboard_only"
+
+    # None suppresses the warning line entirely (used for STANDARD). Any
+    # other value renders below the attribution in red.
+    LABELS = {
+        STANDARD: None,
+        LIMITED_CONTROLLER: "LIMITED CONTROLLER SUPPORT",
+        NO_CONTROLLER: "NO CONTROLLER SUPPORT",
+        MOUSE_ONLY: "MOUSE ONLY",
+        MOUSE_AND_KEYBOARD: "MOUSE & KEYBOARD ONLY",
+        KEYBOARD_ONLY: "KEYBOARD ONLY",
+    }
+
+
+class CategorySettings:
+    """Leaf-category metadata for the launcher menu tree.
+
+    Each category becomes a list of games. Sponsor games are bucketed by
+    GameSettings.GAME_CATEGORIES; the STUDENT category is filled in at
+    runtime from the discovered games/student/ folder. Descriptions are
+    stored in natural sentence case and uppercased at render time so the
+    pixel font shows them in caps without the source being shouty.
+    """
+
+    STUDENT = "student"
+    ORIGINAL = "original"
+    TRIBUTE = "tribute"
+    TUTORIAL = "tutorial"
+
+    LABELS = {
+        STUDENT: "Student Games",
+        ORIGINAL: "Original Games",
+        TRIBUTE: "Tribute Games",
+        TUTORIAL: "Tutorial Games",
+    }
+
+    DESCRIPTIONS = {
+        STUDENT: (
+            "Games created by John I. Leonard students. Make your own "
+            "game in Coding Club and yours can show up here too."
+        ),
+        ORIGINAL: "Mr. Navarro's original games created in Pygame.",
+        TRIBUTE: "Classic games re-created in Pygame.",
+        TUTORIAL: (
+            "These games were all created following tutorials by Clear "
+            "Code on YouTube."
+        ),
+    }
+
+    # Attribution shown under the preview when a sponsor game inside the
+    # category is highlighted. Student games carry their own attribution
+    # from their game.json manifest, so STUDENT is intentionally absent.
+    ATTRIBUTIONS = {
+        ORIGINAL: "ORIGINAL BY MR. NAVARRO",
+        TRIBUTE: "TRIBUTE BY MR. NAVARRO",
+        TUTORIAL: "MADE WITH CLEAR CODE TUTORIAL",
+    }
+
+
+class GroupSettings:
+    """Non-leaf submenu metadata.
+
+    A group is a tree node whose children are other categories or groups.
+    Selecting one pushes a new menu frame containing its children. The
+    description shows in the preview pane when the group is highlighted.
+    """
+
+    MR_NAVARRO = "mr_navarro"
+
+    LABELS = {
+        MR_NAVARRO: "Mr. Navarro's Games",
+    }
+
+    DESCRIPTIONS = {
+        MR_NAVARRO: "Games created by Mr. Navarro.",
+    }
+
+
+class MenuTreeSettings:
+    """Top-level launcher navigation tree.
+
+    Each entry in ROOT is a dict describing one row in the root menu. A
+    category leaf carries games (filtered from GameSettings.GAME_CATEGORIES
+    or discovered for STUDENT). A group entry carries a ``children`` list
+    of further nodes; the launcher walks this tree at startup to build menu
+    frames, so adding a new category is just data here plus an entry in
+    CategorySettings.
+    """
+
+    KIND_CATEGORY = "category"
+    KIND_GROUP = "group"
+
+    ROOT = [
+        {"kind": KIND_CATEGORY, "key": CategorySettings.STUDENT},
+        {
+            "kind": KIND_GROUP,
+            "key": GroupSettings.MR_NAVARRO,
+            "children": [
+                {"kind": KIND_CATEGORY, "key": CategorySettings.ORIGINAL},
+                {"kind": KIND_CATEGORY, "key": CategorySettings.TRIBUTE},
+                {"kind": KIND_CATEGORY, "key": CategorySettings.TUTORIAL},
+            ],
+        },
+    ]
+
+
+class GameSettings:
+    """Sponsor game metadata. Student games are discovered at runtime."""
+
+    # Sponsor games are committed to the repo and curated here. Student
+    # games live in a sibling folder that is .gitignored and discovered at
+    # runtime (see StudentGameSettings and main.discover_student_games).
     OPTIONS = [
         ("Adventure", Path("games") / "sponsor" / "adventure" / "main.py"),
         ("Air Hockey", Path("games") / "sponsor" / "air-hockey" / "main.py"),
@@ -156,37 +288,44 @@ class GameSettings:
         "Tetris": Path("assets") / "previews" / "tetris.png",
     }
 
-    LIMITED_CONTROLLER_SUPPORT_GAMES = {
-        "Air Hockey",
-        "Jezz Ball",
+    # Each sponsor game's category. The launcher derives the attribution
+    # string at runtime from CategorySettings.ATTRIBUTIONS using this map,
+    # so adding a game is just one entry here plus its OPTIONS row.
+    GAME_CATEGORIES = {
+        "Adventure": CategorySettings.ORIGINAL,
+        "Air Hockey": CategorySettings.ORIGINAL,
+        "Breakout": CategorySettings.TUTORIAL,
+        "Dungeon Digger": CategorySettings.ORIGINAL,
+        "Game of the Amazons": CategorySettings.TRIBUTE,
+        "Jezz Ball": CategorySettings.TRIBUTE,
+        "Ninja Frog": CategorySettings.ORIGINAL,
+        "Pong": CategorySettings.TUTORIAL,
+        "Runner": CategorySettings.TUTORIAL,
+        "Snake": CategorySettings.TUTORIAL,
+        "Space Invaders": CategorySettings.TUTORIAL,
+        "Star Hero": CategorySettings.ORIGINAL,
+        "Tetris": CategorySettings.TUTORIAL,
     }
 
-    NO_CONTROLLER_SUPPORT_GAMES: set[str] = set()
+    # Optional input-scheme tag per game. A game with no entry here, or
+    # one set to STANDARD, shows no input-scheme warning. Anything else
+    # renders the matching InputSchemeSettings.LABELS string in red.
+    GAME_INPUT_SCHEMES = {
+        "Air Hockey": InputSchemeSettings.LIMITED_CONTROLLER,
+        "Jezz Ball": InputSchemeSettings.LIMITED_CONTROLLER,
+    }
 
-    WONKY_PHYSICS_GAMES = {
-        "Air Hockey",
-        "Ninja Frog",
+    # Optional free-form red note shown under the input-scheme line. Use
+    # for anything game-specific that does not fit a stock warning, e.g.
+    # "WONKY PHYSICS", "RESETS ON GAME OVER", "TWO PLAYER ONLY".
+    GAME_NOTES = {
+        "Air Hockey": "STILL WORKING ON IT - EXPECT WONKY PHYSICS",
+        "Ninja Frog": "STILL WORKING ON IT - EXPECT WONKY PHYSICS",
     }
 
     UNDER_CONSTRUCTION_GAMES = {
         "Adventure",
         "Ninja Frog",
-    }
-
-    GAME_ATTRIBUTIONS = {
-        "Adventure": "ORIGINAL BY MR. NAVARRO",
-        "Air Hockey": "ORIGINAL BY MR. NAVARRO",
-        "Breakout": "MADE WITH CLEAR CODE TUTORIAL",
-        "Dungeon Digger": "ORIGINAL BY MR. NAVARRO",
-        "Game of the Amazons": "TRIBUTE BY MR. NAVARRO",
-        "Jezz Ball": "TRIBUTE BY MR. NAVARRO",
-        "Ninja Frog": "ORIGINAL BY MR. NAVARRO",
-        "Pong": "MADE WITH CLEAR CODE TUTORIAL",
-        "Runner": "MADE WITH CLEAR CODE TUTORIAL",
-        "Snake": "MADE WITH CLEAR CODE TUTORIAL",
-        "Space Invaders": "MADE WITH CLEAR CODE TUTORIAL",
-        "Star Hero": "ORIGINAL BY MR. NAVARRO",
-        "Tetris": "MADE WITH CLEAR CODE TUTORIAL",
     }
 
 
@@ -196,9 +335,11 @@ class StudentGameSettings:
     Student games live under ``games/student/<folder>/`` and are .gitignored,
     so each cabinet keeps its own students' work without leaking to GitHub.
     The launcher scans the folder at startup and appends every directory
-    containing ``ENTRY_FILENAME`` to the menu. An optional ``MANIFEST_FILENAME``
-    next to the entry file overrides the auto-derived metadata; the schema is
-    documented in ``games/student/README.md``.
+    containing ``ENTRY_FILENAME`` to the Student Games category. An optional
+    ``MANIFEST_FILENAME`` next to the entry file overrides the auto-derived
+    metadata; the schema is documented in ``games/student/README.md``.
+    Every manifest field is optional; missing fields fall back to the
+    launcher's defaults.
     """
 
     # Folder convention. ROOT is relative to the launcher's root_dir.
@@ -216,7 +357,35 @@ class StudentGameSettings:
     MANIFEST_KEY_LABEL = "label"
     MANIFEST_KEY_ATTRIBUTION = "attribution"
     MANIFEST_KEY_PREVIEW = "preview"
+    MANIFEST_KEY_INPUT_SCHEME = "input_scheme"
+    MANIFEST_KEY_NOTE = "note"
+    MANIFEST_KEY_PREVIEW = "preview"
     MANIFEST_KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    MANIFEST_KEY_UNDER_CONSTRUCTION = "under_construction"
+    KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    KEY_NO_CONTROLLER = "no_controller_support"
+    MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
+    MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
+    KEY_NO_CONTROLLER = "no_controller_support"
     MANIFEST_KEY_LIMITED_CONTROLLER = "limited_controller_support"
     MANIFEST_KEY_WONKY_PHYSICS = "wonky_physics"
     MANIFEST_KEY_UNDER_CONSTRUCTION = "under_construction"

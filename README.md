@@ -48,20 +48,21 @@ py main.py
 
 ### Keyboard
 - Up/Down or W/S: Move selection
-- Enter/Space: Launch selected game
+- Enter/Space: Enter submenu / launch selected game
+- Esc: Back to previous menu (exits the launcher when already at the root)
 - F11: Toggle fullscreen
-- Esc: Exit launcher
 
 ### Controller
 - D-pad/left stick vertical: Move selection
-- A or Start: Launch selected game
-- Select/Back: Toggle fullscreen
+- A or Start: Enter submenu / launch selected game
+- B: Back to previous menu
+- Select: Toggle fullscreen
 
 While in a game, press F11 (or Select on a controller) to toggle fullscreen, and press Start + Select + L1 + R1 (or close the game window) to return to the launcher.
 
 ## Games
 
-Each sponsor game lives under `games/sponsor/<name>/` with its own `main.py` and a per-game README. Status flags below come from `settings.py` (`UNDER_CONSTRUCTION_GAMES`, `LIMITED_CONTROLLER_SUPPORT_GAMES`, `NO_CONTROLLER_SUPPORT_GAMES`, `WONKY_PHYSICS_GAMES`).
+Each sponsor game lives under `games/sponsor/<name>/` with its own `main.py` and a per-game README. Categories, input-scheme tags, free-form notes, and the under-construction flag all come from `settings.py` (`GAME_CATEGORIES`, `GAME_INPUT_SCHEMES`, `GAME_NOTES`, `UNDER_CONSTRUCTION_GAMES`).
 
 ### Adventure
 Action-style dungeon crawler companion piece to Dungeon Digger. README: [games/sponsor/adventure/README.md](games/sponsor/adventure/README.md).

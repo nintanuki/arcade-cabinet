@@ -4,7 +4,7 @@ import json
 import random
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -12,12 +12,16 @@ import pygame
 
 from settings import (
 	CRTSettings,
+	CategorySettings,
 	ColorSettings,
 	ControlSettings,
 	FontSettings,
 	GameSettings,
+	GroupSettings,
+	InputSchemeSettings,
 	LauncherSettings,
 	MenuSettings,
+	MenuTreeSettings,
 	ScreenSettings,
 	StudentGameSettings,
 )
@@ -30,18 +34,56 @@ class StudentGameRecord:
 	Sponsor games are curated in settings.GameSettings; student games are
 	scanned from disk so a teacher can drop a folder into games/student/
 	without editing any code. Records bundle every override the launcher
-	might apply (label, attribution, preview, warning flags) so the merge
-	step in ArcadeLauncher.__init__ stays straightforward.
+	might apply (label, attribution, preview, input scheme, free-form
+	note, under-construction flag) so the merge step in
+	ArcadeLauncher._build_games stays straightforward.
 	"""
 
 	label: str
 	main_path: Path
 	attribution: str
 	preview_path: Path | None
-	no_controller: bool
-	limited_controller: bool
-	wonky_physics: bool
+	input_scheme_key: str | None
+	note: str | None
 	under_construction: bool
+
+
+@dataclass
+class MenuNode:
+	"""One row in a menu frame.
+
+	A node is either a game (selecting it launches a subprocess) or a
+	submenu (selecting it pushes its children onto the menu stack). The
+	game-only fields stay at their defaults on submenu nodes; the
+	``children`` list stays empty on game nodes and on category leaves
+	that currently have no games (e.g. an empty Student Games folder).
+	"""
+
+	kind: str  # "game" or "submenu"
+	label: str
+	description: str = ""
+	children: list["MenuNode"] = field(default_factory=list)
+	# Game-only fields below. Defaults match "no metadata available".
+	main_path: Path | None = None
+	preview_path: Path | None = None
+	preview_label: str | None = None
+	attribution: str = ""
+	input_scheme_key: str | None = None
+	note: str | None = None
+	under_construction: bool = False
+	category_key: str | None = None
+
+
+@dataclass
+class MenuFrame:
+	"""One level on the navigation stack.
+
+	Tracks the items rendered for this level plus the cursor position so
+	that backing out and re-entering a submenu lands on the same row.
+	"""
+
+	items: list[MenuNode]
+	selected_index: int = 0
 
 
 def _read_student_manifest(manifest_path: Path) -> dict:
@@ -69,10 +111,11 @@ def discover_student_games(student_root: Path) -> list[StudentGameRecord]:
 
 	A folder qualifies if it contains StudentGameSettings.ENTRY_FILENAME
 	(typically main.py). A sibling StudentGameSettings.MANIFEST_FILENAME
-	(game.json) may override label, attribution, preview, and warning
-	flags; any field omitted from the manifest falls back to the default.
-	The folder is created if missing so a fresh clone of the repo still
-	runs without errors -- the directory is .gitignored, not committed.
+	(game.json) may override label, attribution, preview, input scheme,
+	free-form note, and under-construction flag; any field omitted from
+	the manifest falls back to the launcher's default. The folder is
+	created if missing so a fresh clone of the repo still runs without
+	errors -- the directory is .gitignored, not committed.
 
 	Args:
 		student_root (Path): Absolute path to the games/student/ directory.
@@ -99,6 +142,7 @@ def discover_student_games(student_root: Path) -> list[StudentGameRecord]:
 		default_label = entry.name.replace("-", " ").replace("_", " ").title()
 
 		manifest = _read_student_manifest(entry / StudentGameSettings.MANIFEST_FILENAME)
+
 		label_value = manifest.get(StudentGameSettings.MANIFEST_KEY_LABEL)
 		label = label_value if isinstance(label_value, str) and label_value else default_label
 
@@ -112,15 +156,27 @@ def discover_student_games(student_root: Path) -> list[StudentGameRecord]:
 		preview_value = manifest.get(StudentGameSettings.MANIFEST_KEY_PREVIEW)
 		preview_path = entry / preview_value if isinstance(preview_value, str) and preview_value else None
 
+		# input_scheme is only honored if it matches a known scheme key.
+		# Anything else (typo, removed key) is silently ignored so the menu
+		# never crashes on a malformed manifest.
+		input_scheme_value = manifest.get(StudentGameSettings.MANIFEST_KEY_INPUT_SCHEME)
+		input_scheme_key = (
+			input_scheme_value
+			if isinstance(input_scheme_value, str) and input_scheme_value in InputSchemeSettings.LABELS
+			else None
+		)
+
+		note_value = manifest.get(StudentGameSettings.MANIFEST_KEY_NOTE)
+		note = note_value if isinstance(note_value, str) and note_value else None
+
 		records.append(
 			StudentGameRecord(
 				label=label,
 				main_path=main_path,
 				attribution=attribution,
 				preview_path=preview_path,
-				no_controller=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_NO_CONTROLLER)),
-				limited_controller=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_LIMITED_CONTROLLER)),
-				wonky_physics=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_WONKY_PHYSICS)),
+				input_scheme_key=input_scheme_key,
+				note=note,
 				under_construction=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_UNDER_CONSTRUCTION)),
 			)
 		)
@@ -132,12 +188,7 @@ class LauncherCRT:
 	"""Render a CRT-style overlay on top of the launcher scene."""
 
 	def __init__(self, screen: pygame.Surface, tv_image_path: Path) -> None:
-		"""Initialize overlay texture and target render surface.
-
-		Args:
-			screen (pygame.Surface): Display surface the overlay is drawn onto.
-			tv_image_path (Path): Path to the CRT overlay texture image.
-		"""
+		"""Initialize overlay texture and target render surface."""
 		self.screen = screen
 		# Fall back to a transparent surface if the CRT texture is missing.
 		try:
@@ -147,11 +198,7 @@ class LauncherCRT:
 			self.base_tv = pygame.Surface(ScreenSettings.RESOLUTION, pygame.SRCALPHA)
 
 	def create_crt_lines(self, surf: pygame.Surface) -> None:
-		"""Draw scan lines onto a temporary overlay surface.
-
-		Args:
-			surf (pygame.Surface): Surface that receives horizontal scan lines.
-		"""
+		"""Draw scan lines onto a temporary overlay surface."""
 		for y_pos in range(0, ScreenSettings.HEIGHT, CRTSettings.SCANLINE_HEIGHT):
 			pygame.draw.line(
 				surf,
@@ -168,6 +215,7 @@ class LauncherCRT:
 		self.create_crt_lines(tv)
 		self.screen.blit(tv, (0, 0))
 
+
 class ArcadeLauncher:
 	"""Coordinate input, menu rendering, and launching selected games."""
 
@@ -183,15 +231,14 @@ class ArcadeLauncher:
 		self.menu_move_sfx: pygame.mixer.Sound | None = None
 		self.menu_select_sfx: pygame.mixer.Sound | None = None
 
-
-		# Prepare logo path, but load after display is initialized
+		# Prepare logo path, but load after display is initialized.
 		self.jil_logo_path = self.root_dir / LauncherSettings.JIL_LOGO_PATH
 		self.jil_logo_surface = None
 
 		self.initialize_runtime()
-		# Logo loads after initialize_runtime so the surface convert_alpha()
-		# call has a real display context. A missing or corrupt file is
-		# non-fatal; the draw path falls back to a placeholder rect.
+		# Logo loads after initialize_runtime so the convert_alpha() call has
+		# a real display context. A missing or corrupt file is non-fatal; the
+		# draw path falls back to a placeholder rect.
 		try:
 			logo_img = pygame.image.load(str(self.jil_logo_path)).convert_alpha()
 			self.jil_logo_surface = pygame.transform.smoothscale(logo_img, LauncherSettings.JIL_LOGO_SIZE)
@@ -199,47 +246,18 @@ class ArcadeLauncher:
 			self.jil_logo_surface = None
 		self.load_menu_audio()
 
-		# Sponsor games come straight from settings; student games are
-		# discovered on disk and merged in so a teacher can drop a folder
-		# into games/student/ without editing any code.
-		self.options = [
-			(label, self.root_dir / relative_path)
-			for label, relative_path in GameSettings.OPTIONS
-		]
-		self.preview_paths: dict[str, Path] = {
-			label: self.root_dir / relative_path
-			for label, relative_path in GameSettings.PREVIEW_IMAGES.items()
-		}
-		self.game_attributions: dict[str, str] = dict(GameSettings.GAME_ATTRIBUTIONS)
-		self.no_controller_games: set[str] = set(GameSettings.NO_CONTROLLER_SUPPORT_GAMES)
-		self.limited_controller_games: set[str] = set(GameSettings.LIMITED_CONTROLLER_SUPPORT_GAMES)
-		self.wonky_physics_games: set[str] = set(GameSettings.WONKY_PHYSICS_GAMES)
-		self.under_construction_games: set[str] = set(GameSettings.UNDER_CONSTRUCTION_GAMES)
+		# Build the unified games dict (sponsor + student) and load preview
+		# images keyed by label. Then walk MenuTreeSettings.ROOT to construct
+		# the navigation tree, attaching games to category leaves.
+		self.games: dict[str, MenuNode] = self._build_games()
+		self.preview_images: dict[str, pygame.Surface] = self._load_preview_images()
+		root_items = self._build_root_items()
 
-		student_games = discover_student_games(self.root_dir / StudentGameSettings.ROOT)
-		for record in student_games:
-			self.options.append((record.label, record.main_path))
-			self.game_attributions[record.label] = record.attribution
-			if record.preview_path is not None:
-				self.preview_paths[record.label] = record.preview_path
-			if record.no_controller:
-				self.no_controller_games.add(record.label)
-			if record.limited_controller:
-				self.limited_controller_games.add(record.label)
-			if record.wonky_physics:
-				self.wonky_physics_games.add(record.label)
-			if record.under_construction:
-				self.under_construction_games.add(record.label)
-
-		self.preview_images = self.load_preview_images()
-		self.selected_index = 0
+		self.menu_stack: list[MenuFrame] = [MenuFrame(items=root_items)]
+		self.menu_option_hitboxes: list[pygame.Rect] = []
 		self.vertical_axis_engaged = False
 		self.status_message = ""
 		self.status_message_until = 0
-		self.menu_option_hitboxes: list[pygame.Rect] = [
-			pygame.Rect(0, 0, 0, 0)
-			for _ in self.options
-		]
 
 	def show_status_message(self, message: str, duration_ms: int = 3500) -> None:
 		"""Display a temporary status/error message at the bottom of the screen."""
@@ -259,21 +277,14 @@ class ArcadeLauncher:
 		self.subtitle_font = pygame.font.Font(str(self.font_path), FontSettings.SUBTITLE_SIZE)
 		self.option_font = pygame.font.Font(str(self.font_path), FontSettings.OPTION_SIZE)
 		self.hint_font = pygame.font.Font(str(self.font_path), FontSettings.HINT_SIZE)
+		self.description_font = pygame.font.Font(str(self.font_path), FontSettings.DESCRIPTION_SIZE)
 
 		self.crt = LauncherCRT(self.screen, self.tv_path)
 
 	def _load_sound_if_available(self, sound_path: Path) -> pygame.mixer.Sound | None:
-		"""Load a sound if both mixer and file are available.
-
-		Args:
-			sound_path (Path): File path to the candidate sound.
-
-		Returns:
-			pygame.mixer.Sound | None: Loaded sound, or ``None`` when unavailable.
-		"""
+		"""Load a sound if both mixer and file are available."""
 		if not sound_path.exists():
 			return None
-
 		try:
 			if not pygame.mixer.get_init():
 				pygame.mixer.init()
@@ -291,194 +302,219 @@ class ArcadeLauncher:
 				break
 
 	def _play_move_sfx(self) -> None:
-		"""Play the move sound when changing highlighted menu option."""
+		"""Play the move SFX (used for cursor movement and back navigation)."""
 		if self.menu_move_sfx is not None:
 			self.menu_move_sfx.play()
 
 	def _play_select_sfx(self) -> None:
-		"""Play the select sound when launching a game."""
+		"""Play the select SFX (used for launching games and entering submenus)."""
 		if self.menu_select_sfx is not None:
 			self.menu_select_sfx.play()
 
+	# ------------------------------------------------------------------
+	# Menu tree construction
+	# ------------------------------------------------------------------
+	def _build_games(self) -> dict[str, MenuNode]:
+		"""Combine sponsor and student games into MenuNode objects keyed by label."""
+		games: dict[str, MenuNode] = {}
+
+		for label, relative_path in GameSettings.OPTIONS:
+			category_key = GameSettings.GAME_CATEGORIES.get(label)
+			attribution = (
+				CategorySettings.ATTRIBUTIONS.get(category_key, "")
+				if category_key
+				else ""
+			)
+			preview_relative = GameSettings.PREVIEW_IMAGES.get(label)
+			preview_path = self.root_dir / preview_relative if preview_relative else None
+			games[label] = MenuNode(
+				kind="game",
+				label=label,
+				main_path=self.root_dir / relative_path,
+				preview_path=preview_path,
+				preview_label=label,
+				attribution=attribution,
+				input_scheme_key=GameSettings.GAME_INPUT_SCHEMES.get(label),
+				note=GameSettings.GAME_NOTES.get(label),
+				under_construction=label in GameSettings.UNDER_CONSTRUCTION_GAMES,
+				category_key=category_key,
+			)
+
+		student_records = discover_student_games(self.root_dir / StudentGameSettings.ROOT)
+		for record in student_records:
+			games[record.label] = MenuNode(
+				kind="game",
+				label=record.label,
+				main_path=record.main_path,
+				preview_path=record.preview_path,
+				preview_label=record.label,
+				attribution=record.attribution,
+				input_scheme_key=record.input_scheme_key,
+				note=record.note,
+				under_construction=record.under_construction,
+				category_key=CategorySettings.STUDENT,
+			)
+
+		return games
+
+	def _load_preview_images(self) -> dict[str, pygame.Surface]:
+		"""Load and scale preview screenshots keyed by game label."""
+		preview_images: dict[str, pygame.Surface] = {}
+		max_width = MenuSettings.PREVIEW_BOX_WIDTH - (MenuSettings.PREVIEW_INNER_PADDING * 2)
+		max_height = MenuSettings.PREVIEW_BOX_HEIGHT - (MenuSettings.PREVIEW_INNER_PADDING * 2)
+
+		for label, node in self.games.items():
+			if node.preview_path is None:
+				continue
+			try:
+				surface = pygame.image.load(str(node.preview_path)).convert()
+			except (FileNotFoundError, pygame.error):
+				continue
+			if surface.get_width() == 0 or surface.get_height() == 0:
+				continue
+			scale_ratio = min(
+				max_width / surface.get_width(),
+				max_height / surface.get_height(),
+			)
+			target_size = (
+				max(1, int(surface.get_width() * scale_ratio)),
+				max(1, int(surface.get_height() * scale_ratio)),
+			)
+			preview_images[label] = pygame.transform.smoothscale(surface, target_size)
+
+		return preview_images
+
+	def _filter_games_by_category(self, category_key: str) -> list[MenuNode]:
+		"""Return all game nodes belonging to ``category_key``, sorted by label."""
+		return sorted(
+			(g for g in self.games.values() if g.category_key == category_key),
+			key=lambda g: g.label,
+		)
+
+	def _build_menu_node_for_spec(self, spec: dict) -> MenuNode:
+		"""Walk one MenuTreeSettings entry and return its MenuNode subtree."""
+		kind_in_spec = spec["kind"]
+		key = spec["key"]
+		if kind_in_spec == MenuTreeSettings.KIND_CATEGORY:
+			return MenuNode(
+				kind="submenu",
+				label=CategorySettings.LABELS[key],
+				description=CategorySettings.DESCRIPTIONS.get(key, ""),
+				children=self._filter_games_by_category(key),
+			)
+		if kind_in_spec == MenuTreeSettings.KIND_GROUP:
+			return MenuNode(
+				kind="submenu",
+				label=GroupSettings.LABELS[key],
+				description=GroupSettings.DESCRIPTIONS.get(key, ""),
+				children=[self._build_menu_node_for_spec(child) for child in spec.get("children", [])],
+			)
+		raise ValueError(f"Unknown menu spec kind: {kind_in_spec!r}")
+
+	def _build_root_items(self) -> list[MenuNode]:
+		"""Build the top-level menu items from MenuTreeSettings.ROOT."""
+		return [self._build_menu_node_for_spec(spec) for spec in MenuTreeSettings.ROOT]
+
+	# ------------------------------------------------------------------
+	# Navigation
+	# ------------------------------------------------------------------
+	def current_frame(self) -> MenuFrame:
+		"""Return the currently visible menu frame (top of the stack)."""
+		return self.menu_stack[-1]
+
+	def current_node(self) -> MenuNode | None:
+		"""Return the currently highlighted node, or None if the frame is empty."""
+		frame = self.current_frame()
+		if not frame.items:
+			return None
+		return frame.items[frame.selected_index]
+
 	def _set_selected_index(self, new_index: int) -> None:
-		"""Update selection index and trigger menu-move SFX only on actual changes."""
-		wrapped_index = new_index % len(self.options)
-		if wrapped_index == self.selected_index:
+		"""Update selection in the active frame and play the move SFX on change."""
+		frame = self.current_frame()
+		count = len(frame.items)
+		if count == 0:
 			return
-		self.selected_index = wrapped_index
+		wrapped_index = new_index % count
+		if wrapped_index == frame.selected_index:
+			return
+		frame.selected_index = wrapped_index
 		self._play_move_sfx()
 
+	def move_selection_up(self) -> None:
+		"""Move the cursor to the previous item with wrap-around."""
+		self._set_selected_index(self.current_frame().selected_index - 1)
+
+	def move_selection_down(self) -> None:
+		"""Move the cursor to the next item with wrap-around."""
+		self._set_selected_index(self.current_frame().selected_index + 1)
+
+	def enter_selected_node(self) -> None:
+		"""Forward action: launch a game, push a submenu, or no-op on empty submenus."""
+		node = self.current_node()
+		if node is None:
+			return
+		if node.kind == "game":
+			self.launch_selected_game(node)
+			return
+		# Submenu node. Always play the select SFX so empty leaves still
+		# give audio feedback ("ka-chunk, nothing here yet").
+		self._play_select_sfx()
+		if node.children:
+			self.menu_stack.append(MenuFrame(items=list(node.children)))
+
+	def back_to_previous(self) -> bool:
+		"""Pop one level off the menu stack. Returns True if a level was popped."""
+		if len(self.menu_stack) > 1:
+			self._play_move_sfx()
+			self.menu_stack.pop()
+			return True
+		return False
+
+	# ------------------------------------------------------------------
+	# Game launch
+	# ------------------------------------------------------------------
 	def suspend_runtime(self) -> None:
 		"""Shut down launcher rendering/input systems before child game launch."""
 		pygame.display.quit()
 		pygame.joystick.quit()
 		pygame.quit()
 
-	def move_selection_up(self) -> None:
-		"""Move the menu cursor to the previous game option with wrap-around."""
-		self._set_selected_index(self.selected_index - 1)
+	def launch_selected_game(self, node: MenuNode) -> None:
+		"""Launch the given game node, then restore launcher runtime after exit."""
+		self._play_select_sfx()
+		self.show_loading_screen()
+		game_main = node.main_path
+		if game_main is None:
+			self.show_status_message(f"Cannot launch {node.label}: no entry path.")
+			return
+		game_dir = game_main.parent
 
-	def move_selection_down(self) -> None:
-		"""Move the menu cursor to the next game option with wrap-around."""
-		self._set_selected_index(self.selected_index + 1)
+		if not game_dir.exists():
+			self.show_status_message(f"Cannot launch {node.label}: folder not found.")
+			return
 
-	def load_preview_images(self) -> dict[str, pygame.Surface]:
-		"""Load menu preview screenshots and scale them to fit the preview panel.
+		if not game_main.exists():
+			self.show_status_message(f"Cannot launch {node.label}: main.py not found.")
+			return
 
-		Iterates ``self.preview_paths`` (already merged from sponsor settings
-		and student-game discovery) so this method is agnostic to where each
-		preview originated. Missing or unreadable files are skipped silently
-		and the launcher falls back to its "PREVIEW NOT AVAILABLE" placeholder.
-		"""
-		preview_images: dict[str, pygame.Surface] = {}
-		max_preview_width = MenuSettings.PREVIEW_BOX_WIDTH - (MenuSettings.PREVIEW_INNER_PADDING * 2)
-		max_preview_height = MenuSettings.PREVIEW_BOX_HEIGHT - (MenuSettings.PREVIEW_INNER_PADDING * 2)
+		self.suspend_runtime()
 
-		for label, preview_path in self.preview_paths.items():
-			try:
-				preview_surface = pygame.image.load(str(preview_path)).convert()
-			except (FileNotFoundError, pygame.error):
-				continue
-
-			if preview_surface.get_width() == 0 or preview_surface.get_height() == 0:
-				continue
-
-			scale_ratio = min(
-				max_preview_width / preview_surface.get_width(),
-				max_preview_height / preview_surface.get_height(),
+		try:
+			subprocess.run(
+				[sys.executable, str(game_main)],
+				cwd=str(game_dir),
+				check=False,
 			)
-			target_size = (
-				max(1, int(preview_surface.get_width() * scale_ratio)),
-				max(1, int(preview_surface.get_height() * scale_ratio)),
-			)
-			preview_images[label] = pygame.transform.smoothscale(preview_surface, target_size)
-
-		return preview_images
-
-	def draw_preview_panel(self) -> None:
-		"""Draw the selected game's screenshot in a rounded white-bordered panel."""
-		preview_rect = pygame.Rect(
-			MenuSettings.PREVIEW_BOX_X,
-			MenuSettings.PREVIEW_BOX_Y,
-			MenuSettings.PREVIEW_BOX_WIDTH,
-			MenuSettings.PREVIEW_BOX_HEIGHT,
-		)
-		inner_rect = preview_rect.inflate(-(MenuSettings.PREVIEW_INNER_PADDING * 2), -(MenuSettings.PREVIEW_INNER_PADDING * 2))
-
-		pygame.draw.rect(
-			self.screen,
-			ColorSettings.WHITE,
-			preview_rect,
-			MenuSettings.PREVIEW_BORDER_WIDTH,
-			MenuSettings.PREVIEW_BORDER_RADIUS,
-		)
-
-		selected_label, _ = self.options[self.selected_index]
-		preview_surface = self.preview_images.get(selected_label)
-
-		if preview_surface is not None:
-			preview_surface_rect = preview_surface.get_rect(center=inner_rect.center)
-			self.screen.blit(preview_surface, preview_surface_rect)
-		else:
-			fallback_surface = self.subtitle_font.render("PREVIEW NOT AVAILABLE", False, ColorSettings.WHITE)
-			fallback_rect = fallback_surface.get_rect(center=inner_rect.center)
-			self.screen.blit(fallback_surface, fallback_rect)
-
-		if selected_label in self.under_construction_games:
-			# White outline so the red label stays legible over busy
-			# preview screenshots — straight red text disappears against
-			# warm-toned panels (e.g. the dungeon previews).
-			self.draw_outlined_text(
-				MenuSettings.UNDER_CONSTRUCTION_TEXT,
-				self.option_font,
-				ColorSettings.RED,
-				ColorSettings.WHITE,
-				preview_rect.center,
-			)
-
-	def draw_outlined_text(
-		self,
-		text: str,
-		font: pygame.font.Font,
-		fg_color: tuple[int, int, int],
-		outline_color: tuple[int, int, int],
-		center: tuple[int, int],
-	) -> None:
-		"""Render text with a 1-pixel outline by stamping the outline color around the foreground.
-
-		Args:
-			text (str): String to render.
-			font (pygame.font.Font): Font used for both passes; rendering twice keeps
-				outline and foreground perfectly aligned.
-			fg_color (tuple[int, int, int]): Inner text color.
-			outline_color (tuple[int, int, int]): Outline color stamped at the eight
-				surrounding pixel offsets.
-			center (tuple[int, int]): Screen-space center for the rendered text.
-		"""
-		fg_surface = font.render(text, False, fg_color)
-		outline_surface = font.render(text, False, outline_color)
-		fg_rect = fg_surface.get_rect(center=center)
-		# All eight neighbors so the outline traces the full glyph silhouette,
-		# not just the cardinal sides.
-		outline_offsets = (
-			(-1, -1), (0, -1), (1, -1),
-			(-1, 0),           (1, 0),
-			(-1, 1),  (0, 1),  (1, 1),
-		)
-		for offset_x, offset_y in outline_offsets:
-			self.screen.blit(outline_surface, fg_rect.move(offset_x, offset_y))
-		self.screen.blit(fg_surface, fg_rect)
-
-	def collect_warning_lines(self, selected_label: str) -> list[str]:
-		"""Return red-text warnings for the selected game in render order.
-
-		Controller warnings (no / limited) are mutually exclusive and always
-		take the upper slot. The wonky-physics warning sits below if both
-		apply, and promotes into the upper slot when it is the only warning.
-
-		Args:
-			selected_label (str): Label of the highlighted game option.
-
-		Returns:
-			list[str]: Up to two strings, ordered from upper to lower slot.
-		"""
-		warnings: list[str] = []
-		if selected_label in self.no_controller_games:
-			warnings.append(MenuSettings.NO_CONTROLLER_SUPPORT_TEXT)
-		elif selected_label in self.limited_controller_games:
-			warnings.append(MenuSettings.LIMITED_CONTROLLER_SUPPORT_TEXT)
-		if selected_label in self.wonky_physics_games:
-			warnings.append(MenuSettings.WONKY_PHYSICS_TEXT)
-		return warnings
-
-	def draw_preview_warnings(self, selected_label: str) -> None:
-		"""Render warning lines under the preview panel for the selected game.
-
-		Args:
-			selected_label (str): Label of the highlighted game option.
-		"""
-		preview_center_x = MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2)
-
-		# Attribution always renders first in light blue (slot 0 above the warnings).
-		attribution_text = self.game_attributions.get(selected_label, "BY UNKNOWN")
-		attr_surface = self.hint_font.render(attribution_text, False, ColorSettings.LIGHT_BLUE)
-		attr_rect = attr_surface.get_rect(
-			center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
-		)
-		self.screen.blit(attr_surface, attr_rect)
-
-		# Up to two warning lines (red) render in stacked slots beneath the attribution.
-		slot_y_positions = (
-			MenuSettings.WARNING_LINE_1_CENTER_Y,
-			MenuSettings.WARNING_LINE_2_CENTER_Y,
-		)
-		warnings = self.collect_warning_lines(selected_label)
-		for slot_index, warning_text in enumerate(warnings):
-			warning_surface = self.hint_font.render(warning_text, False, ColorSettings.RED)
-			warning_rect = warning_surface.get_rect(
-				center=(preview_center_x, slot_y_positions[slot_index])
-			)
-			self.screen.blit(warning_surface, warning_rect)
+		except OSError as error:
+			self.initialize_runtime()
+			self.show_status_message(f"Failed to launch {node.label}: {error}")
+			self.vertical_axis_engaged = False
+			return
+		finally:
+			if not pygame.get_init():
+				self.initialize_runtime()
+				self.vertical_axis_engaged = False
 
 	def show_loading_screen(self, duration_ms: int = 2200) -> None:
 		"""Show a temporary loading screen before launching a selected game."""
@@ -500,53 +536,34 @@ class ArcadeLauncher:
 			pygame.display.flip()
 			self.clock.tick(ScreenSettings.FPS)
 
-	def launch_selected_game(self) -> None:
-		"""Launch the selected game, then restore launcher runtime after it exits."""
-		self._play_select_sfx()
-		self.show_loading_screen()
-		game_label, game_main = self.options[self.selected_index]
-		game_dir = game_main.parent
+	# ------------------------------------------------------------------
+	# Menu rendering
+	# ------------------------------------------------------------------
+	def draw_menu(self) -> None:
+		"""Pick the carousel or static-list renderer based on the active frame."""
+		frame = self.current_frame()
+		if len(frame.items) > MenuSettings.CAROUSEL_THRESHOLD:
+			self.draw_carousel_menu(frame)
+		else:
+			self.draw_list_menu(frame)
 
-		if not game_dir.exists():
-			self.show_status_message(f"Cannot launch {game_label}: folder not found.")
+	def draw_carousel_menu(self, frame: MenuFrame) -> None:
+		"""Draw a vertical carousel centered on the selected item in this frame."""
+		count = len(frame.items)
+		# Reset hitboxes to the active frame's item count so only currently
+		# visible carousel items react to the mouse.
+		self.menu_option_hitboxes = [pygame.Rect(0, 0, 0, 0) for _ in range(count)]
+		if count == 0:
 			return
-
-		if not game_main.exists():
-			self.show_status_message(f"Cannot launch {game_label}: main.py not found.")
-			return
-
-		self.suspend_runtime()
-
-		try:
-			subprocess.run(
-				[sys.executable, str(game_main)],
-				cwd=str(game_dir),
-				check=False,
-			)
-		except OSError as error:
-			self.initialize_runtime()
-			self.show_status_message(f"Failed to launch {game_label}: {error}")
-			self.vertical_axis_engaged = False
-			return
-		finally:
-			if not pygame.get_init():
-				self.initialize_runtime()
-				self.vertical_axis_engaged = False
-
-	def draw_carousel_menu(self) -> None:
-		"""Draw a simple vertical carousel centered on the selected game."""
-		# Clear stale hitboxes so only currently visible carousel items react to the mouse.
-		for index in range(len(self.menu_option_hitboxes)):
-			self.menu_option_hitboxes[index] = pygame.Rect(0, 0, 0, 0)
 
 		for offset in range(-MenuSettings.CAROUSEL_VISIBLE_RADIUS, MenuSettings.CAROUSEL_VISIBLE_RADIUS + 1):
-			option_index = (self.selected_index + offset) % len(self.options)
-			label, _ = self.options[option_index]
+			option_index = (frame.selected_index + offset) % count
+			node = frame.items[option_index]
 			distance = abs(offset)
 			is_selected = offset == 0
 
 			color = ColorSettings.YELLOW if is_selected else ColorSettings.WHITE
-			text_surface = self.option_font.render(label.upper(), False, color).convert_alpha()
+			text_surface = self.option_font.render(node.label.upper(), False, color).convert_alpha()
 
 			scale = max(
 				MenuSettings.CAROUSEL_MIN_SCALE,
@@ -575,8 +592,202 @@ class ArcadeLauncher:
 			self.screen.blit(text_surface, text_rect)
 			self.menu_option_hitboxes[option_index] = text_rect.inflate(36, 16)
 
+	def draw_list_menu(self, frame: MenuFrame) -> None:
+		"""Draw a static vertical list with a `>` cursor on the selected item."""
+		count = len(frame.items)
+		self.menu_option_hitboxes = [pygame.Rect(0, 0, 0, 0) for _ in range(count)]
+		if count == 0:
+			return
+
+		total_height = (count - 1) * MenuSettings.LIST_ITEM_SPACING
+		start_y = MenuSettings.CAROUSEL_CENTER_Y - total_height // 2
+
+		for index, node in enumerate(frame.items):
+			is_selected = index == frame.selected_index
+			color = ColorSettings.YELLOW if is_selected else ColorSettings.WHITE
+			label_surface = self.option_font.render(node.label.upper(), False, color)
+			label_rect = label_surface.get_rect(
+				center=(MenuSettings.CAROUSEL_CENTER_X, start_y + index * MenuSettings.LIST_ITEM_SPACING)
+			)
+			self.screen.blit(label_surface, label_rect)
+
+			if is_selected:
+				cursor_text = MenuSettings.LIST_CURSOR_TEXT.strip() or ">"
+				cursor_surface = self.option_font.render(cursor_text, False, color)
+				cursor_rect = cursor_surface.get_rect(
+					midright=(label_rect.left - 8, label_rect.centery)
+				)
+				self.screen.blit(cursor_surface, cursor_rect)
+
+			# Inflate hitbox enough to cover the cursor area on the left.
+			self.menu_option_hitboxes[index] = label_rect.inflate(80, 16)
+
+	def draw_preview_panel(self) -> None:
+		"""Draw the preview box; contents depend on game-vs-submenu highlight."""
+		preview_rect = pygame.Rect(
+			MenuSettings.PREVIEW_BOX_X,
+			MenuSettings.PREVIEW_BOX_Y,
+			MenuSettings.PREVIEW_BOX_WIDTH,
+			MenuSettings.PREVIEW_BOX_HEIGHT,
+		)
+		inner_rect = preview_rect.inflate(
+			-(MenuSettings.PREVIEW_INNER_PADDING * 2),
+			-(MenuSettings.PREVIEW_INNER_PADDING * 2),
+		)
+
+		pygame.draw.rect(
+			self.screen,
+			ColorSettings.WHITE,
+			preview_rect,
+			MenuSettings.PREVIEW_BORDER_WIDTH,
+			MenuSettings.PREVIEW_BORDER_RADIUS,
+		)
+
+		node = self.current_node()
+		if node is None:
+			return
+
+		if node.kind == "game":
+			self._draw_game_preview(node, inner_rect, preview_rect)
+		else:
+			self._draw_description(node, inner_rect)
+
+	def _draw_game_preview(self, node: MenuNode, inner_rect: pygame.Rect, preview_rect: pygame.Rect) -> None:
+		"""Render the screenshot (or fallback) plus the under-construction stamp."""
+		preview_surface = self.preview_images.get(node.preview_label) if node.preview_label else None
+		if preview_surface is not None:
+			preview_surface_rect = preview_surface.get_rect(center=inner_rect.center)
+			self.screen.blit(preview_surface, preview_surface_rect)
+		else:
+			fallback_surface = self.subtitle_font.render("PREVIEW NOT AVAILABLE", False, ColorSettings.WHITE)
+			fallback_rect = fallback_surface.get_rect(center=inner_rect.center)
+			self.screen.blit(fallback_surface, fallback_rect)
+
+		if node.under_construction:
+			# White outline so the red label stays legible over busy preview
+			# screenshots -- straight red text disappears against warm-toned
+			# panels (e.g. the dungeon previews).
+			self.draw_outlined_text(
+				MenuSettings.UNDER_CONSTRUCTION_TEXT,
+				self.option_font,
+				ColorSettings.RED,
+				ColorSettings.WHITE,
+				preview_rect.center,
+			)
+
+	def _draw_description(self, node: MenuNode, inner_rect: pygame.Rect) -> None:
+		"""Render a wrapped category description centered inside the preview panel."""
+		description = (node.description or "").upper()
+		if not description.strip():
+			return
+		lines = self._wrap_text(description, self.description_font, inner_rect.width)
+		if not lines:
+			return
+		line_height = self.description_font.get_linesize()
+		spacing = MenuSettings.DESCRIPTION_LINE_SPACING
+		block_height = len(lines) * line_height + (len(lines) - 1) * spacing
+		start_y = inner_rect.centery - block_height // 2
+		for index, line in enumerate(lines):
+			line_surface = self.description_font.render(line, False, ColorSettings.WHITE)
+			line_rect = line_surface.get_rect(
+				midtop=(inner_rect.centerx, start_y + index * (line_height + spacing))
+			)
+			self.screen.blit(line_surface, line_rect)
+
+	def _wrap_text(self, text: str, font: pygame.font.Font, max_width: int) -> list[str]:
+		"""Greedy word-wrap a string into lines that fit within ``max_width`` pixels."""
+		words = text.split()
+		lines: list[str] = []
+		current = ""
+		for word in words:
+			candidate = (current + " " + word).strip() if current else word
+			if font.size(candidate)[0] <= max_width:
+				current = candidate
+				continue
+			if current:
+				lines.append(current)
+				current = word
+			else:
+				# Single token longer than the box -- accept the overflow
+				# rather than infinite-loop trying to wrap it.
+				lines.append(word)
+				current = ""
+		if current:
+			lines.append(current)
+		return lines
+
+	def draw_outlined_text(
+		self,
+		text: str,
+		font: pygame.font.Font,
+		fg_color: tuple[int, int, int],
+		outline_color: tuple[int, int, int],
+		center: tuple[int, int],
+	) -> None:
+		"""Render text with a 1-pixel outline by stamping the outline color around the foreground."""
+		fg_surface = font.render(text, False, fg_color)
+		outline_surface = font.render(text, False, outline_color)
+		fg_rect = fg_surface.get_rect(center=center)
+		# All eight neighbors so the outline traces the full glyph silhouette,
+		# not just the cardinal sides.
+		outline_offsets = (
+			(-1, -1), (0, -1), (1, -1),
+			(-1, 0),           (1, 0),
+			(-1, 1),  (0, 1),  (1, 1),
+		)
+		for offset_x, offset_y in outline_offsets:
+			self.screen.blit(outline_surface, fg_rect.move(offset_x, offset_y))
+		self.screen.blit(fg_surface, fg_rect)
+
+	def collect_warning_lines(self, node: MenuNode) -> list[str]:
+		"""Return red-text warnings for the given game node in render order.
+
+		The input-scheme label (when set to anything other than STANDARD)
+		takes the upper slot; the optional free-form note sits beneath it.
+		If only the note is present, it promotes into the upper slot.
+		"""
+		lines: list[str] = []
+		scheme_label = (
+			InputSchemeSettings.LABELS.get(node.input_scheme_key)
+			if node.input_scheme_key
+			else None
+		)
+		if scheme_label:
+			lines.append(scheme_label)
+		if node.note:
+			lines.append(node.note)
+		return [line.upper() for line in lines]
+
+	def draw_preview_warnings(self) -> None:
+		"""Render attribution + up to two warning lines under the preview, only for games."""
+		node = self.current_node()
+		if node is None or node.kind != "game":
+			return
+
+		preview_center_x = MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2)
+
+		# Attribution always renders first in light blue.
+		attribution_text = node.attribution or "BY UNKNOWN"
+		attr_surface = self.hint_font.render(attribution_text.upper(), False, ColorSettings.LIGHT_BLUE)
+		attr_rect = attr_surface.get_rect(
+			center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
+		)
+		self.screen.blit(attr_surface, attr_rect)
+
+		slot_y_positions = (
+			MenuSettings.WARNING_LINE_1_CENTER_Y,
+			MenuSettings.WARNING_LINE_2_CENTER_Y,
+		)
+		warnings = self.collect_warning_lines(node)
+		for slot_index, warning_text in enumerate(warnings):
+			warning_surface = self.hint_font.render(warning_text, False, ColorSettings.RED)
+			warning_rect = warning_surface.get_rect(
+				center=(preview_center_x, slot_y_positions[slot_index])
+			)
+			self.screen.blit(warning_surface, warning_rect)
+
 	def draw(self) -> None:
-		"""Render the launcher title, subtitle, game options, and CRT overlay."""
+		"""Render the launcher title, subtitle, current menu, preview, and CRT overlay."""
 		self.screen.fill(ColorSettings.BLACK)
 
 		# Center the JIL logo + title group horizontally as one unit so the
@@ -590,8 +801,6 @@ class ArcadeLauncher:
 		if self.jil_logo_surface is not None:
 			self.screen.blit(self.jil_logo_surface, (start_x, logo_y))
 		else:
-			# Fallback rect when the logo file is missing — the placeholder
-			# stays visible so a missing-asset bug is impossible to ignore.
 			pygame.draw.rect(
 				self.screen,
 				LauncherSettings.JIL_LOGO_PLACEHOLDER_COLOR,
@@ -613,11 +822,10 @@ class ArcadeLauncher:
 			center=(ScreenSettings.WIDTH // 2, MenuSettings.SUBTITLE_CENTER_Y)
 		)
 		self.screen.blit(subtitle_surface, subtitle_rect)
-		self.draw_carousel_menu()
-		self.draw_preview_panel()
 
-		selected_label, _ = self.options[self.selected_index]
-		self.draw_preview_warnings(selected_label)
+		self.draw_menu()
+		self.draw_preview_panel()
+		self.draw_preview_warnings()
 
 		hint_line_1_surface = self.hint_font.render(
 			MenuSettings.FOOTER_TEXT_LINE_1,
@@ -645,37 +853,31 @@ class ArcadeLauncher:
 		self.crt.draw()
 		pygame.display.flip()
 
+	# ------------------------------------------------------------------
+	# Input handling
+	# ------------------------------------------------------------------
 	def handle_controller_buttons(self, event: pygame.event.Event) -> None:
-		"""Process controller button presses for launcher actions.
-
-		Args:
-			event (pygame.event.Event): Pygame controller button event.
-		"""
+		"""Process controller button presses for launcher actions."""
 		if event.button == ControlSettings.CONTROLLER_BUTTON_SELECT:
 			pygame.display.toggle_fullscreen()
 		elif event.button in (
 			ControlSettings.CONTROLLER_BUTTON_A,
 			ControlSettings.CONTROLLER_BUTTON_START,
 		):
-			self.launch_selected_game()
+			self.enter_selected_node()
+		elif event.button == ControlSettings.CONTROLLER_BUTTON_B:
+			# B at root is a no-op; ESC or the window close button quits.
+			self.back_to_previous()
 
 	def handle_hat_navigation(self, event: pygame.event.Event) -> None:
-		"""Process D-pad/hat navigation input.
-
-		Args:
-			event (pygame.event.Event): Pygame hat-motion event.
-		"""
+		"""Process D-pad/hat navigation input."""
 		if event.value[1] > 0:
 			self.move_selection_up()
 		elif event.value[1] < 0:
 			self.move_selection_down()
 
 	def handle_axis_navigation(self, event: pygame.event.Event) -> None:
-		"""Process analog-stick vertical navigation with edge-triggered debounce.
-
-		Args:
-			event (pygame.event.Event): Pygame joystick axis-motion event.
-		"""
+		"""Process analog-stick vertical navigation with edge-triggered debounce."""
 		if event.axis != ControlSettings.CONTROLLER_NAV_AXIS:
 			return
 
@@ -689,14 +891,7 @@ class ArcadeLauncher:
 			self.vertical_axis_engaged = False
 
 	def handle_keyboard(self, event: pygame.event.Event) -> bool:
-		"""Process keyboard input and report whether the launcher should continue.
-
-		Args:
-			event (pygame.event.Event): Pygame keydown event.
-
-		Returns:
-			bool: True to keep running, False to exit the launcher loop.
-		"""
+		"""Process keyboard input and report whether the launcher should continue."""
 		if event.key == pygame.K_F11:
 			pygame.display.toggle_fullscreen()
 		elif event.key in (pygame.K_UP, pygame.K_w):
@@ -704,10 +899,12 @@ class ArcadeLauncher:
 		elif event.key in (pygame.K_DOWN, pygame.K_s):
 			self.move_selection_down()
 		elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-			self.launch_selected_game()
+			self.enter_selected_node()
 		elif event.key == pygame.K_ESCAPE:
-			return False
-
+			# ESC backs out of nested menus; at the root it quits so keyboard
+			# users always have an exit.
+			if not self.back_to_previous():
+				return False
 		return True
 
 	def handle_mouse(self, event: pygame.event.Event) -> None:
@@ -724,11 +921,11 @@ class ArcadeLauncher:
 			for index, hitbox in enumerate(self.menu_option_hitboxes):
 				if hitbox.collidepoint(event.pos):
 					self._set_selected_index(index)
-					self.launch_selected_game()
+					self.enter_selected_node()
 					break
 
 	def run(self) -> None:
-		"""Run the launcher event loop until user quits."""
+		"""Run the launcher event loop until the user quits."""
 		running = True
 		self.draw()
 		while running:

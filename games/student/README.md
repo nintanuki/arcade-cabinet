@@ -15,7 +15,7 @@ convention is documented for anyone cloning the repo.
    `games/student/snake-clone/`.
 2. Put your game's entry point inside it as `main.py`.
 3. Run the launcher (`python main.py` from the repo root) and your game
-   appears at the bottom of the carousel.
+   appears under **Student Games** on the main menu.
 
 That's it. With no extra files, the launcher will:
 
@@ -24,6 +24,7 @@ That's it. With no extra files, the launcher will:
 * Show the attribution `CREATED BY UNKNOWN STUDENT`.
 * Skip the preview screenshot (the launcher draws "PREVIEW NOT AVAILABLE"
   in the panel instead).
+* Show no warnings under the preview (no input-scheme line, no note).
 
 For a working zero-config example, see [`red-square/`](red-square/).
 
@@ -37,22 +38,33 @@ defaults. Every field is optional -- skip the ones you don't need.
     "label": "Snake Clone Deluxe",
     "attribution": "CREATED BY ALEX RIVERA",
     "preview": "preview.png",
-    "limited_controller_support": true,
-    "no_controller_support": false,
-    "wonky_physics": false,
+    "input_scheme": "mouse_only",
+    "note": "TWO PLAYER ONLY",
     "under_construction": false
 }
 ```
 
 | Field | What it does | Default |
 |-------|--------------|---------|
-| `label` | Menu name shown in the carousel. | Folder name, title-cased. |
+| `label` | Menu name shown in the menu. | Folder name, title-cased. |
 | `attribution` | Blue text under the preview panel. Use `CREATED BY <YOUR NAME>` so Mr. Navarro knows who made it. | `CREATED BY UNKNOWN STUDENT` |
 | `preview` | Filename of a screenshot **relative to your game folder** (see "Preview screenshots" below). | No preview, panel reads "PREVIEW NOT AVAILABLE". |
-| `no_controller_support` | Show the red "NO CONTROLLER SUPPORT" warning under the preview. | `false` |
-| `limited_controller_support` | Show the red "LIMITED CONTROLLER SUPPORT" warning. Mutually exclusive with the above. | `false` |
-| `wonky_physics` | Show the red "EXPECT WONKY PHYSICS" warning. | `false` |
+| `input_scheme` | Stock red warning describing how your game is controlled. See valid values below. Omit (or use `standard`) when your game works with the cabinet controller and keyboard. | No warning shown. |
+| `note` | Free-form red note shown beneath the input-scheme line. Use it for anything game-specific that isn't covered by `input_scheme` (e.g. `WONKY PHYSICS`, `RESETS ON GAME OVER`, `TWO PLAYER ONLY`). | No note shown. |
 | `under_construction` | Stamp "UNDER CONSTRUCTION" across the preview. | `false` |
+
+### Valid `input_scheme` values
+
+| Value | Renders as |
+|-------|-----------|
+| `standard` | (nothing — full controller + keyboard support) |
+| `limited_controller` | `LIMITED CONTROLLER SUPPORT` |
+| `no_controller` | `NO CONTROLLER SUPPORT` |
+| `mouse_only` | `MOUSE ONLY` |
+| `mouse_and_keyboard` | `MOUSE & KEYBOARD ONLY` |
+| `keyboard_only` | `KEYBOARD ONLY` |
+
+If you set `input_scheme` to something that isn't on this list, the launcher silently ignores it and shows no warning — no typo will brick the menu.
 
 For a working example with a manifest, see [`blue-circle/`](blue-circle/).
 
@@ -125,8 +137,8 @@ But for the cabinet workflow, the simple relative paths are fine.
 3. Scans every subdirectory of `games/student/`. Any directory containing
    `main.py` becomes a menu entry; the optional `game.json` overrides
    metadata as documented above.
-4. Appends the discovered games to the carousel in alphabetical folder
-   order.
+4. Lists the discovered games under the **Student Games** category in
+   alphabetical order by label.
 
 If a manifest is malformed (bad JSON, wrong types), the launcher silently
 falls back to the defaults rather than crashing. Watch the launcher's
