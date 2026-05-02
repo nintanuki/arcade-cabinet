@@ -26,7 +26,7 @@ That's it. With no extra files, the launcher will:
   in the panel instead).
 * Show no warnings under the preview (no input-scheme line, no note).
 
-For a working zero-config example, see [`red-square/`](red-square/).
+For a working zero-config example, see [`red-square-demo/`](red-square-demo/).
 
 ## Customizing the menu entry (optional `game.json`)
 
@@ -36,7 +36,7 @@ defaults. Every field is optional -- skip the ones you don't need.
 ```json
 {
     "label": "Snake Clone Deluxe",
-    "attribution": "CREATED BY ALEX RIVERA",
+    "attribution": "CREATED BY ALEX RIVERA - 1997",
     "preview": "preview.png",
     "input_scheme": "mouse_only",
     "note": "TWO PLAYER ONLY",
@@ -66,7 +66,7 @@ defaults. Every field is optional -- skip the ones you don't need.
 
 If you set `input_scheme` to something that isn't on this list, the launcher silently ignores it and shows no warning — no typo will brick the menu.
 
-For a working example with a manifest, see [`blue-circle/`](blue-circle/).
+For a working example with a manifest, see [`blue-circle-demo/`](blue-circle-demo/).
 
 ## Preview screenshots
 

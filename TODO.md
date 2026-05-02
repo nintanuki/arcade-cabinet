@@ -1,3 +1,6 @@
+## Working agreements
+- After every code change (yours, an AI assistant's, or a copilot tool's), append a new entry to `docs/CHANGELOG.md` following the format documented at the top of that file. One entry per logical change, newest first under the `---` separator, line numbers reflect the file at the time of edit.
+
 ## Game Ideas
 - [ ] Tetris Attack / Panel de Pon
 - [ ] Pazaak

@@ -40,6 +40,208 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-02 — Nested launcher menus, per-game captions, input-scheme + note warning system, demo expansion (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** entire file restructured (~225 → ~370 lines)
+**Before:**
+    Flat config classes. GameSettings carried OPTIONS, PREVIEW_IMAGES,
+    GAME_ATTRIBUTIONS, LIMITED_/NO_CONTROLLER_SUPPORT_GAMES,
+    WONKY_PHYSICS_GAMES, UNDER_CONSTRUCTION_GAMES. MenuSettings carried
+    NO_CONTROLLER_SUPPORT_TEXT, LIMITED_CONTROLLER_SUPPORT_TEXT,
+    WONKY_PHYSICS_TEXT. StudentGameSettings exposed
+    MANIFEST_KEY_NO_CONTROLLER / MANIFEST_KEY_LIMITED_CONTROLLER /
+    MANIFEST_KEY_WONKY_PHYSICS.
+**After:**
+    Added InputSchemeSettings (STANDARD / LIMITED_CONTROLLER /
+    NO_CONTROLLER / MOUSE_ONLY / MOUSE_AND_KEYBOARD / KEYBOARD_ONLY +
+    LABELS dict). Added CategorySettings (STUDENT / ORIGINAL / TRIBUTE
+    / TUTORIAL with LABELS / DESCRIPTIONS / ATTRIBUTIONS). Added
+    GroupSettings (MR_NAVARRO with LABELS / DESCRIPTIONS). Added
+    MenuTreeSettings (KIND_CATEGORY / KIND_GROUP / ROOT — the
+    navigation tree as data).
+
+    GameSettings: dropped GAME_ATTRIBUTIONS, the two CONTROLLER sets,
+    and WONKY_PHYSICS_GAMES; added GAME_CATEGORIES,
+    GAME_INPUT_SCHEMES, GAME_NOTES, GAME_DESCRIPTIONS. Pazaak and
+    Puzzle League added across OPTIONS / PREVIEW_IMAGES /
+    GAME_CATEGORIES (TRIBUTE) / GAME_DESCRIPTIONS;
+    UNDER_CONSTRUCTION_GAMES gains Pazaak.
+
+    MenuSettings: dropped NO_CONTROLLER_SUPPORT_TEXT /
+    LIMITED_CONTROLLER_SUPPORT_TEXT / WONKY_PHYSICS_TEXT; added
+    CAROUSEL_THRESHOLD, LIST_ITEM_SPACING, LIST_CURSOR_TEXT,
+    DESCRIPTION_LINE_SPACING, DESCRIPTION_HIGHLIGHTS,
+    CAPTION_LINE_SPACING.
+
+    ControlSettings: added CONTROLLER_BUTTON_B = 1.
+    ColorSettings: added ORANGE.
+    FontSettings: added DESCRIPTION_SIZE = 10.
+    StudentGameSettings: dropped the three legacy controller / physics
+    manifest keys; added MANIFEST_KEY_INPUT_SCHEME and
+    MANIFEST_KEY_NOTE.
+**Why:** The flat menu didn't scale once we wanted students to author
+their own games and Mr. Navarro's lineup to be split by
+"original / tribute / tutorial". Categories + a navigation-tree
+constant solve that, and replacing the binary controller flags +
+hardcoded "wonky physics" string with an input-scheme enum and a
+free-form note slot lets every game (sponsor or student) carry
+variable warning copy without a code change.
+
+**File:** main.py
+**Lines (at time of edit):** entire file restructured (~755 → ~960 lines)
+**Before:**
+    Flat self.options list, single carousel renderer, attribution
+    rendered in light blue, controller / wonky-physics warnings
+    derived from GameSettings sets. ESC quit immediately, no B button
+    binding.
+**After:**
+    Added MenuNode dataclass (kind: "game" | "submenu", with game-only
+    fields like main_path / preview_path / attribution /
+    input_scheme_key / note / under_construction / category_key) and
+    MenuFrame (items + cursor index). __init__ walks
+    MenuTreeSettings.ROOT to build the tree, attaching games to
+    category leaves via _filter_games_by_category.
+
+    Navigation: forward (A / Start / Enter / Space) launches games or
+    pushes submenus; back (B / Esc) pops a level; Esc at the root
+    still quits. Per-level cursor memory survives push/pop. Empty
+    submenu (e.g. an empty Student Games folder) plays the select SFX
+    and stays put.
+
+    draw_menu picks between draw_carousel_menu and a new
+    draw_list_menu (vertical list, `>` cursor on the selected row,
+    yellow / white) based on CAROUSEL_THRESHOLD. draw_preview_panel
+    routes to _draw_game_preview for game nodes and _draw_description
+    for submenu nodes; descriptions wrap (_wrap_description_with_colors)
+    and render with per-phrase color runs driven by
+    _build_description_color_map and DESCRIPTION_HIGHLIGHTS.
+
+    Caption under the preview is now node.attribution rendered in
+    white (was light blue), wraps against PREVIEW_BOX_WIDTH via the
+    new _wrap_simple helper, and pushes the warning slots down only
+    when wrapped. Sponsor games source the caption from
+    GameSettings.GAME_DESCRIPTIONS; student games still use the
+    manifest's attribution field. collect_warning_lines reads
+    node.input_scheme_key (looked up in InputSchemeSettings.LABELS)
+    and node.note instead of the removed GameSettings sets.
+
+    discover_student_games reads MANIFEST_KEY_INPUT_SCHEME (validated
+    against the known scheme keys; unknown values are silently ignored
+    so a typo never bricks the menu) and MANIFEST_KEY_NOTE.
+    StudentGameRecord fields renamed accordingly:
+    no_controller / limited_controller / wonky_physics →
+    input_scheme_key + note.
+**Why:** Mirrors the settings refactor. The menu-stack model keeps the
+draw and input handlers oblivious to depth, the colored description
+rendering keeps category screens visually distinct from games, and
+the caption rewrite removes the redundant "ORIGINAL BY MR. NAVARRO"
+line whose info is now advertised by the menu location and the
+preview-box description.
+
+**File:** games/student/README.md
+**Lines (at time of edit):** several modified blocks
+**Before:**
+    Manifest table listed `no_controller_support`,
+    `limited_controller_support`, `wonky_physics`,
+    `under_construction`. Example JSON used those keys. Walk-through
+    said new games "appear at the bottom of the carousel". Caption
+    described as "Blue text under the preview panel". Demo links
+    pointed at `red-square/` and `blue-circle/`.
+**After:**
+    Manifest table replaced controller / physics flags with
+    `input_scheme` (sub-table of valid string values) and `note`
+    (free-form red text) plus `under_construction`. Example JSON
+    updated. Walk-through says new games "appear under Student Games
+    on the main menu". Caption described as "White caption under the
+    preview panel". Demo links point at `red-square-demo/` and
+    `blue-circle-demo/`.
+**Why:** Doc the schema and discovery flow that actually runs now.
+
+**File:** README.md (top-level)
+**Lines (at time of edit):** 49-58 (modified), 64 (modified)
+**Before:**
+    Controller list said "Select/Back: Toggle fullscreen", no B
+    button. Catalog blurb cited UNDER_CONSTRUCTION_GAMES,
+    LIMITED_CONTROLLER_SUPPORT_GAMES, NO_CONTROLLER_SUPPORT_GAMES,
+    WONKY_PHYSICS_GAMES.
+**After:**
+    Controller list adds "B: Back to previous menu" and Esc described
+    as "back, exits at the root". Catalog blurb cites
+    GAME_CATEGORIES, GAME_INPUT_SCHEMES, GAME_NOTES,
+    UNDER_CONSTRUCTION_GAMES.
+**Why:** Match the new bindings and settings names.
+
+**File:** games/sponsor/pazaak/main.py (new file)
+**Before:** (file did not exist)
+**After:**
+    Minimal pygame placeholder: opens a 1280x720 SCALED window, paints
+    "PAZAAK / UNDER CONSTRUCTION - PRESS ESC TO RETURN", exits on ESC,
+    the L1+R1+SELECT+START quit chord, or the window's close button.
+**Why:** Pazaak appears in the launcher under Tribute Games now and
+needs a runnable entry point. Real gameplay can land later without
+touching the launcher plumbing.
+
+**File:** games/student/red-square-demo/main.py (new file)
+**Before:** (file did not exist)
+**After:**
+    pygame demo: red square, movable via arrow keys / WASD / D-pad /
+    left stick (deadzoned), bounded to the screen. Exits on ESC, the
+    quit chord, or the close button.
+**Why:** Tests the launcher's auto-discovery path -- no game.json
+sits next to it, so the launcher must derive label and attribution
+from defaults.
+
+**File:** games/student/blue-circle-demo/main.py (new file)
+**Before:** (file did not exist)
+**After:**
+    Same control + exit pattern as red-square-demo, draws a blue
+    circle.
+**Why:** Tests the launcher's full-manifest path; paired with the
+game.json below.
+
+**File:** games/student/blue-circle-demo/game.json (new file)
+**Before:** (file did not exist)
+**After:**
+    {"label": "Blue Circle Demo", "attribution": "CREATED BY MR.
+    NAVARRO (DEMO)", "input_scheme": "mouse_only", "note": "DEMO
+    MANIFEST EXAMPLE"}
+**Why:** Exercises every optional manifest field the launcher reads.
+
+**File:** games/student/green-triangle-demo/main.py (new file)
+**Before:** (file did not exist)
+**After:**
+    Same control + exit pattern as the other demos, draws a point-up
+    equilateral triangle (circumscribed-radius bounds for clamping).
+**Why:** Tests the launcher's "some fields set, others defaulted"
+manifest path.
+
+**File:** games/student/green-triangle-demo/game.json (new file)
+**Before:** (file did not exist)
+**After:**
+    {"attribution": "CREATED BY MR. NAVARRO (PARTIAL DEMO)", "note":
+    "PARTIAL MANIFEST EXAMPLE"}
+**Why:** Only `attribution` and `note` are set -- `label` falls back
+to the folder name, missing `input_scheme` means no warning line,
+missing `preview` means "PREVIEW NOT AVAILABLE", and
+`under_construction` defaults to false.
+
+**File:** TODO.md
+**Lines (at time of edit):** 1-2 (new section prepended)
+**Before:**
+    ## Game Ideas
+    - [ ] Tetris Attack / Panel de Pon
+**After:**
+    ## Working agreements
+    - After every code change ..., append a new entry to
+      docs/CHANGELOG.md ...
+
+    ## Game Ideas
+    ...
+**Why:** Make the changelog requirement visible to anyone (human, AI,
+or copilot) opening the TODO so this session's miss (the entire
+refactor landing without a single CHANGELOG entry) doesn't repeat.
+
 ## 2026-05-01 — Reorganize CHANGELOG header + extract logo-placeholder color constant (Claude Opus 4.7)
 
 **File:** docs/CHANGELOG.md

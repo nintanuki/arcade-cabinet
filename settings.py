@@ -46,6 +46,7 @@ class ColorSettings:
     ORANGE = (255, 170, 80)
     RED = (255, 80, 80)
     GREEN = (80, 255, 80)
+    MEDIUM_CARMINE = (180, 60, 60)
 
 
 class FontSettings:
@@ -106,8 +107,9 @@ class MenuSettings:
         "John I. Leonard": ColorSettings.ORANGE,
         "Python": ColorSettings.GREEN,
         "Pygame": ColorSettings.GREEN,
-        "Clear Code": ColorSettings.LIGHT_BLUE,
+        "Clear Code": ColorSettings.CYAN,
         "YouTube": ColorSettings.RED,
+        "Classic": ColorSettings.RED
     }
     FOOTER_TEXT_LINE_1 = "PRESS SELECT ON CONTROLLER OR F11 ON KEYBOARD TO TOGGLE FULLSCREEN WHILE IN GAME."
     FOOTER_TEXT_LINE_2 = "PRESS START + SELECT + L1 + R1 OR CLOSE THE GAME WINDOW TO RETURN TO THIS MENU."
