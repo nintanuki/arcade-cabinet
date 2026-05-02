@@ -47,7 +47,7 @@ defaults. Every field is optional -- skip the ones you don't need.
 | Field | What it does | Default |
 |-------|--------------|---------|
 | `label` | Menu name shown in the menu. | Folder name, title-cased. |
-| `attribution` | Blue text under the preview panel. Use `CREATED BY <YOUR NAME>` so Mr. Navarro knows who made it. | `CREATED BY UNKNOWN STUDENT` |
+| `attribution` | White caption under the preview panel. Use `CREATED BY <YOUR NAME>` so Mr. Navarro knows who made it. | `CREATED BY UNKNOWN STUDENT` |
 | `preview` | Filename of a screenshot **relative to your game folder** (see "Preview screenshots" below). | No preview, panel reads "PREVIEW NOT AVAILABLE". |
 | `input_scheme` | Stock red warning describing how your game is controlled. See valid values below. Omit (or use `standard`) when your game works with the cabinet controller and keyboard. | No warning shown. |
 | `note` | Free-form red note shown beneath the input-scheme line. Use it for anything game-specific that isn't covered by `input_scheme` (e.g. `WONKY PHYSICS`, `RESETS ON GAME OVER`, `TWO PLAYER ONLY`). | No note shown. |

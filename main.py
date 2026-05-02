@@ -320,11 +320,10 @@ class ArcadeLauncher:
 
 		for label, relative_path in GameSettings.OPTIONS:
 			category_key = GameSettings.GAME_CATEGORIES.get(label)
-			attribution = (
-				CategorySettings.ATTRIBUTIONS.get(category_key, "")
-				if category_key
-				else ""
-			)
+			# The caption is now a per-game description rather than a
+			# category-derived attribution; the category info is already
+			# advertised by the menu location and preview-box description.
+			attribution = GameSettings.GAME_DESCRIPTIONS.get(label, "")
 			preview_relative = GameSettings.PREVIEW_IMAGES.get(label)
 			preview_path = self.root_dir / preview_relative if preview_relative else None
 			games[label] = MenuNode(
@@ -865,20 +864,28 @@ class ArcadeLauncher:
 		return [line.upper() for line in lines]
 
 	def draw_preview_warnings(self) -> None:
-		"""Render attribution + up to two warning lines under the preview, only for games."""
+		"""Render the white caption + up to two warning lines under the preview.
+
+		The caption is a per-game description for sponsor games (pulled from
+		GameSettings.GAME_DESCRIPTIONS) and the manifest-supplied byline for
+		student games. If a game has no caption set, the line is skipped and
+		the warning slots render in their normal positions below.
+		"""
 		node = self.current_node()
 		if node is None or node.kind != "game":
 			return
 
 		preview_center_x = MenuSettings.PREVIEW_BOX_X + (MenuSettings.PREVIEW_BOX_WIDTH // 2)
 
-		# Attribution always renders first in light blue.
-		attribution_text = node.attribution or "BY UNKNOWN"
-		attr_surface = self.hint_font.render(attribution_text.upper(), False, ColorSettings.LIGHT_BLUE)
-		attr_rect = attr_surface.get_rect(
-			center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
-		)
-		self.screen.blit(attr_surface, attr_rect)
+		caption_text = node.attribution
+		if caption_text:
+			caption_surface = self.hint_font.render(
+				caption_text.upper(), False, ColorSettings.WHITE
+			)
+			caption_rect = caption_surface.get_rect(
+				center=(preview_center_x, MenuSettings.ATTRIBUTION_LINE_CENTER_Y)
+			)
+			self.screen.blit(caption_surface, caption_rect)
 
 		slot_y_positions = (
 			MenuSettings.WARNING_LINE_1_CENTER_Y,

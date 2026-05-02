@@ -279,7 +279,9 @@ class GameSettings:
         ("Game of the Amazons", Path("games") / "sponsor" / "game-of-the-amazons" / "main.py"),
         ("Jezz Ball", Path("games") / "sponsor" / "jezz-ball" / "main.py"),
         ("Ninja Frog", Path("games") / "sponsor" / "ninja-frog" / "main.py"),
+        ("Pazaak", Path("games") / "sponsor" / "pazaak" / "main.py"),
         ("Pong", Path("games") / "sponsor" / "pong" / "main.py"),
+        ("Puzzle League", Path("games") / "sponsor" / "puzzle-league" / "main.py"),
         ("Runner", Path("games") / "sponsor" / "runner" / "main.py"),
         ("Snake", Path("games") / "sponsor" / "snake" / "snake.py"),
         ("Space Invaders", Path("games") / "sponsor" / "space-invaders" / "main.py"),
@@ -295,7 +297,9 @@ class GameSettings:
         "Game of the Amazons": Path("assets") / "previews" / "game_of_the_amazons.png",
         "Jezz Ball": Path("assets") / "previews" / "jezz_ball.png",
         "Ninja Frog": Path("assets") / "previews" / "ninja_frog.png",
+        "Pazaak": Path("assets") / "previews" / "pazaak.png",
         "Pong": Path("assets") / "previews" / "pong.png",
+        "Puzzle League": Path("assets") / "previews" / "puzzle_league.png",
         "Runner": Path("assets") / "previews" / "runner.png",
         "Snake": Path("assets") / "previews" / "snake.png",
         "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
@@ -314,12 +318,36 @@ class GameSettings:
         "Game of the Amazons": CategorySettings.TRIBUTE,
         "Jezz Ball": CategorySettings.TRIBUTE,
         "Ninja Frog": CategorySettings.ORIGINAL,
+        "Pazaak": CategorySettings.TRIBUTE,
         "Pong": CategorySettings.TUTORIAL,
+        "Puzzle League": CategorySettings.TRIBUTE,
         "Runner": CategorySettings.TUTORIAL,
         "Snake": CategorySettings.TUTORIAL,
         "Space Invaders": CategorySettings.TUTORIAL,
         "Star Hero": CategorySettings.ORIGINAL,
         "Tetris": CategorySettings.TUTORIAL,
+    }
+
+    # Brief per-game caption rendered in white above the warning slots.
+    # Use it for a one-line tagline; the description preview-box space is
+    # already filled by the category description, so this is the place
+    # for game-specific copy. A missing entry simply hides the line.
+    GAME_DESCRIPTIONS = {
+        "Adventure": "ZELDA CLONE WITH TEXT BASED FLAVOR",
+        "Air Hockey": "IT'S AIR HOCKEY, YOU KNOW WHAT AIR HOCKEY IS",
+        "Breakout": "THE CLASSIC BLOCK-BREAKING ARCADE GAME",
+        "Dungeon Digger": "DUNGEON CRAWLING RPG WITH TURN-BASED AND TEXT-BASED FLAVOR",
+        "Game of the Amazons": "CLASSIC STRATEGY GAME USING CHESS PIECES",
+        "Jezz Ball": "THE CLASSIC MICROSOFT GAME FOR WHEN THE INTERNET IS DOWN",
+        "Ninja Frog": "JUST ME MESSING AROUND WITH PLATFORMING MECHANICS",
+        "Pazaak": "CARD GAME FROM STAR WARS: KNIGHTS OF THE OLD REPUBLIC, SIMILAR TO BLACKJACK",
+        "Pong": "THE FIRST COMMERCIALLY SUCCESSFUL VIDEO GAME",
+        "Puzzle League": "LIKE TETRIS ATTACK/PANEL DE PON OR POKEMON PUZZLE LEAGUE",
+        "Runner": "THIS IS WHEN OOP FINALLY CLICKED FOR ME",
+        "Snake": "THE CLASSIC SNAKE GAME THAT ORIGINATED ON NOKIA PHONES",
+        "Space Invaders": "CLASSIC ARCADE GAME, STAR HERO'S CODE IS BASED ON THIS ONE",
+        "Star Hero": "THE FIRST REAL GAME I EVER MADE, INSPIRED BY GALAGA AND STAR FOX",
+        "Tetris": "THE GREATEST PUZZLE VIDEO GAME OF ALL TIME",
     }
 
     # Optional input-scheme tag per game. A game with no entry here, or
@@ -341,6 +369,8 @@ class GameSettings:
     UNDER_CONSTRUCTION_GAMES = {
         "Adventure",
         "Ninja Frog",
+        "Pazaak",
+        "Puzzle League",
     }
 
 
