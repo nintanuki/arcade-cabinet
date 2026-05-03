@@ -1,9 +1,15 @@
-"""Top-level launcher that allows players to choose which arcade game to run."""
+
+"""
+Top-level launcher that allows players to choose which arcade game to run.
+
+This module provides the main menu, game discovery, and launching logic for the Coding Club Arcade.
+"""
 
 import json
 import random
 import subprocess
 import sys
+
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -26,10 +32,10 @@ from settings import (
 	StudentGameSettings,
 )
 
-
 @dataclass(frozen=True)
 class StudentGameRecord:
-	"""Discovered metadata for a single student-contributed game.
+	"""
+	Discovered metadata for a single student-contributed game.
 
 	Sponsor games are curated in settings.GameSettings; student games are
 	scanned from disk so a teacher can drop a folder into games/student/
@@ -38,7 +44,6 @@ class StudentGameRecord:
 	note, under-construction flag) so the merge step in
 	ArcadeLauncher._build_games stays straightforward.
 	"""
-
 	label: str
 	main_path: Path
 	attribution: str
@@ -48,9 +53,11 @@ class StudentGameRecord:
 	under_construction: bool
 
 
+
 @dataclass
 class MenuNode:
-	"""One row in a menu frame.
+	"""
+	One row in a menu frame.
 
 	A node is either a game (selecting it launches a subprocess) or a
 	submenu (selecting it pushes its children onto the menu stack). The
@@ -58,7 +65,6 @@ class MenuNode:
 	``children`` list stays empty on game nodes and on category leaves
 	that currently have no games (e.g. an empty Student Games folder).
 	"""
-
 	kind: str  # "game" or "submenu"
 	label: str
 	description: str = ""
@@ -74,20 +80,23 @@ class MenuNode:
 	category_key: str | None = None
 
 
+
 @dataclass
 class MenuFrame:
-	"""One level on the navigation stack.
+	"""
+	One level on the navigation stack.
 
 	Tracks the items rendered for this level plus the cursor position so
 	that backing out and re-entering a submenu lands on the same row.
 	"""
-
 	items: list[MenuNode]
 	selected_index: int = 0
 
 
+
 def _read_student_manifest(manifest_path: Path) -> dict:
-	"""Load a student game manifest, returning {} on any read or parse error.
+	"""
+	Load a student game manifest, returning {} on any read or parse error.
 
 	Args:
 		manifest_path (Path): Absolute path to the candidate game.json file.
@@ -106,16 +115,10 @@ def _read_student_manifest(manifest_path: Path) -> dict:
 	return parsed if isinstance(parsed, dict) else {}
 
 
-def discover_student_games(student_root: Path) -> list[StudentGameRecord]:
-	"""Scan student_root for game folders and return one record per game.
 
-	A folder qualifies if it contains StudentGameSettings.ENTRY_FILENAME
-	(typically main.py). A sibling StudentGameSettings.MANIFEST_FILENAME
-	(game.json) may override label, attribution, preview, input scheme,
-	free-form note, and under-construction flag; any field omitted from
-	the manifest falls back to the launcher's default. The folder is
-	created if missing so a fresh clone of the repo still runs without
-	errors -- the directory is .gitignored, not committed.
+def discover_student_games(student_root: Path) -> list[StudentGameRecord]:
+	"""
+	Scan student_root for game folders and return one record per game.
 
 	Args:
 		student_root (Path): Absolute path to the games/student/ directory.
@@ -125,50 +128,34 @@ def discover_student_games(student_root: Path) -> list[StudentGameRecord]:
 		folder name so menu order stays stable across runs.
 	"""
 	student_root.mkdir(parents=True, exist_ok=True)
-
 	records: list[StudentGameRecord] = []
 	for entry in sorted(student_root.iterdir()):
-		# Hidden folders (e.g. .git, .vscode) are intentionally skipped so a
-		# tooling directory dropped in by accident never shows up as a game.
+		# Skip hidden folders (e.g. .git, .vscode)
 		if not entry.is_dir() or entry.name.startswith("."):
 			continue
-
 		main_path = entry / StudentGameSettings.ENTRY_FILENAME
 		if not main_path.is_file():
 			continue
-
-		# Folder name -> "Red Square" so a manifest is optional. Hyphens and
-		# underscores both turn into spaces because students use both.
 		default_label = entry.name.replace("-", " ").replace("_", " ").title()
-
 		manifest = _read_student_manifest(entry / StudentGameSettings.MANIFEST_FILENAME)
-
 		label_value = manifest.get(StudentGameSettings.MANIFEST_KEY_LABEL)
 		label = label_value if isinstance(label_value, str) and label_value else default_label
-
 		attribution_value = manifest.get(StudentGameSettings.MANIFEST_KEY_ATTRIBUTION)
 		attribution = (
 			attribution_value
 			if isinstance(attribution_value, str) and attribution_value
 			else StudentGameSettings.DEFAULT_ATTRIBUTION
 		)
-
 		preview_value = manifest.get(StudentGameSettings.MANIFEST_KEY_PREVIEW)
 		preview_path = entry / preview_value if isinstance(preview_value, str) and preview_value else None
-
-		# input_scheme is only honored if it matches a known scheme key.
-		# Anything else (typo, removed key) is silently ignored so the menu
-		# never crashes on a malformed manifest.
 		input_scheme_value = manifest.get(StudentGameSettings.MANIFEST_KEY_INPUT_SCHEME)
 		input_scheme_key = (
 			input_scheme_value
 			if isinstance(input_scheme_value, str) and input_scheme_value in InputSchemeSettings.LABELS
 			else None
 		)
-
 		note_value = manifest.get(StudentGameSettings.MANIFEST_KEY_NOTE)
 		note = note_value if isinstance(note_value, str) and note_value else None
-
 		records.append(
 			StudentGameRecord(
 				label=label,
@@ -180,7 +167,6 @@ def discover_student_games(student_root: Path) -> list[StudentGameRecord]:
 				under_construction=bool(manifest.get(StudentGameSettings.MANIFEST_KEY_UNDER_CONSTRUCTION)),
 			)
 		)
-
 	return records
 
 
