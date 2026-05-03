@@ -122,14 +122,21 @@ class Game:
 
 	def run(self):
 		last_time = time.time()
+		# Debounce timers for pause/fullscreen/quit combo
+		last_pause = 0
+		last_fullscreen = 0
+		last_quit_combo = 0
+		debounce_time = 0.25  # seconds
 		while True:
 			dt = time.time() - last_time
 			last_time = time.time()
 
-			# Quit combo
+			# Quit combo (debounced)
 			if self.quit_combo_pressed():
-				pygame.quit()
-				sys.exit()
+				if time.time() - last_quit_combo > debounce_time:
+					last_quit_combo = time.time()
+					pygame.quit()
+					sys.exit()
 
 			for event in pygame.event.get():
 				# Hotplug controllers
@@ -146,20 +153,38 @@ class Game:
 						pygame.quit()
 						sys.exit()
 					if event.key == pygame.K_F11:
-						self.toggle_fullscreen()
+						if time.time() - last_fullscreen > debounce_time:
+							last_fullscreen = time.time()
+							self.toggle_fullscreen()
 					if event.key == pygame.K_p:
-						self.toggle_pause()
+						if time.time() - last_pause > debounce_time:
+							last_pause = time.time()
+							self.toggle_pause()
+					# Allow keyboard Enter/Space to restart after death
+					if not self.active and not self.paused and event.key in (pygame.K_RETURN, pygame.K_SPACE):
+						self.plane = Plane(self.all_sprites, self.scale_factor / 1.7)
+						self.active = True
+						self.start_offset = pygame.time.get_ticks()
 
 				if event.type == pygame.JOYBUTTONDOWN:
-					# A button = jump
+					# A button = jump or restart
 					if event.button == A_BUTTON:
 						if self.active and not self.paused:
 							self.plane.jump()
-					# Start or Select/Back toggles pause/fullscreen
+						elif not self.active and not self.paused:
+							self.plane = Plane(self.all_sprites, self.scale_factor / 1.7)
+							self.active = True
+							self.start_offset = pygame.time.get_ticks()
+					# Start toggles pause (debounced)
 					if event.button == START_BUTTON:
-						self.toggle_pause()
+						if time.time() - last_pause > debounce_time:
+							last_pause = time.time()
+							self.toggle_pause()
+					# Select/Back toggles fullscreen (debounced)
 					if event.button == BACK_BUTTON or event.button == SELECT_BUTTON:
-						self.toggle_fullscreen()
+						if time.time() - last_fullscreen > debounce_time:
+							last_fullscreen = time.time()
+							self.toggle_fullscreen()
 
 				if event.type == pygame.MOUSEBUTTONDOWN:
 					if self.active and not self.paused:
