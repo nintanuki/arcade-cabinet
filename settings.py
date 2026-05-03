@@ -278,21 +278,23 @@ class GameSettings:
     # games live in a sibling folder that is .gitignored and discovered at
     # runtime (see StudentGameSettings and main.discover_student_games).
     OPTIONS = [
-        ("Adventure", Path("games") / "sponsor" / "adventure" / "main.py"),
-        ("Air Hockey", Path("games") / "sponsor" / "air-hockey" / "main.py"),
-        ("Breakout", Path("games") / "sponsor" / "breakout" / "main.py"),
-        ("Dungeon Digger", Path("games") / "sponsor" / "dungeon-digger" / "main.py"),
-        ("Game of the Amazons", Path("games") / "sponsor" / "game-of-the-amazons" / "main.py"),
-        ("Jezz Ball", Path("games") / "sponsor" / "jezz-ball" / "main.py"),
-        ("Ninja Frog", Path("games") / "sponsor" / "ninja-frog" / "main.py"),
-        ("Pazaak", Path("games") / "sponsor" / "pazaak" / "main.py"),
-        ("Pong", Path("games") / "sponsor" / "pong" / "main.py"),
-        ("Puzzle League", Path("games") / "sponsor" / "puzzle-league" / "main.py"),
-        ("Runner", Path("games") / "sponsor" / "runner" / "main.py"),
-        ("Snake", Path("games") / "sponsor" / "snake" / "snake.py"),
-        ("Space Invaders", Path("games") / "sponsor" / "space-invaders" / "main.py"),
-        ("Star Hero", Path("games") / "sponsor" / "star-hero" / "main.py"),
-        ("Tetris", Path("games") / "sponsor" / "tetris" / "main.py"),
+        ("Adventure", Path("games") / "sponsor" / "original" / "adventure" / "main.py"),
+        ("Air Hockey", Path("games") / "sponsor" / "original" / "air-hockey" / "main.py"),
+        ("Dungeon Digger", Path("games") / "sponsor" / "original" / "dungeon-digger" / "main.py"),
+        ("Ninja Frog", Path("games") / "sponsor" / "original" / "ninja-frog" / "main.py"),
+        ("Star Hero", Path("games") / "sponsor" / "original" / "star-hero" / "main.py"),
+
+        ("Game of the Amazons", Path("games") / "sponsor" / "tribute" / "game-of-the-amazons" / "main.py"),
+        ("Jezz Ball", Path("games") / "sponsor" / "tribute" / "jezz-ball" / "main.py"),
+        ("Pazaak", Path("games") / "sponsor" / "tribute" / "pazaak" / "main.py"),
+        ("Puzzle League", Path("games") / "sponsor" / "tribute" / "puzzle-league" / "main.py"),
+
+        ("Breakout", Path("games") / "sponsor" / "tutorial" / "breakout" / "main.py"),
+        ("Pong", Path("games") / "sponsor" / "tutorial" / "pong" / "main.py"),
+        ("Runner", Path("games") / "sponsor" / "tutorial" / "runner" / "main.py"),
+        ("Snake", Path("games") / "sponsor" / "tutorial" / "snake" / "snake.py"),
+        ("Space Invaders", Path("games") / "sponsor" / "tutorial" / "space-invaders" / "main.py"),
+        ("Tetris", Path("games") / "sponsor" / "tutorial" / "tetris" / "main.py"),
     ]
 
     PREVIEW_IMAGES = {
@@ -313,26 +315,7 @@ class GameSettings:
         "Tetris": Path("assets") / "previews" / "tetris.png",
     }
 
-    # Each sponsor game's category. The launcher derives the attribution
-    # string at runtime from CategorySettings.ATTRIBUTIONS using this map,
-    # so adding a game is just one entry here plus its OPTIONS row.
-    GAME_CATEGORIES = {
-        "Adventure": CategorySettings.ORIGINAL,
-        "Air Hockey": CategorySettings.ORIGINAL,
-        "Breakout": CategorySettings.TUTORIAL,
-        "Dungeon Digger": CategorySettings.ORIGINAL,
-        "Game of the Amazons": CategorySettings.TRIBUTE,
-        "Jezz Ball": CategorySettings.TRIBUTE,
-        "Ninja Frog": CategorySettings.ORIGINAL,
-        "Pazaak": CategorySettings.TRIBUTE,
-        "Pong": CategorySettings.TUTORIAL,
-        "Puzzle League": CategorySettings.TRIBUTE,
-        "Runner": CategorySettings.TUTORIAL,
-        "Snake": CategorySettings.TUTORIAL,
-        "Space Invaders": CategorySettings.TUTORIAL,
-        "Star Hero": CategorySettings.ORIGINAL,
-        "Tetris": CategorySettings.TUTORIAL,
-    }
+    # Category is now inferred from the sponsor subfolder (original, tribute, tutorial).
 
     # Brief per-game caption rendered in white above the warning slots.
     # Use it for a one-line tagline; the description preview-box space is

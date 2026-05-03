@@ -319,10 +319,20 @@ class ArcadeLauncher:
 		games: dict[str, MenuNode] = {}
 
 		for label, relative_path in GameSettings.OPTIONS:
-			category_key = GameSettings.GAME_CATEGORIES.get(label)
-			# The caption is now a per-game description rather than a
-			# category-derived attribution; the category info is already
-			# advertised by the menu location and preview-box description.
+			# Infer category from the sponsor subfolder (original, tribute, tutorial)
+			try:
+				category_folder = relative_path.parts[2]  # games/sponsor/<category>/<game>
+			except IndexError:
+				category_folder = None
+			if category_folder == "original":
+				category_key = CategorySettings.ORIGINAL
+			elif category_folder == "tribute":
+				category_key = CategorySettings.TRIBUTE
+			elif category_folder == "tutorial":
+				category_key = CategorySettings.TUTORIAL
+			else:
+				category_key = None
+
 			attribution = GameSettings.GAME_DESCRIPTIONS.get(label, "")
 			preview_relative = GameSettings.PREVIEW_IMAGES.get(label)
 			preview_path = self.root_dir / preview_relative if preview_relative else None
