@@ -356,6 +356,7 @@ class GameSettings:
     GAME_NOTES = {
         "Air Hockey": "STILL WORKING ON IT - EXPECT WONKY PHYSICS",
         "Ninja Frog": "STILL WORKING ON IT - EXPECT WONKY PHYSICS",
+        "Flappy Bird": "ISSUES WITH FULL SCREEN AND QUITTING THE GAME",
     }
 
     UNDER_CONSTRUCTION_GAMES = {
