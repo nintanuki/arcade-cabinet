@@ -290,6 +290,7 @@ class GameSettings:
         ("Puzzle League", Path("games") / "sponsor" / "tribute" / "puzzle-league" / "main.py"),
 
         ("Breakout", Path("games") / "sponsor" / "tutorial" / "breakout" / "main.py"),
+        ("Flappy Bird", Path("games") / "sponsor" / "tutorial" / "flappy-bird" / "main.py"),
         ("Pong", Path("games") / "sponsor" / "tutorial" / "pong" / "main.py"),
         ("Runner", Path("games") / "sponsor" / "tutorial" / "runner" / "main.py"),
         ("Snake", Path("games") / "sponsor" / "tutorial" / "snake" / "snake.py"),
@@ -302,6 +303,7 @@ class GameSettings:
         "Air Hockey": Path("assets") / "previews" / "air_hockey.png",
         "Breakout": Path("assets") / "previews" / "breakout.png",
         "Dungeon Digger": Path("assets") / "previews" / "dungeon_digger.png",
+        "Flappy Bird": Path("assets") / "previews" / "flappy_bird.png",
         "Game of the Amazons": Path("assets") / "previews" / "game_of_the_amazons.png",
         "Jezz Ball": Path("assets") / "previews" / "jezz_ball.png",
         "Ninja Frog": Path("assets") / "previews" / "ninja_frog.png",
@@ -326,6 +328,7 @@ class GameSettings:
         "Air Hockey": "IT'S AIR HOCKEY, YOU KNOW WHAT AIR HOCKEY IS",
         "Breakout": "THE CLASSIC BLOCK-BREAKING ARCADE GAME",
         "Dungeon Digger": "DUNGEON CRAWLING RPG WITH TURN-BASED AND TEXT-BASED FLAVOR",
+        "Flappy Bird": "A FLAPPY BIRD CLONE. THIS IS WHERE I LEARNED HOW TO PARALLAX",
         "Game of the Amazons": "CLASSIC STRATEGY GAME USING CHESS PIECES",
         "Jezz Ball": "THE CLASSIC MICROSOFT GAME FOR WHEN THE INTERNET WAS DOWN",
         "Ninja Frog": "JUST ME MESSING AROUND WITH PLATFORMING MECHANICS",
