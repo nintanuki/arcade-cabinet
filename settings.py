@@ -24,6 +24,10 @@ class LauncherSettings:
     JIL_LOGO_PATH = Path("assets") / "graphics" / "jil_logo.webp"
     JIL_LOGO_POS = (50, 110)
     JIL_LOGO_SIZE = (59, 69)
+    # Maximum pixel dimensions for scaled preview screenshots.
+    # 320 wide, 240 tall preview box minus 12px inner padding on each side.
+    PREVIEW_MAX_WIDTH = 296   # PREVIEW_BOX_WIDTH  - PREVIEW_INNER_PADDING * 2
+    PREVIEW_MAX_HEIGHT = 216  # PREVIEW_BOX_HEIGHT - PREVIEW_INNER_PADDING * 2
     # Horizontal gap between the JIL logo and the launcher title text. The
     # title group (logo + gap + title) is centered as a single unit, so this
     # value is what controls how tightly the two read together.

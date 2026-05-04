@@ -40,6 +40,66 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-04 — Split monolithic main.py into launcher package; main.py becomes entry point only (Claude Sonnet 4.6)
+
+**File:** main.py
+**Lines (at time of edit):** entire file replaced (~1200 lines → 9 lines)
+**Before:**
+    Module-level docstring + all imports + StudentGameRecord, MenuNode,
+    MenuFrame dataclasses + _read_student_manifest + discover_student_games
+    functions + LauncherCRT class + ArcadeLauncher class (all rendering,
+    input handling, navigation, audio, and game-launch logic).
+**After:**
+    ```python
+    """Entry point for the Coding Club Arcade launcher."""
+    from pathlib import Path
+    from launcher.manager import ArcadeLauncher
+    if __name__ == "__main__":
+        ArcadeLauncher(Path(__file__).resolve().parent).run()
+    ```
+**Why:** main.py was doing everything. Separating responsibilities makes each
+    file easier to read, test, and extend.
+
+**File:** settings.py
+**Lines (at time of edit):** LauncherSettings block (added 3 lines)
+**Before:**
+    JIL_LOGO_SIZE = (59, 69)
+    # Horizontal gap between...
+**After:**
+    JIL_LOGO_SIZE = (59, 69)
+    # Maximum pixel dimensions for scaled preview screenshots.
+    PREVIEW_MAX_WIDTH = 296
+    PREVIEW_MAX_HEIGHT = 216
+**Why:** The preview image max dimensions were computed inline in
+    _load_preview_images. Constants belong in settings.py.
+
+**File:** launcher/__init__.py (new file)
+**Why:** Makes `launcher/` a Python package.
+
+**File:** launcher/models.py (new file)
+**Why:** Extracted StudentGameRecord, MenuNode, MenuFrame dataclasses from
+    main.py. Pure data — no pygame, no logic.
+
+**File:** launcher/crt.py (new file)
+**Why:** Extracted LauncherCRT from main.py. Self-contained visual component.
+
+**File:** launcher/discovery.py (new file)
+**Why:** Extracted _read_student_manifest and discover_student_games from
+    main.py. Pure functions with no dependency on the launcher class.
+
+**File:** launcher/renderer.py (new file)
+**Why:** All draw_* methods, text-wrap helpers, and font/logo loading moved
+    out of ArcadeLauncher into LauncherRenderer. Renderer owns menu_option_hitboxes
+    (written during draw, read by manager for mouse input). Added draw_loading_frame
+    so show_loading_screen in the manager delegates drawing cleanly.
+
+**File:** launcher/manager.py (new file)
+**Why:** ArcadeLauncher now only coordinates: runtime init, audio, menu-tree
+    building, navigation state, game launching, input dispatch, and the run loop.
+    The run() method only calls other functions — no inline input logic.
+    _restore_runtime() added to cleanly rebuild the renderer after a game exits
+    (previously the renderer would have held a stale screen reference).
+
 ## 2026-05-02 — Nested launcher menus, per-game captions, input-scheme + note warning system, demo expansion (Claude Opus 4.7)
 
 **File:** settings.py
