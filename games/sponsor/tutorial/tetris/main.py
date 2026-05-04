@@ -57,6 +57,7 @@ class Main:
 		self.music.set_volume(0.05)
 		self.music.play(-1)
 
+		self.full_screen = False
 		self.crt  = CRT(self.display_surface)
 
 	def setup_controllers(self):
@@ -112,6 +113,7 @@ class Main:
 				if event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_F11:
 						pygame.display.toggle_fullscreen()
+						self.full_screen = not self.full_screen
 					# ESC always exits the game and returns to the launcher,
 					# matching the L1+R1+START+SELECT controller combo.
 					elif event.key == pygame.K_ESCAPE:
@@ -120,6 +122,7 @@ class Main:
 					# SELECT mirrors F11 so the controller has a fullscreen toggle.
 					if event.button == SELECT_BUTTON:
 						pygame.display.toggle_fullscreen()
+						self.full_screen = not self.full_screen
 
 			# display
 			self.display_surface.fill(GRAY)
@@ -130,7 +133,8 @@ class Main:
 			self.preview.run(self.next_shapes)
 
 			# overlay
-			self.crt.draw()
+			if not self.full_screen:
+				self.crt.draw()
 
 			# updating the game
 			pygame.display.update()
