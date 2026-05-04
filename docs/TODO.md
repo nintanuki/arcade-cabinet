@@ -7,6 +7,8 @@
 ## Game Ideas
 - [ ] Tetris Attack / Panel de Pon
 - [ ] Pazaak
+- [ ] Fishy
+- [ ] Rodent's Revenge
 
 ## Launcher Ideas
 - [ ] Seperate games into the following categories:
