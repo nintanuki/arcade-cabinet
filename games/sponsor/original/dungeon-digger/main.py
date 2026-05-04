@@ -103,6 +103,7 @@ class GameManager:
         self.map_memory = None
 
         # -------- Post-processing --------
+        self.full_screen = False
         self.crt = CRT(self.screen)
 
         # -------- Rendering facade --------
@@ -733,6 +734,7 @@ class GameManager:
         # other handlers still see the press.
         if event.key == pygame.K_F11:
             pygame.display.toggle_fullscreen()
+            self.full_screen = not self.full_screen
 
         # While a tutorial card is up it consumes ALL keyboard input so the
         # player can't accidentally play through the overlay.
@@ -797,6 +799,7 @@ class GameManager:
         # BACK is the global fullscreen toggle and falls through.
         if event.button == InputSettings.JOY_BUTTON_BACK:
             pygame.display.toggle_fullscreen()
+            self.full_screen = not self.full_screen
 
         if (self.tutorial is not None and self.tutorial.is_blocking):
             self.tutorial.handle_event(event)
@@ -948,7 +951,8 @@ class GameManager:
             self.render.draw_leaderboard_screen()
 
         # Apply CRT pass after world/UI rendering.
-        self.crt.draw()
+        if not self.full_screen:
+            self.crt.draw()
 
     def run(self):
         """Run the main game loop until the player quits."""
