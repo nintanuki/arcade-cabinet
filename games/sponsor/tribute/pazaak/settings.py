@@ -18,7 +18,11 @@ class ScreenSettings:
     FPS = 60
     
 
-class InputSettings:
+class ControllerSettings:
     """Pazaak's input handling settings."""
     # L1, R1, SELECT, START -- the cabinet-wide return-to-launcher chord.
-    QUIT_COMBO_BUTTONS = (4, 5, 6, 7)
+    QUIT_COMBO = (4, 5, 6, 7)
+
+class AssetPaths:
+    """Pazaak's asset paths."""
+    TV = "assets/graphics/tv.png"
