@@ -5,6 +5,8 @@ from pathlib import Path
 
 from launcher.manager import ArcadeLauncher
 
-if __name__ == "__main__":
+def main() -> None:
     ArcadeLauncher(Path(__file__).resolve().parent).run()
 
+if __name__ == "__main__":
+    main()
