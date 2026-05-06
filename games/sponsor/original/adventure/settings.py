@@ -182,7 +182,7 @@ class InputSettings:
 class FontSettings:
     """Font files, sizes, and text-color mappings for UI rendering."""
 
-    FONT = 'font/Pixeled.ttf'
+    FONT = 'assets/font/Pixeled.ttf'
     MESSAGE_SIZE = 8
     SCORE_SIZE = 12
     HUD_SIZE = 10
@@ -211,7 +211,7 @@ class AssetPaths:
 
     # Images
     BASE_DIR = os.path.dirname(__file__)
-    GRAPHICS_DIR = os.path.join(BASE_DIR, 'graphics')
+    GRAPHICS_DIR = os.path.join(BASE_DIR, 'assets', 'graphics')
 
     # CRT Effect
     TV = os.path.join(GRAPHICS_DIR, 'tv.png')
@@ -222,7 +222,7 @@ class AssetPaths:
     FLOOR_TILE = os.path.join(GRAPHICS_DIR, 'tile_0000.png')
 
         # Audio
-    SOUND_DIR = os.path.join(BASE_DIR, 'sound')
+    SOUND_DIR = os.path.join(BASE_DIR, 'assets', 'sound')
     MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_movement_footstepsloop4_slow.ogg')
     BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'wall_bump_sound_effect.ogg')
     COIN_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_cluster3.ogg')
@@ -230,7 +230,7 @@ class AssetPaths:
     MENU_SELECT_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_select3.ogg')
 
     # Music
-    MUSIC_DIR = os.path.join(BASE_DIR, 'music')
+    MUSIC_DIR = os.path.join(BASE_DIR, 'assets', 'music')
     NORMAL_MUSIC_TRACKS = [
         os.path.join(MUSIC_DIR, 'Goblins_Den_(Regular).ogg'),
     ]

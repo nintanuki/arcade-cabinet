@@ -1,11 +1,11 @@
 import pygame
 import sys
 
-from crt import CRT
-from render import RenderManager
-from settings import *
-from sprites import DebugPlayer
-from world import World
+from ui.crt import CRT
+from ui.render import RenderManager
+from settings import ColorSettings, DebugSettings, InputSettings, ScreenSettings
+from entities.sprites import DebugPlayer
+from core.world import World
 
 class GameManager:
     def __init__(self, start_fullscreen: bool = False):
@@ -110,7 +110,12 @@ class GameManager:
             DebugSettings.SHOW_DEBUG_PLAYER = not DebugSettings.SHOW_DEBUG_PLAYER
 
     def _handle_joybuttondown(self, event) -> None:
-        """Route one controller button press."""
+        """
+        Route one controller button press.
+        
+        Args:
+            event: The pygame JOYBUTTONDOWN event to handle.
+        """
         # Catch the multi-button quit chord on press for instant response;
         # the outer per-frame check covers held-state quits.
         if self.quit_combo_pressed():

@@ -40,6 +40,176 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-06T17:42:56-04:00 — Reorganize Adventure assets and modules into category folders
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+**File:** games/sponsor/original/adventure/main.py
+**Lines (at time of edit):** 4-8 (modified)
+**Before:**
+    from crt import CRT
+    from render import RenderManager
+    from settings import *
+    from sprites import DebugPlayer
+    from world import World
+**After:**
+    from ui.crt import CRT
+    from ui.render import RenderManager
+    from settings import ColorSettings, DebugSettings, InputSettings, ScreenSettings
+    from entities.sprites import DebugPlayer
+    from core.world import World
+**Why:** Entry-point imports were updated to match the new categorized module layout while keeping runtime behavior the same.
+
+**File:** games/sponsor/original/adventure/settings.py
+**Lines (at time of edit):** 185, 206, 217, 225 (modified)
+**Before:**
+    FONT = 'font/Pixeled.ttf'
+    GRAPHICS_DIR = os.path.join(BASE_DIR, 'graphics')
+    SOUND_DIR = os.path.join(BASE_DIR, 'sound')
+    MUSIC_DIR = os.path.join(BASE_DIR, 'music')
+**After:**
+    FONT = 'assets/font/Pixeled.ttf'
+    GRAPHICS_DIR = os.path.join(BASE_DIR, 'assets', 'graphics')
+    SOUND_DIR = os.path.join(BASE_DIR, 'assets', 'sound')
+    MUSIC_DIR = os.path.join(BASE_DIR, 'assets', 'music')
+**Why:** Asset constants were redirected to the new assets directory so existing loaders keep working after the folder move.
+
+**File:** games/sponsor/original/adventure/core/world.py
+**Lines (at time of edit):** 15 (modified)
+**Before:**
+    from tilemaps import CELLS, START_CELL_POS, WORLD_LAYOUT
+**After:**
+    from core.tilemaps import CELLS, START_CELL_POS, WORLD_LAYOUT
+**Why:** World data import now points to tilemaps in the new core folder.
+
+**File:** games/sponsor/original/adventure/ui/render.py
+**Lines (at time of edit):** 5-6 (modified)
+**Before:**
+    from render_utils import color_with_alpha
+    import coords
+**After:**
+    from utils.render_utils import color_with_alpha
+    from ui import coords
+**Why:** Renderer helper imports were updated to follow the new ui/utils module locations.
+
+**File:** games/sponsor/original/adventure/ui/windows.py
+**Lines (at time of edit):** 3 (modified)
+**Before:**
+    import coords
+**After:**
+    from ui import coords
+**Why:** Window helper import was updated to the new ui package path.
+
+**File:** games/sponsor/original/adventure/assets/font (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    font/*
+**After:**
+    assets/font/*
+**Why:** Consolidated fonts under a single assets directory as requested.
+
+**File:** games/sponsor/original/adventure/assets/graphics (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    graphics/*
+**After:**
+    assets/graphics/*
+**Why:** Consolidated graphics under a single assets directory as requested.
+
+**File:** games/sponsor/original/adventure/assets/music (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    music/*
+**After:**
+    assets/music/*
+**Why:** Consolidated music under a single assets directory as requested.
+
+**File:** games/sponsor/original/adventure/assets/sound (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    sound/*
+**After:**
+    assets/sound/*
+**Why:** Consolidated sound effects under a single assets directory as requested.
+
+**File:** games/sponsor/original/adventure/core (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    world.py
+    tilemaps.py
+**After:**
+    core/world.py
+    core/tilemaps.py
+**Why:** Grouped world-state modules under a core folder.
+
+**File:** games/sponsor/original/adventure/ui (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    crt.py
+    render.py
+    windows.py
+    coords.py
+**After:**
+    ui/crt.py
+    ui/render.py
+    ui/windows.py
+    ui/coords.py
+**Why:** Grouped rendering and interface code under a ui folder.
+
+**File:** games/sponsor/original/adventure/entities (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    sprites.py
+**After:**
+    entities/sprites.py
+**Why:** Grouped entity/sprite logic under an entities folder.
+
+**File:** games/sponsor/original/adventure/systems (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    audio.py
+**After:**
+    systems/audio.py
+**Why:** Grouped system-level logic under a systems folder.
+
+**File:** games/sponsor/original/adventure/utils (moved files)
+**Lines (at time of edit):** (moved)
+**Before:**
+    render_utils.py
+**After:**
+    utils/render_utils.py
+**Why:** Grouped shared helper utilities under a utils folder.
+
+**File:** games/sponsor/original/adventure/core/__init__.py
+**Lines (at time of edit):** (new file)
+**After:**
+    """Core world-state modules for Adventure."""
+**Why:** Added package marker for stable imports from categorized module folders.
+
+**File:** games/sponsor/original/adventure/ui/__init__.py
+**Lines (at time of edit):** (new file)
+**After:**
+    """UI and rendering modules for Adventure."""
+**Why:** Added package marker for stable imports from categorized module folders.
+
+**File:** games/sponsor/original/adventure/systems/__init__.py
+**Lines (at time of edit):** (new file)
+**After:**
+    """System-level modules for Adventure."""
+**Why:** Added package marker for stable imports from categorized module folders.
+
+**File:** games/sponsor/original/adventure/entities/__init__.py
+**Lines (at time of edit):** (new file)
+**After:**
+    """Entity and sprite modules for Adventure."""
+**Why:** Added package marker for stable imports from categorized module folders.
+
+**File:** games/sponsor/original/adventure/utils/__init__.py
+**Lines (at time of edit):** (new file)
+**After:**
+    """Shared utility helpers for Adventure."""
+**Why:** Added package marker for stable imports from categorized module folders.
+
 ## 2026-05-04 — Split monolithic main.py into launcher package; main.py becomes entry point only (Claude Sonnet 4.6)
 
 **File:** main.py
