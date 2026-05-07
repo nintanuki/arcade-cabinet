@@ -276,11 +276,10 @@ class PlayerSettings:
 
     # Idle "look around" animation: after staying still this long, the player
     # cycles through the sequence below holding each frame for FRAME_MS.
-    IDLE_ANIMATION_DELAY_MS = 4000
-    IDLE_ANIMATION_FRAME_MS = 220
+    IDLE_ANIMATION_DELAY_MS = 10000
+    IDLE_ANIMATION_FRAME_MS = 200
     # 'center' uses the neutral facing sprite; 'left'/'right' use the peek variants.
     IDLE_ANIMATION_SEQUENCE = (
-        'center', 'left', 'center', 'right',
         'center', 'left', 'center', 'right', 'center',
     )
 

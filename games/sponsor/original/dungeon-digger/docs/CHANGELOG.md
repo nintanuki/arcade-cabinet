@@ -1064,3 +1064,22 @@ or a status effect changes the helmet.
 **Why:** Non-move actions (dig, light, repellent, etc.) still commit a turn but
 don't set is_moving, so the idle timer needs an explicit reset here to keep
 the peek animation from firing in the middle of rapid action sequences.
+
+
+---
+
+## 2026-05-07 09:05 -04:00 — Shorten idle peek animation to one left/right cycle
+
+**File:** settings.py
+**Lines (at time of edit):** 293-296 (modified PlayerSettings.IDLE_ANIMATION_SEQUENCE)
+**Before:**
+    IDLE_ANIMATION_SEQUENCE = (
+        'center', 'left', 'center', 'right',
+        'center', 'left', 'center', 'right', 'center',
+    )
+**After:**
+    IDLE_ANIMATION_SEQUENCE = (
+        'center', 'left', 'center', 'right', 'center',
+    )
+**Why:** User requested a shorter idle animation: one peek left and one peek
+right per cycle instead of two of each.
