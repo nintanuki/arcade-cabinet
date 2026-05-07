@@ -12,7 +12,7 @@ table. For now we only have the overworld layer, so it stays implicit.
 """
 
 from settings import UISettings
-from tilemaps import CELLS, START_CELL_POS, WORLD_LAYOUT
+from core.tilemaps import CELLS, START_CELL_POS, WORLD_LAYOUT
 
 
 class World:

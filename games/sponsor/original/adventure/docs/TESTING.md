@@ -1,0 +1,2 @@
+## Testing checklist
+- Game loads

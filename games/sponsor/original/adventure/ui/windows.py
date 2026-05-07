@@ -1,6 +1,6 @@
 import pygame
 from settings import UISettings, FontSettings, WindowSettings, ColorSettings
-import coords
+from ui import coords
 
 class MessageLog:
     """Render and animate the scrolling in-game message log."""
