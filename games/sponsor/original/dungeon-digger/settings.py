@@ -274,6 +274,16 @@ class PlayerSettings:
     FLASH_CYCLE_FRAMES = 30
     FLASH_HALF_CYCLE = FLASH_CYCLE_FRAMES // 2
 
+    # Idle "look around" animation: after staying still this long, the player
+    # cycles through the sequence below holding each frame for FRAME_MS.
+    IDLE_ANIMATION_DELAY_MS = 4000
+    IDLE_ANIMATION_FRAME_MS = 220
+    # 'center' uses the neutral facing sprite; 'left'/'right' use the peek variants.
+    IDLE_ANIMATION_SEQUENCE = (
+        'center', 'left', 'center', 'right',
+        'center', 'left', 'center', 'right', 'center',
+    )
+
 class MonsterSettings:
     """Monster behavior and movement tuning values."""
 
@@ -481,22 +491,28 @@ class AssetPaths:
     TILES_DIR = os.path.join(GRAPHICS_DIR, 'tiles')
     EFFECTS_DIR = os.path.join(GRAPHICS_DIR, 'effects')
 
-    # Player sprites keyed by (helmet_state, facing). helmet_state values:
+    # Player sprites keyed by (helmet_state, facing, peek). helmet_state values:
     # 'up' (default), 'down' (cloak/repelled visual), 'off' (reserved for
     # future use). facing values: 'left' or 'right' based on the player's
-    # last horizontal movement.
+    # last horizontal movement. peek values: 'center' (neutral), 'left',
+    # or 'right' — only the helmet-up sprite has non-center peek frames,
+    # which drive the idle "look around" animation.
     PLAYER_SPRITES = {
-        ('up', 'right'):   os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_right.png'),
-        ('up', 'left'):    os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_left.png'),
-        ('down', 'right'): os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_down_right.png'),
-        ('down', 'left'):  os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_down_left.png'),
-        ('off', 'right'):  os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_off_right.png'),
-        ('off', 'left'):   os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_off_left.png'),
+        ('up', 'right', 'center'): os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_right.png'),
+        ('up', 'left', 'center'):  os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_left.png'),
+        ('up', 'right', 'left'):   os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_right_looking_left.png'),
+        ('up', 'right', 'right'):  os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_right_looking_right.png'),
+        ('up', 'left', 'left'):    os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_left_looking_left.png'),
+        ('up', 'left', 'right'):   os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_left_looking_right.png'),
+        ('down', 'right', 'center'): os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_down_right.png'),
+        ('down', 'left', 'center'):  os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_down_left.png'),
+        ('off', 'right', 'center'):  os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_off_right.png'),
+        ('off', 'left', 'center'):   os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_off_left.png'),
     }
 
     # Convenience aliases used by the title/intro screens, which want a
     # single canonical sprite rather than a state-based lookup.
-    PLAYER = PLAYER_SPRITES[('up', 'right')]
+    PLAYER = PLAYER_SPRITES[('up', 'right', 'center')]
     MONSTER = os.path.join(MONSTER_VARIANTS_DIR, 'ghost_right.png')
 
     # Door

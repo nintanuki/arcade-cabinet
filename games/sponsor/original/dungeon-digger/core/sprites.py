@@ -32,13 +32,22 @@ class Player(pygame.sprite.Sprite):
         # driven by status effects (cloak/repellent → 'down'); facing is
         # driven by the last horizontal movement.
         tile_size = (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE)
-        self.sprites: dict[tuple[str, str], pygame.Surface] = {}
+        self.sprites: dict[tuple[str, str, str], pygame.Surface] = {}
         for key, path in AssetPaths.PLAYER_SPRITES.items():
             surf = pygame.image.load(path).convert_alpha()
             self.sprites[key] = pygame.transform.scale(surf, tile_size)
         self.facing = 'right'
         self.helmet_state = 'up'
-        self.base_image = self.sprites[(self.helmet_state, self.facing)]
+        # Idle "look around" peek direction; 'center' is the neutral sprite.
+        self.peek = 'center'
+        # Real-time accumulators (ms) that drive the idle animation; reset on activity.
+        self.idle_elapsed_ms = 0
+        # -1 means the peek cycle hasn't started yet; 0..len-1 indexes IDLE_ANIMATION_SEQUENCE.
+        self.idle_frame_index = -1
+        self.idle_frame_elapsed_ms = 0
+        # Tracks pygame ticks between frames so update_idle_animation can compute its own dt.
+        self._idle_last_tick_ms = pygame.time.get_ticks()
+        self.base_image = self.sprites[(self.helmet_state, self.facing, self.peek)]
         self.image = self.base_image.copy()
 
         # -------- Position and movement state --------
@@ -561,7 +570,9 @@ class Player(pygame.sprite.Sprite):
         # Helmet is "down" while a status effect is masking the player
         # (cloak or repellent); otherwise the regular helmet-up sprite.
         self.helmet_state = 'down' if (is_invisible or is_repelled) else 'up'
-        self.base_image = self.sprites[(self.helmet_state, self.facing)]
+        # Only the helmet-up sprite has peek variants; force center otherwise.
+        peek = self.peek if self.helmet_state == 'up' else 'center'
+        self.base_image = self.sprites[(self.helmet_state, self.facing, peek)]
         self.image = self.base_image.copy()
 
         if is_repelled:
@@ -588,6 +599,48 @@ class Player(pygame.sprite.Sprite):
     # PER-FRAME
     # -------------------------
 
+    def reset_idle_animation(self) -> None:
+        """Cancel any active peek cycle and restart the idle trigger countdown."""
+        self.idle_elapsed_ms = 0
+        self.idle_frame_index = -1
+        self.idle_frame_elapsed_ms = 0
+        self.peek = 'center'
+
+    def update_idle_animation(self) -> None:
+        """Drive the idle "look around" peek cycle while the player is standing still."""
+        # Compute real-time delta so timing is independent of FPS variance.
+        now_ms = pygame.time.get_ticks()
+        dt_ms = now_ms - self._idle_last_tick_ms
+        self._idle_last_tick_ms = now_ms
+
+        # Any movement or non-up helmet state cancels and resets the cycle.
+        if self.is_moving or self.helmet_state != 'up':
+            self.reset_idle_animation()
+            return
+
+        sequence = PlayerSettings.IDLE_ANIMATION_SEQUENCE
+        if self.idle_frame_index == -1:
+            # Waiting for the trigger delay before starting the peek sequence.
+            self.idle_elapsed_ms += dt_ms
+            if self.idle_elapsed_ms >= PlayerSettings.IDLE_ANIMATION_DELAY_MS:
+                self.idle_frame_index = 0
+                self.idle_frame_elapsed_ms = 0
+                self.peek = sequence[0]
+            return
+
+        # Advance through the sequence, holding each frame for FRAME_MS.
+        self.idle_frame_elapsed_ms += dt_ms
+        if self.idle_frame_elapsed_ms >= PlayerSettings.IDLE_ANIMATION_FRAME_MS:
+            self.idle_frame_elapsed_ms = 0
+            self.idle_frame_index += 1
+            if self.idle_frame_index >= len(sequence):
+                # Cycle finished; restart the trigger countdown so it plays again later.
+                self.idle_frame_index = -1
+                self.idle_elapsed_ms = 0
+                self.peek = 'center'
+            else:
+                self.peek = sequence[self.idle_frame_index]
+
     def animate(self) -> None:
         """
         Advance the player's movement animation toward the current target position.
@@ -609,6 +662,8 @@ class Player(pygame.sprite.Sprite):
                 self.position += direction
                 self.rect.topleft = (int(self.position.x), int(self.position.y))
 
+        # Update peek before picking the sprite so the new frame is reflected immediately.
+        self.update_idle_animation()
         self.update_invisibility_visual()
 
     def update(self) -> None:

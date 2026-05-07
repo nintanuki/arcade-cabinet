@@ -611,6 +611,10 @@ class GameManager:
 
         self.map_memory.remember_visible_map_info()
 
+        # Any committed action restarts the idle peek timer so the look-around
+        # animation only plays after a real lull, not between rapid actions.
+        self.player.reset_idle_animation()
+
         # All temporary status timers (light radius, repellent, invisibility,
         # cloak cooldown) belong to the player and tick themselves.
         self.player.tick_status_effects()
