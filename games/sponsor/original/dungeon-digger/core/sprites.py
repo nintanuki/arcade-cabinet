@@ -27,12 +27,18 @@ class Player(pygame.sprite.Sprite):
         """
         super().__init__(groups)
         # -------- Sprite visuals --------
-        player_surf = pygame.image.load(AssetPaths.PLAYER).convert_alpha()
-        cloak_player_path = AssetPaths.PLAYER_CLOAK if os.path.exists(AssetPaths.PLAYER_CLOAK) else AssetPaths.PLAYER
-        cloak_player_surf = pygame.image.load(cloak_player_path).convert_alpha()
-        self.normal_base_image = pygame.transform.scale(player_surf, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
-        self.cloak_base_image = pygame.transform.scale(cloak_player_surf, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
-        self.base_image = self.normal_base_image
+        # Load every (helmet_state, facing) variant up front so swapping
+        # frames per-turn is a dict lookup, not disk I/O. Helmet state is
+        # driven by status effects (cloak/repellent → 'down'); facing is
+        # driven by the last horizontal movement.
+        tile_size = (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE)
+        self.sprites: dict[tuple[str, str], pygame.Surface] = {}
+        for key, path in AssetPaths.PLAYER_SPRITES.items():
+            surf = pygame.image.load(path).convert_alpha()
+            self.sprites[key] = pygame.transform.scale(surf, tile_size)
+        self.facing = 'right'
+        self.helmet_state = 'up'
+        self.base_image = self.sprites[(self.helmet_state, self.facing)]
         self.image = self.base_image.copy()
 
         # -------- Position and movement state --------
@@ -371,6 +377,14 @@ class Player(pygame.sprite.Sprite):
             self.target_pos = pygame.math.Vector2(target_x, target_y)
             self.is_moving = True
 
+            # Update facing for sprite flipping. Vertical-only steps leave
+            # facing alone so the player keeps looking the way they last
+            # walked horizontally.
+            if delta_x_tiles > 0:
+                self.facing = 'right'
+            elif delta_x_tiles < 0:
+                self.facing = 'left'
+
             if delta_y_tiles == -1:
                 self.game.log_message("YOU MOVED NORTH.")
             elif delta_y_tiles == 1:
@@ -544,7 +558,10 @@ class Player(pygame.sprite.Sprite):
         else:
             self.flash_frame = 0
 
-        self.base_image = self.cloak_base_image if (is_invisible or is_repelled) else self.normal_base_image
+        # Helmet is "down" while a status effect is masking the player
+        # (cloak or repellent); otherwise the regular helmet-up sprite.
+        self.helmet_state = 'down' if (is_invisible or is_repelled) else 'up'
+        self.base_image = self.sprites[(self.helmet_state, self.facing)]
         self.image = self.base_image.copy()
 
         if is_repelled:
@@ -623,17 +640,51 @@ class Monster(pygame.sprite.Sprite):
         self.game = game
         self.dungeon = self.game.dungeon
 
-        # Load and scale a random monster variant for this instance.
-        monster_candidates: list[str] = []
+        # Build the spawn pool. Each entry is a "monster group" keyed by
+        # the canonical filename (with any `_left` / `_right` suffix
+        # stripped) so paired left/right variants count as one creature
+        # rather than two. For each group we remember which sides exist
+        # so the instance can flip when it changes facing.
+        IMG_EXTS = ('.png', '.jpg', '.jpeg', '.webp')
+        groups: dict[str, dict[str, str]] = {}
         if os.path.isdir(AssetPaths.MONSTER_VARIANTS_DIR):
             for name in os.listdir(AssetPaths.MONSTER_VARIANTS_DIR):
                 candidate_path = os.path.join(AssetPaths.MONSTER_VARIANTS_DIR, name)
-                if os.path.isfile(candidate_path) and name.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
-                    monster_candidates.append(candidate_path)
+                if not (os.path.isfile(candidate_path) and name.lower().endswith(IMG_EXTS)):
+                    continue
+                stem, _ext = os.path.splitext(name)
+                if stem.endswith('_left'):
+                    key, side = stem[:-5], 'left'
+                elif stem.endswith('_right'):
+                    key, side = stem[:-6], 'right'
+                else:
+                    key, side = stem, 'static'
+                groups.setdefault(key, {})[side] = candidate_path
 
-        monster_sprite_path = random.choice(monster_candidates) if monster_candidates else AssetPaths.MONSTER
-        surface = pygame.image.load(monster_sprite_path).convert_alpha()
-        self.image = pygame.transform.scale(surface, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
+        # Pick a random monster group, or fall back to the lone default
+        # sprite if the directory is empty / missing.
+        if groups:
+            chosen_group = random.choice(list(groups.values()))
+        else:
+            chosen_group = {'static': AssetPaths.MONSTER}
+
+        # Load each available side once; instance flipping is just a
+        # dict lookup later.
+        self.facing_images: dict[str, pygame.Surface] = {}
+        for side, path in chosen_group.items():
+            surf = pygame.image.load(path).convert_alpha()
+            self.facing_images[side] = pygame.transform.scale(surf, (GridSettings.TILE_SIZE, GridSettings.TILE_SIZE))
+
+        # Default facing prefers right, then left, then the static sprite.
+        # `self.facing` is also used as the lookup key into facing_images,
+        # so 'static' is a valid value for non-flipping monsters.
+        if 'right' in self.facing_images:
+            self.facing = 'right'
+        elif 'left' in self.facing_images:
+            self.facing = 'left'
+        else:
+            self.facing = 'static'
+        self.image = self.facing_images[self.facing]
         
         self.rect = self.image.get_rect(topleft = position)
         self.position = pygame.math.Vector2(self.rect.topleft)
@@ -799,6 +850,16 @@ class Monster(pygame.sprite.Sprite):
             target_x, target_y = coords.grid_to_screen(target_col, target_row)
             self.target_pos = pygame.math.Vector2(target_x, target_y)
             self.is_moving = True
+
+            # Flip the sprite to face the direction of horizontal motion.
+            # Monsters without a paired left/right image (key 'static')
+            # leave their single sprite untouched.
+            if delta_pixels_x > 0 and 'right' in self.facing_images:
+                self.facing = 'right'
+                self.image = self.facing_images['right']
+            elif delta_pixels_x < 0 and 'left' in self.facing_images:
+                self.facing = 'left'
+                self.image = self.facing_images['left']
 
     def has_clear_line_of_sight_to_player(self) -> bool:
         """

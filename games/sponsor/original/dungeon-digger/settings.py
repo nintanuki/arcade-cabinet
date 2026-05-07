@@ -478,26 +478,43 @@ class AssetPaths:
     MONSTER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'monsters')
     PLAYER_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'player')
     NPC_VARIANTS_DIR = os.path.join(GRAPHICS_DIR, 'npcs')
+    TILES_DIR = os.path.join(GRAPHICS_DIR, 'tiles')
+    EFFECTS_DIR = os.path.join(GRAPHICS_DIR, 'effects')
 
-    # Sprites
-    PLAYER = os.path.join(GRAPHICS_DIR, 'tile_0097.png')
-    PLAYER_CLOAK = os.path.join(PLAYER_VARIANTS_DIR, 'tile_0096.png')
-    MONSTER = os.path.join(GRAPHICS_DIR, 'tile_0121.png')
+    # Player sprites keyed by (helmet_state, facing). helmet_state values:
+    # 'up' (default), 'down' (cloak/repelled visual), 'off' (reserved for
+    # future use). facing values: 'left' or 'right' based on the player's
+    # last horizontal movement.
+    PLAYER_SPRITES = {
+        ('up', 'right'):   os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_right.png'),
+        ('up', 'left'):    os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_up_left.png'),
+        ('down', 'right'): os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_down_right.png'),
+        ('down', 'left'):  os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_down_left.png'),
+        ('off', 'right'):  os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_off_right.png'),
+        ('off', 'left'):   os.path.join(PLAYER_VARIANTS_DIR, 'player_helmet_off_left.png'),
+    }
+
+    # Convenience aliases used by the title/intro screens, which want a
+    # single canonical sprite rather than a state-based lookup.
+    PLAYER = PLAYER_SPRITES[('up', 'right')]
+    MONSTER = os.path.join(MONSTER_VARIANTS_DIR, 'ghost_right.png')
 
     # Door
-    CLOSED_DOOR = os.path.join(GRAPHICS_DIR, 'tile_0045.png')
-    OPEN_DOOR = os.path.join(GRAPHICS_DIR, 'tile_0021.png')
+    CLOSED_DOOR = os.path.join(TILES_DIR, 'closed_door.png')
+    OPEN_DOOR = os.path.join(TILES_DIR, 'open_door.png')
 
     # Keep as a list to support future dirt-tile variety.
     DIRT_TILES = [
-        os.path.join(GRAPHICS_DIR, 'tile_0000.png'),
+        os.path.join(TILES_DIR, 'dirt.png'),
     ]
 
-    DUG_TILE = os.path.join(GRAPHICS_DIR, 'tile_0012.png')
-    WALL_TILE = os.path.join(GRAPHICS_DIR, 'tile_0014.png')
+    DUG_TILE = os.path.join(TILES_DIR, 'dug_dirt.png')
+    WALL_TILE = os.path.join(TILES_DIR, 'wall.png')
+    # Reserved for future use; not currently rendered anywhere.
+    GRAVEL_TILE = os.path.join(TILES_DIR, 'gravel.png')
 
     # CRT Effect
-    TV = os.path.join(GRAPHICS_DIR, 'tv.png')
+    TV = os.path.join(EFFECTS_DIR, 'tv.png')
 
     # Audio
     SOUND_DIR = os.path.join(ASSETS_DIR, 'sound')
