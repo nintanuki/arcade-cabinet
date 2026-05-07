@@ -40,6 +40,229 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-07T09:29:20-04:00 — Normalize sponsor game entrypoints to resolve assets from game folder
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+**File:** games/sponsor/original/adventure/main.py
+**Lines (at time of edit):** 1-7 (modified)
+**Before:**
+    import pygame
+    import sys
+**After:**
+    import os
+    import pygame
+    import sys
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+**Why:** Ensures relative assets and data paths resolve from the game directory when launching directly from repo root.
+
+**File:** games/sponsor/original/air-hockey/main.py
+**Lines (at time of edit):** 3-12 (modified)
+**Before:**
+    from pathlib import Path
+    import pygame
+    import sys
+    import random
+**After:**
+    import os
+    from pathlib import Path
+    import pygame
+    import sys
+    import random
+    os.chdir(Path(__file__).resolve().parent)
+**Why:** Aligns standalone behavior with launcher behavior by anchoring cwd to the game folder.
+
+**File:** games/sponsor/original/dungeon-digger/main.py
+**Lines (at time of edit):** 1-7 (modified)
+**Before:**
+    import pygame
+    import sys
+**After:**
+    import os
+    import pygame
+    import sys
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+**Why:** Prevents FileNotFoundError from relative paths when main.py is launched outside its folder.
+
+**File:** games/sponsor/original/ninja-frog/main.py
+**Lines (at time of edit):** 3-9 (modified)
+**Before:**
+    import pygame
+    import sys
+**After:**
+    import os
+    import pygame
+    import sys
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+**Why:** Makes relative file lookups deterministic for both launcher and standalone runs.
+
+**File:** games/sponsor/original/star-hero/main.py
+**Lines (at time of edit):** 1-9 (modified)
+**Before:**
+    import pygame
+    import sys
+    import time
+    import random
+**After:**
+    import os
+    import pygame
+    import sys
+    import time
+    import random
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+**Why:** Keeps existing relative-asset code working when game is started directly.
+
+**File:** games/sponsor/tribute/game-of-the-amazons/main.py
+**Lines (at time of edit):** 2-8 (modified)
+**Before:**
+    import sys
+    import pygame
+**After:**
+    import os
+    import sys
+    import pygame
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+**Why:** Adds a per-entrypoint fallback so any remaining relative resource loads are cwd-independent.
+
+**File:** games/sponsor/tribute/jezz-ball/main.py
+**Lines (at time of edit):** 7-19 (modified)
+**Before:**
+    import math
+    from pathlib import Path
+    import random
+    import sys
+**After:**
+    import math
+    import os
+    from pathlib import Path
+    import random
+    import sys
+    os.chdir(Path(__file__).resolve().parent)
+**Why:** Settings and media paths in this game use relative Path objects; cwd normalization keeps them stable.
+
+**File:** games/sponsor/tribute/pazaak/main.py
+**Lines (at time of edit):** 3-10 (modified)
+**Before:**
+    import sys
+    import time
+    import pygame
+**After:**
+    import os
+    import sys
+    import time
+    import pygame
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+**Why:** Prevents direct-run path failures by pinning cwd to the game directory.
+
+**File:** games/sponsor/tribute/puzzle-league/main.py
+**Lines (at time of edit):** 22-29 (modified)
+**Before:**
+    import sys
+    import time
+    import pygame
+**After:**
+    import os
+    import sys
+    import time
+    import pygame
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+**Why:** Preserves relative asset path behavior regardless of the launcher/process cwd.
+
+**File:** games/sponsor/tutorial/flappy-bird/main.py
+**Lines (at time of edit):** 1-6 (modified)
+**Before:**
+    import pygame, sys, time
+**After:**
+    import os
+    import pygame, sys, time
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+**Why:** Fixes relative sprite/audio loads when running main.py from outside the game folder.
+
+**File:** games/sponsor/tutorial/pong/main.py
+**Lines (at time of edit):** 3-9 (modified)
+**Before:**
+    import sys
+    from pathlib import Path
+**After:**
+    import os
+    import sys
+    from pathlib import Path
+    os.chdir(Path(__file__).resolve().parent)
+**Why:** Makes direct execution of Pong resolve paths the same way as launcher execution.
+
+**File:** games/sponsor/tutorial/runner/main.py
+**Lines (at time of edit):** 2-11 (modified)
+**Before:**
+    import pygame
+    import sys
+    from pathlib import Path
+**After:**
+    import os
+    import pygame
+    import sys
+    from pathlib import Path
+    os.chdir(Path(__file__).resolve().parent)
+**Why:** Avoids cwd-sensitive relative path issues in standalone runs.
+
+**File:** games/sponsor/tutorial/space-invaders/main.py
+**Lines (at time of edit):** 1-7 (modified)
+**Before:**
+    import pygame, sys
+    from pathlib import Path
+**After:**
+    import os
+    import pygame, sys
+    from pathlib import Path
+    os.chdir(Path(__file__).resolve().parent)
+**Why:** Keeps relative resource lookup stable no matter where python is launched from.
+
+**File:** games/sponsor/tutorial/tetris/main.py
+**Lines (at time of edit):** 7-11 (modified)
+**Before:**
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+    if _HERE not in sys.path:
+        sys.path.insert(0, _HERE)
+**After:**
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(_HERE)
+    if _HERE not in sys.path:
+        sys.path.insert(0, _HERE)
+**Why:** Tetris already normalized import paths; this extends normalization to runtime asset paths too.
+
+## 2026-05-07T09:21:03-04:00 — Make Game of the Amazons asset paths independent of cwd
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+**File:** games/sponsor/tribute/game-of-the-amazons/settings.py
+**Lines (at time of edit):** 1 (modified), 109 (modified), 144-152 (modified)
+**Before:**
+    class FontSettings:
+        FONT = "assets/font/Pixeled.ttf"
+
+    class AssetPaths:
+        TV = "assets/graphics/tv.png"
+        WHITE_QUEEN = "assets/graphics/white_queen.png"
+        BLACK_QUEEN = "assets/graphics/black_queen.png"
+        ARROW_SHEET = "assets/graphics/Arrow.png"
+        SHOOT_SOUND = "assets/audio/sfx_weapon_singleshot1.wav"
+        MOVE_SOUND = "assets/audio/sfx_movement_footstepsloop4_fast.wav"
+**After:**
+    from pathlib import Path
+    GAME_DIR = Path(__file__).resolve().parent
+    ASSETS_DIR = GAME_DIR / "assets"
+
+    class FontSettings:
+        FONT = str(ASSETS_DIR / "font" / "Pixeled.ttf")
+
+    class AssetPaths:
+        TV = str(ASSETS_DIR / "graphics" / "tv.png")
+        WHITE_QUEEN = str(ASSETS_DIR / "graphics" / "white_queen.png")
+        BLACK_QUEEN = str(ASSETS_DIR / "graphics" / "black_queen.png")
+        ARROW_SHEET = str(ASSETS_DIR / "graphics" / "Arrow.png")
+        SHOOT_SOUND = str(ASSETS_DIR / "audio" / "sfx_weapon_singleshot1.wav")
+        MOVE_SOUND = str(ASSETS_DIR / "audio" / "sfx_movement_footstepsloop4_fast.wav")
+**Why:** Relative paths were being resolved from the process working directory, which fails when launching this game directly from the repository root. Anchoring paths to settings.py makes loading consistent for both launcher and standalone execution.
+
 ## 2026-05-06T17:42:56-04:00 — Reorganize Adventure assets and modules into category folders
 
 **Editor:** GitHub Copilot (GPT-5.3-Codex)

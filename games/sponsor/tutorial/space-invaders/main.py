@@ -1,5 +1,11 @@
+import os
 import pygame, sys
 from pathlib import Path
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(Path(__file__).resolve().parent)
+
 from player import Player
 import obstacle
 from alien import Alien, Extra

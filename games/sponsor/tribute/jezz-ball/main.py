@@ -7,11 +7,16 @@ from enum import Enum, auto
 import importlib.util
 import json
 import math
+import os
 from pathlib import Path
 import random
 import sys
 
 import pygame
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(Path(__file__).resolve().parent)
 
 from ball import Ball
 from wall import BuildingWall, Orientation

@@ -18,10 +18,15 @@ left as ``pass`` placeholders or ``# TODO`` comments; future commits
 will fill them in without having to reshape the surrounding plumbing.
 """
 
+import os
 import sys
 import time
 
 import pygame
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 from settings import (
     AudioSettings,

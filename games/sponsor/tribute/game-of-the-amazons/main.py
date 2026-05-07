@@ -1,6 +1,12 @@
 from __future__ import annotations
+import os
 import sys
 import pygame
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 from core.board import Board, queen_piece_for
 from core.turn_manager import TurnManager, PHASE_MOVE, PHASE_SHOOT
 from core.animation import PieceAnimator, ArrowAnimator

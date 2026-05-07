@@ -1,7 +1,13 @@
 """Pong entry point, event loop, and high-level runtime orchestration."""
 
+import os
 import sys
 from pathlib import Path
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(Path(__file__).resolve().parent)
+
 from settings import *
 from sprites import Player, Opponent, Ball
 from game import GameManager

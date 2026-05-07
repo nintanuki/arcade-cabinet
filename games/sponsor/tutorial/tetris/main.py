@@ -5,6 +5,11 @@ import sys
 # directly (python main.py) or imported by an external launcher (e.g. the
 # arcade-cabinet launcher), where cwd may be different.
 _HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(_HERE)
+
 if _HERE not in sys.path:
 	sys.path.insert(0, _HERE)
 

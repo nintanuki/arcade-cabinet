@@ -1,3 +1,10 @@
+from pathlib import Path
+
+
+GAME_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = GAME_DIR / "assets"
+
+
 class ColorSettings:
     """Class to hold all the color constants used by overlays, board, and UI."""
 
@@ -106,7 +113,7 @@ class ScreenSettings:
 class FontSettings:
     """Font sizes used by the HUD."""
 
-    FONT = "assets/font/Pixeled.ttf" # Doesn't look good... not used right now
+    FONT = str(ASSETS_DIR / "font" / "Pixeled.ttf") # Doesn't look good... not used right now
     HUD_TITLE_SIZE = 24
     HUD_LABEL_SIZE = 16
     HUD_VALUE_SIZE = 22
@@ -143,13 +150,13 @@ class AudioSettings:
 
 class AssetPaths:
     """File paths for game assets."""
-    TV = "assets/graphics/tv.png"
-    WHITE_QUEEN = "assets/graphics/white_queen.png"
-    BLACK_QUEEN = "assets/graphics/black_queen.png"
-    ARROW_SHEET = "assets/graphics/Arrow.png"
+    TV = str(ASSETS_DIR / "graphics" / "tv.png")
+    WHITE_QUEEN = str(ASSETS_DIR / "graphics" / "white_queen.png")
+    BLACK_QUEEN = str(ASSETS_DIR / "graphics" / "black_queen.png")
+    ARROW_SHEET = str(ASSETS_DIR / "graphics" / "Arrow.png")
 
-    SHOOT_SOUND = "assets/audio/sfx_weapon_singleshot1.wav"
-    MOVE_SOUND = "assets/audio/sfx_movement_footstepsloop4_fast.wav"
+    SHOOT_SOUND = str(ASSETS_DIR / "audio" / "sfx_weapon_singleshot1.wav")
+    MOVE_SOUND = str(ASSETS_DIR / "audio" / "sfx_movement_footstepsloop4_fast.wav")
 
 class DebugSettings:
     """Global debug flags."""

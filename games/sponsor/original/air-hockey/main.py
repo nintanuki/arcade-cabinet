@@ -1,10 +1,16 @@
 """Air Hockey game loop, input handling, and match presentation."""
 
+import os
 from pathlib import Path
 
 import pygame
 import sys
 import random
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(Path(__file__).resolve().parent)
+
 from settings import *
 from audio import Audio
 from crt import CRT

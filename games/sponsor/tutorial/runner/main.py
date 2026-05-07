@@ -1,9 +1,14 @@
 from __future__ import annotations
+import os
 import pygame
 import sys
 from pathlib import Path
 from sys import exit
 from random import randint, choice
+
+# Resolve relative asset paths from this game's folder so standalone runs
+# (python main.py) and launcher runs behave the same regardless of cwd.
+os.chdir(Path(__file__).resolve().parent)
 
 from settings import ScreenSettings, PlayerSettings, AssetPaths, BackgroundSettings
 from crt import CRT
