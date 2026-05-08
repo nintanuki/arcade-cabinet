@@ -1,17 +1,17 @@
-# Copilot Instructions for Adventure
+# Copilot Instructions for Air Hockey
 
 These rules apply to **every** editor of this codebase, human or AI. They are not suggestions. Read this file before each session.
 
-This game is a **standalone project**. It happens to live inside the Arcade Cabinet repo, but its code is agnostic to the launcher: running `python main.py` from this folder must always work on its own. Do not import launcher modules, do not assume the launcher exists, and do not edit files outside this folder from an Adventure change.
+This game is a **standalone project**. It happens to live inside the Arcade Cabinet repo, but its code is agnostic to the launcher: running `python main.py` from this folder must always work on its own. Do not import launcher modules, do not assume the launcher exists, and do not edit files outside this folder from an Air Hockey change.
 
 ---
 
 ## Required reading order (before any change)
 
 1. [README.md](../README.md) — what the project is and how to run it.
-2. [docs/TODO.md](../docs/TODO.md) — current phase and roadmap.
+2. [docs/TODO.md](../docs/TODO.md) — current phase, known bugs, roadmap.
 3. [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) — how the code actually works.
-4. [docs/CHANGELOG.md](../docs/CHANGELOG.md) — most recent changes, so you know the current state.
+4. [docs/CHANGELOG.md](../docs/CHANGELOG.md) — most recent changes.
 5. The source files relevant to your task.
 
 If a question is asked about *why* code was written a certain way, that is a request for an **explanation**, not a request for a code change. Do not modify code unless the user explicitly asks for a change.
@@ -37,16 +37,16 @@ If a question is asked about *why* code was written a certain way, that is a req
 
 ## Architecture rules
 
-- `GameManager` ([main.py](../main.py)) must stay thin. Offload responsibilities to dedicated classes (rendering → `RenderManager`, world state → `World`, post-process → `CRT`, sprites → `entities/`).
-- Classes should communicate through `GameManager` where possible. Avoid systems reaching directly into each other.
-- Keep middlemen minimal: if A calls B and B only calls C, have A call C directly.
+- The `Game` class ([main.py](../main.py)) is the runtime coordinator. It is currently larger than ideal and the long-term goal is to split it into smaller helpers (input, update, render). When adding to it, prefer creating a new method or a new helper class over inlining more logic into `run()`.
+- `Audio` ([audio.py](../audio.py)) owns all mixer state. Do not call `pygame.mixer` directly from `main.py`; route through `Audio`.
+- `CRT` ([crt.py](../crt.py)) owns the post-process. The CRT pass is always the last thing drawn each frame, before `pygame.display.flip()`.
 - All constants live in [settings.py](../settings.py). **No magic numbers anywhere else.** When adding a constant, include a comment explaining its units and effect.
-- Prefer adding a new `*Settings` class in `settings.py` over expanding an existing one when the new field is not closely related to its neighbors.
+- `settings.py` currently uses module-level constants and `from settings import *` at the call site. New constants should still go there; grouping them into `*Settings` classes is a pending refactor — see [docs/TODO.md](../docs/TODO.md).
 
 ## File and function layout
 
-- Inside a class, group functions by role (boot/setup, input, collision, render, etc.).
-- `update` and `run` go **last** and should only call other functions on the class.
+- Inside a class, group functions by role (init / setup, input, gameplay update, render, lifecycle).
+- `update`-style and `run` methods go **last** and should only call other functions on the class.
 - Separate logical sections inside a file with an all-caps banner comment, exactly this style:
 
   ```python
@@ -67,7 +67,7 @@ If a question is asked about *why* code was written a certain way, that is a req
 
 ## UI text
 
-- ALL text displayed to the player in-game (HUD labels, message log, end-game screens) must be **ALL CAPS**. The pixel font (`Pixeled`) is designed for caps-style retro display.
+- ALL text displayed to the player in-game (title screen, score labels, pause text, countdown, hints) must be **ALL CAPS**. The pixel font (`Pixeled.ttf`) is designed for caps-style retro display.
 - Documentation files stay in normal sentence case.
 
 ---
@@ -75,13 +75,13 @@ If a question is asked about *why* code was written a certain way, that is a req
 ## Mental testing checklist (run after major changes)
 
 - The game launches (`python main.py`) without console errors.
-- The action window, sidebar, message log, and minimap panels render in the correct positions.
-- The placeholder red-square player moves with WASD/arrows and the left analog stick.
-- The player cannot pass through wall tiles in the active cell.
-- Walking past the action window edge into a defined neighbor cell triggers a transition; into a non-defined neighbor the player is clamped.
-- `F11` (or `Back`) toggles fullscreen.
-- `F1` toggles the debug UI frame outlines; `F2` toggles the placeholder player.
-- The CRT overlay still renders in windowed and fullscreen modes.
+- The title screen appears with both **MOUSE** and **CONTROLLER** options, and the selector cycles with arrows or D-pad.
+- Selecting **MOUSE** then `Enter` starts a match where the paddle follows the cursor.
+- Selecting **CONTROLLER** then `Start` starts a match where the paddle follows the left analog stick.
+- The puck bounces off walls and paddles, and crossing into a goal increments the score and triggers a 3-second countdown.
+- `Enter` / `Start` pauses the game; the same key resumes.
+- `M` mutes and unmutes audio.
+- `F11` / `Back` toggles fullscreen; the CRT overlay still renders in windowed mode.
 - The quit combo (`Start + Back + L1 + R1`) and `Esc` both exit cleanly.
 - No new magic numbers leaked outside `settings.py`.
 

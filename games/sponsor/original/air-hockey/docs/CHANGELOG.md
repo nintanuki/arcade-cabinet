@@ -1,6 +1,6 @@
 # Change Log
 
-This file is an append-only record of every code change made to Adventure
+This file is an append-only record of every code change made to Air Hockey
 by a human, AI assistant, or copilot tool. Read it before making changes so you
 know the current state of the codebase.
 
@@ -9,7 +9,9 @@ know the current state of the codebase.
 Each entry covers one logical change (which may touch multiple files). Use the
 template below, with one `**File:** ... **Why:** ...` block per file touched.
 
-    ## YYYY-MM-DD HH:MM — short summary
+    ## YYYY-MM-DDTHH:MM:SS±HH:MM — short summary
+
+    **Editor:** GitHub Copilot (Model Name)
 
     **File:** path/to/file.py
     **Lines (at time of edit):** 38-52 (modified)
@@ -33,7 +35,7 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 * Keep "Before" / "After" blocks short. If a change is huge, summarize with a
   diff-style excerpt of the most important lines plus a sentence describing the
   rest, instead of pasting the entire file.
+* New entries go BELOW the `---` separator, newest first. These instructions
+  must stay on top.
 
 ---
-
-#
