@@ -20,6 +20,7 @@ class ColorSettings:
         "NERO": (40, 40, 40),
         "ECLIPSE": (60, 60, 60),
         "YELLOW": (255, 255, 0),
+        "LIME_GREEN": (0, 255, 0),
         "WHITE": (255, 255, 255),
     }
 
@@ -34,6 +35,7 @@ class ColorSettings:
     TEXT_DEFAULT = COLOR_WORDS["WHITE_SMOKE"]
     TEXT_TITLE = COLOR_WORDS["CREAM_CAN"]
     TEXT_LABEL = COLOR_WORDS["DARK_GRAY"]
+    TEXT_MUTED = COLOR_WORDS["LIME_GREEN"]
 
     # Board tiles (warm chess.com-style palette modeled on the reference image)
     BOARD_LIGHT_TILE = COLOR_WORDS["DUTCH_WHITE"]
@@ -91,6 +93,8 @@ class UISettings:
     HUD_X = BOARD_WINDOW_X + BOARD_WINDOW_SIZE + GAP                 # 400
     HUD_Y = TOP_MARGIN                                               # 32
     HUD_TEXT_PADDING = 14
+    MUTE_INDICATOR_X_PADDING = 32 # distance from the right edge of the screen to the "MUTE" text in the top-right corner
+    MUTE_INDICATOR_Y_PADDING = 16 # distance from the top edge of the screen to the "MUTE" text in the top-right corner
 
     # Window chrome
     BORDER_WIDTH = 2
@@ -117,6 +121,7 @@ class FontSettings:
     HUD_TITLE_SIZE = 24
     HUD_LABEL_SIZE = 16
     HUD_VALUE_SIZE = 22
+    MUTE_INDICATOR_SIZE = 18
 
 
 class InputSettings:

@@ -44,6 +44,8 @@ class AudioManager:
             pygame.mixer.stop()
             pygame.mixer.music.stop()
             return True
+
+        return False
         
     SOUND_BINDINGS = {
         'shoot':           ('shoot',       'shoot_sound'),
