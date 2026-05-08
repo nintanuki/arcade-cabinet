@@ -1,19 +1,80 @@
-# Testing Checklist
+# Game of the Amazons — Manual Testing Checklist
 
-Run this after major changes to ensure nothing broke:
+Run this after a non-trivial change. The mental rules live in [.github/copilot-instructions.md](../.github/copilot-instructions.md); this file lists what to *do*. The strict refactoring rules that used to live here have been consolidated into copilot-instructions.
 
-* Start game successfully
-* 
+---
 
-# Refactoring Rules
-* Update CHANGELOG.md for every code change (timestamp, file, line numbers, before/after, why) including which AI model made the change. Read it first before making changes so you know the current state.
-* All code must be PEP-8 compliant.
-* All classes and functions must have a docstring.
-* All docstrings must have a summary, Args (if applicable) and Returns (if applicable)
-* Do not change function names (unless their role is now completely different)
-* Keep functions organized and grouped by role. The update and run functions in classes should be the last function, and do as little as possible. Only call other functions if possible.
-* Do not change variable names if not necessary.
-* Function names and variable names must be descriptive.
-* Do not remove comments unless they are no longer relevant.
-* Comments must explain why, not just what.
-* When making a change, do not leave a comment that a change was made, unless it was to fix a bug that wasn't obvious and to explain why something was done in an unconventional way.
+## Smoke test (every change)
+
+```powershell
+cd games/sponsor/tribute/game-of-the-amazons
+python main.py
+```
+
+Or via the cabinet launcher: repo root → `python main.py` → **Mr. Navarro's Games → Tribute Games → Game of the Amazons**. Both entry paths must work.
+
+1. **Boot.** Window opens at the configured resolution, titled "Game of the Amazons". No console errors.
+2. **Initial board.** Four WHITE queens and four BLACK queens are placed at their canonical opening positions.
+3. **HUD.** Side panel shows current player ("WHITE"), current phase ("MOVE"), and is otherwise empty.
+4. **CRT overlay** is visible (scanlines + flicker).
+
+## Cursor
+
+5. **Keyboard.** Arrow keys move the cursor highlight one tile per press. The cursor clamps to `[0, 9]` on both axes.
+6. **Controller.** D-pad and (where supported) the analog hat move the cursor identically.
+
+## Move phase (human turn)
+
+7. **Select queen.** Position the cursor over a WHITE queen and press `Space` / A. The queen highlights as selected.
+8. **Invalid select.** Pressing confirm on an empty tile or a BLACK queen does nothing.
+9. **Valid move.** Move the cursor to a tile reachable in a queen-direction with no obstacles. Pressing confirm starts the slide animation; the queen detaches from its origin tile during the animation.
+10. **Invalid move.** Choosing a tile blocked by a piece or an arrow, or off the queen-path, deselects the queen and does not advance the turn.
+11. **Animation.** The queen arrives at the destination tile and the phase transitions to SHOOT.
+
+## Shoot phase (human turn)
+
+12. The cursor is parked on the moved queen for an obvious anchor.
+13. **Valid arrow.** Move the cursor to a tile reachable in any queen-direction; pressing confirm fires the arrow and plays the shoot SFX.
+14. **Invalid arrow.** A blocked or off-path target does nothing.
+15. **Animation.** The arrow flies, lands, and the tile becomes permanently marked as blocked. The turn switches to BLACK.
+
+## AI turn
+
+16. The AI's queen slides to its chosen tile and its arrow flies automatically — no further input required.
+17. The phase returns to WHITE / MOVE after the arrow lands.
+
+## Win detection
+
+18. Manually create a position (with cooperative play) where one player has no legal queen-move at the start of their turn. The HUD shows `GAME OVER` and announces the other player as the winner.
+19. **Restart.** Pressing `Enter` (keyboard) or Start (controller) creates a fresh `GameManager` instance and the board resets to the starting position.
+
+## Global controls
+
+20. `F11` and Back (Select) toggle fullscreen.
+21. `Esc` quits cleanly.
+22. Holding `Start + Back + L1 + R1` on a controller exits cleanly.
+23. Closing the OS window quits cleanly.
+
+---
+
+## Settings-change tests
+
+When [settings.py](../settings.py) is edited:
+
+- Visually confirm the changed section reflects the new values (tile size, board offset, HUD layout, animation speeds, colors, font sizes).
+- Confirm no other section regressed.
+- `grep` for the literal value to confirm no constants leaked back into `core/`, `systems/`, or `ui/` files.
+
+---
+
+## Sign-off
+
+- [ ] Smoke test passed.
+- [ ] Cursor responds to keyboard and controller.
+- [ ] WHITE move + shoot phase passed end-to-end.
+- [ ] AI turn animates and resolves correctly.
+- [ ] Win detection and restart passed.
+- [ ] Global controls passed.
+- [ ] [docs/CHANGELOG.md](CHANGELOG.md) updated.
+- [ ] [docs/ARCHITECTURE.md](ARCHITECTURE.md) updated if structure changed.
+- [ ] [docs/TODO.md](TODO.md) updated if a roadmap item was completed.
