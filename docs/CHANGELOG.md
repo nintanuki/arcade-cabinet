@@ -40,6 +40,46 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-08T13:40:00-04:00 — Add repo-wide Pyright config to reduce false squiggles in migrated games
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+**File:** pyrightconfig.json
+**Lines (at time of edit):** (new file)
+**After:**
+        {
+            "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright/schema/pyrightconfig.schema.json",
+            "typeCheckingMode": "basic",
+            "reportUndefinedVariable": "none",
+            "reportAttributeAccessIssue": "none",
+            "reportMissingImports": "none",
+            "reportWildcardImportFromLibrary": "none",
+            "exclude": [
+                "**/__pycache__",
+                "**/.git",
+                "**/.venv",
+                "**/venv"
+            ]
+        }
+**Why:** Applies one workspace-level analyzer policy so wildcard imports and dynamically-attached attributes in standalone game code no longer flood the editor with false-positive diagnostics after migration into the mono-repo.
+
+**File:** docs/CHANGELOG.md
+**Lines (at time of edit):** 33-61 (modified)
+**Before:**
+        ---
+
+        ## 2026-05-08T12:54:00-04:00 — Split mute badge padding into separate X and Y settings
+**After:**
+        ---
+
+        ## 2026-05-08T13:40:00-04:00 — Add repo-wide Pyright config to reduce false squiggles in migrated games
+
+        **Editor:** GitHub Copilot (GPT-5.3-Codex)
+        ...
+
+        ## 2026-05-08T12:54:00-04:00 — Split mute badge padding into separate X and Y settings
+**Why:** Records this tooling/config update per repository policy so future maintainers understand why analysis behavior changed.
+
 ## 2026-05-08T12:54:00-04:00 — Split mute badge padding into separate X and Y settings
 
 **Editor:** GitHub Copilot (GPT-5.4)
