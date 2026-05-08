@@ -1,8 +1,8 @@
 # Change Log
 
-This file is an append-only record of every code change made to Dungeon Digger
-by a human, AI assistant, or copilot tool. Read it before making changes so you
-know the current state of the codebase.
+This file is an append-only record of every code change made to Game of the
+Amazons by a human, AI assistant, or copilot tool. Read it before making
+changes so you know the current state of the codebase.
 
 ## Format
 

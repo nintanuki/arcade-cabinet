@@ -97,6 +97,16 @@ hardware, or executable startup time becomes a concern. Ordered easiest-first.
 
 ---
 
+# DOCUMENTATION MAINTENANCE
+
+Every pass that meaningfully changes a system must:
+
+1. Update [docs/ARCHITECTURE.md](ARCHITECTURE.md) to reflect the new shape.
+2. Append entries to [docs/CHANGELOG.md](CHANGELOG.md) per the format in that file.
+3. Move completed items here from `[ ]` to `[x]` (do not delete — leave as a record).
+
+---
+
 # NEXT ACTIONABLE TASKS
 
 - [ ] Prevent player movement into occupied monster tiles.

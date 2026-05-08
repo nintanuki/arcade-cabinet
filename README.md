@@ -1,155 +1,131 @@
 # Mr. Navarro's Arcade
 
-A Pygame launcher (`Mr. Navarro's Arcade`) that fronts a small library of original and tribute games. Pick a title from the carousel and the launcher hands off to that game's `main.py`; closing the game window drops you back at the menu.
+A Pygame launcher (`Coding Club Arcade`) that fronts a small library of original, tribute, and tutorial games written in Python and Pygame. It is the front end for a custom-built arcade cabinet running at John I. Leonard High School. Pick a title from the carousel and the launcher hands off to that game's `main.py`; closing the game window drops you back at the menu.
 
-Current lineup:
-- Adventure (action dungeon crawler)
-- Air Hockey (two-paddle table game)
-- Breakout (block-busting paddle game)
-- Dungeon Digger (turn-based dungeon crawler)
-- Game of the Amazons (abstract strategy board game)
-- Jezz Ball (build walls to trap bouncing balls)
-- Ninja Frog (side-scrolling platformer)
-- Pong (the classic)
-- Runner (endless-runner side-scroller)
-- Snake (grid-based snake)
-- Space Invaders (alien-wave shooter)
-- Star Hero (vertical-scrolling space shooter)
-- Tetris (falling-block puzzle)
+---
 
-Sponsor games are committed to the repo under `games/sponsor/`. Student-contributed games live under `games/student/` (gitignored, discovered at runtime); see [games/student/README.md](games/student/README.md) for the convention.
+## About
+
+The cabinet hosts three buckets of games:
+
+- **Original** — Mr. Navarro's own games.
+- **Tribute** — re-creations of classic games.
+- **Tutorial** — small games built while following Clear Code's Pygame tutorials on YouTube.
+- **Student** — student-contributed games. This bucket is discovered at runtime from `games/student/`, which is gitignored so each cabinet keeps its own students' work locally. See [games/student/README.md](games/student/README.md) for the contribution convention.
+
+Each game is **its own standalone project** with its own `main.py` and assets. The launcher launches a game by spawning a subprocess with the game's folder as the working directory, so games are agnostic to the launcher and could be run on their own (`python main.py` from inside the game folder).
+
+## Status
+
+**Phase: Live.** The launcher is in active use on the cabinet. New games are added by editing [settings.py](settings.py) for sponsor games, or by dropping a folder into `games/student/` for student games. See [docs/TODO.md](docs/TODO.md) for the current roadmap and known issues, and [docs/CHANGELOG.md](docs/CHANGELOG.md) for the history of changes.
+
+## Game Lineup
+
+### Original
+- **Adventure** — top-down dungeon crawler with text-based flavor (under construction).
+- **Air Hockey** — two-paddle table game (limited controller support, physics being tuned).
+- **Dungeon Digger** — turn-based dungeon RPG with shop, saves, and leaderboard.
+- **Ninja Frog** — side-scrolling platformer (under construction, physics being tuned).
+- **Star Hero** — vertical-scrolling space shoot'em up.
+
+### Tribute
+- **Game of the Amazons** — abstract strategy board game (queens move and shoot arrows).
+- **Jezz Ball** — draw walls to trap bouncing balls (limited controller support).
+- **Pazaak** — Star Wars: Knights of the Old Republic card game (under construction).
+- **Puzzle League** — Tetris Attack / Panel de Pon clone (under construction).
+
+### Tutorial
+- **Breakout** — paddle, ball, blocks, with upgrades.
+- **Flappy Bird** — flappy bird clone, parallax scrolling.
+- **Pong** — the classic.
+- **Runner** — endless side-scroller.
+- **Snake** — grid-based snake.
+- **Space Invaders** — Star Hero's parent project.
+- **Tetris** — the falling-block classic.
+
+For full rules and per-game controls, see each game's `README.md`.
 
 ## Requirements
 
 - Python 3.10+
-- pygame
+- [Pygame](https://www.pygame.org/) 2.5+
 
-Install dependency:
+> The repo's [requirements.txt](requirements.txt) is currently empty; install Pygame manually until it is populated. Tracked in [docs/TODO.md](docs/TODO.md).
 
-```bash
-pip install pygame
-```
-
-## Run the Launcher
+## Install & Run
 
 From the repository root:
 
-```bash
+```powershell
+git clone <repo-url> arcade-cabinet
+cd arcade-cabinet
+pip install pygame
 python main.py
 ```
 
-If your system uses `py` on Windows:
-
-```bash
-py main.py
-```
+On Windows, `py main.py` works as well.
 
 ## Launcher Controls
 
-### Keyboard
-- Up/Down or W/S: Move selection
-- Enter/Space: Enter submenu / launch selected game
-- Esc: Back to previous menu (exits the launcher when already at the root)
-- F11: Toggle fullscreen
+| Action | Keyboard | Controller |
+| --- | --- | --- |
+| Move selection | `Up` / `Down` / `W` / `S` | D-pad up/down, left-stick vertical |
+| Confirm / launch / enter submenu | `Enter`, `Space` | `A`, `Start` |
+| Back to previous menu | `Esc` (also quits at the root) | `B` |
+| Toggle fullscreen | `F11` | `Select` (a.k.a. `Back`) |
+| Quit launcher | Close the window | — |
 
-### Controller
-- D-pad/left stick vertical: Move selection
-- A or Start: Enter submenu / launch selected game
-- B: Back to previous menu
-- Select: Toggle fullscreen
+### In-game controls
 
-While in a game, press F11 (or Select on a controller) to toggle fullscreen, and press Start + Select + L1 + R1 (or close the game window) to return to the launcher.
+While in a game:
 
-## Games
+- **Toggle fullscreen:** `F11` on keyboard, `Select` on controller.
+- **Return to launcher:** Close the game window, or hold `Start + Select + L1 + R1` on the controller (each game implements its own quit combo).
 
-Each sponsor game lives under `games/sponsor/<name>/` with its own `main.py` and a per-game README. Categories, input-scheme tags, free-form notes, and the under-construction flag all come from `settings.py` (`GAME_CATEGORIES`, `GAME_INPUT_SCHEMES`, `GAME_NOTES`, `UNDER_CONSTRUCTION_GAMES`).
+Per-game gameplay controls live in each game's `README.md`.
 
-### Adventure
-Action-style dungeon crawler companion piece to Dungeon Digger. README: [games/sponsor/adventure/README.md](games/sponsor/adventure/README.md).
-- Status: Under construction.
+## Project Structure
 
-### Air Hockey
-A two-paddle air hockey / pong-style table game. Everything is drawn directly in Pygame with no sprite assets. README: [games/sponsor/air-hockey/README.md](games/sponsor/air-hockey/README.md).
-- Status: Playable. Physics are still being tuned, expect wonkiness.
-- Input: Mouse and limited controller support.
+```
+arcade-cabinet/
+├── main.py                 # Tiny entry point; constructs and runs ArcadeLauncher.
+├── settings.py             # All launcher tunables and the sponsor-game registry.
+├── requirements.txt        # Python package dependencies (currently empty).
+├── launcher/               # Launcher implementation.
+│   ├── manager.py          # ArcadeLauncher coordinator.
+│   ├── renderer.py         # All UI drawing.
+│   ├── discovery.py        # Student-game discovery and manifest parsing.
+│   ├── models.py           # MenuNode, MenuFrame, StudentGameRecord dataclasses.
+│   └── crt.py              # CRT-style scanline overlay.
+├── assets/                 # Launcher fonts, graphics, previews, sounds.
+├── games/
+│   ├── sponsor/
+│   │   ├── original/       # Mr. Navarro's original games.
+│   │   ├── tribute/        # Tribute games (classics re-created).
+│   │   └── tutorial/       # Games built following Clear Code tutorials.
+│   └── student/            # Gitignored. Student games are discovered here at runtime.
+└── docs/                   # Project documentation (read these in order below).
+```
 
-### Breakout
-Bounce a ball off a paddle to clear rows of colored blocks; collect upgrades for extra hearts, lasers, paddle size, and ball speed. README: [games/sponsor/breakout/README.md](games/sponsor/breakout/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
+## Documentation
 
-### Dungeon Digger
-Turn-based dungeon crawler. Dig for treasure, find the key, unlock the door, and descend through every level. Includes a 10-slot save system, shop, and leaderboard. README: [games/sponsor/dungeon-digger/README.md](games/sponsor/dungeon-digger/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
+Read these in order before contributing:
 
-### Game of the Amazons
-Implementation of the abstract strategy board game (queens that move and shoot arrows to reduce the playable territory). README: [games/sponsor/game-of-the-amazons/README.md](games/sponsor/game-of-the-amazons/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
+1. **[README.md](README.md)** — *(this file)* what the project is and how to run it.
+2. **[docs/TODO.md](docs/TODO.md)** — current phase and roadmap.
+3. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the launcher actually works.
+4. **[docs/CHANGELOG.md](docs/CHANGELOG.md)** — most recent changes, so you know the current state.
+5. **[docs/TESTING.md](docs/TESTING.md)** — manual smoke-test checklist after changes.
+6. **[.github/copilot-instructions.md](.github/copilot-instructions.md)** — required reading for every editor, human or AI.
 
-### Jezz Ball
-Trap bouncing balls behind walls you draw on a shrinking play field. README: [games/sponsor/jezz-ball/README.md](games/sponsor/jezz-ball/README.md).
-- Status: Playable.
-- Input: Mouse and limited controller support.
-
-### Ninja Frog
-Side-scrolling platformer starring a ninja frog, with tilemap levels and a tile viewer dev tool. README: [games/sponsor/ninja-frog/README.md](games/sponsor/ninja-frog/README.md).
-- Status: Under construction. Physics are still being tuned, expect wonkiness.
-
-### Pong
-Classic two-paddle Pong, built following Clear Code's Pong tutorial. README: [games/sponsor/pong/README.md](games/sponsor/pong/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
-
-### Runner
-Endless-runner side-scroller. README: [games/sponsor/runner/README.md](games/sponsor/runner/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
-
-### Snake
-Grid-based Snake. Eat, grow, do not crash into yourself. README: [games/sponsor/snake/README.md](games/sponsor/snake/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
-
-### Space Invaders
-Tribute take on Space Invaders with player ship, laser-pocked obstacles, and waves of aliens. README: [games/sponsor/space-invaders/README.md](games/sponsor/space-invaders/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
-
-### Star Hero
-Vertically scrolling space shoot'em up: dodge enemies, collect powerups, chase a high score. Difficulty ramps with score; supports laser/rapid-fire/rainbow upgrades and bombs. README: [games/sponsor/star-hero/README.md](games/sponsor/star-hero/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
-
-### Tetris
-The falling-block classic with preview, score, and timer. README: [games/sponsor/tetris/README.md](games/sponsor/tetris/README.md).
-- Status: Playable.
-- Input: Keyboard and controller.
-
-## Game Rules and Controls
-
-For full rules and the complete control scheme of each game, see the per-game README linked above. Quick reference:
-- Star Hero: Survive enemy waves, collect powerups, chase the high score.
-- Dungeon Digger: Find the key, unlock the door, survive monsters, clear all levels.
-- Pong / Air Hockey: Outscore your opponent.
-- Breakout / Jezz Ball: Clear the play field.
-- Snake / Runner / Space Invaders / Tetris: Last as long as possible while score climbs.
-- Adventure, Ninja Frog: Under construction — playable extent varies.
+Each game has its own copy of these docs inside its own folder (e.g. `games/sponsor/original/star-hero/docs/ARCHITECTURE.md`). Treat each game as a standalone project.
 
 ## Attributions
 
-Asset credits are tracked per game:
-- Star Hero: [games/sponsor/star-hero/assets/graphics/attributions.md](games/sponsor/star-hero/assets/graphics/attributions.md), [games/sponsor/star-hero/assets/audio/attributions.md](games/sponsor/star-hero/assets/audio/attributions.md), [games/sponsor/star-hero/assets/music/attributions.md](games/sponsor/star-hero/assets/music/attributions.md)
-- Dungeon Digger: [games/sponsor/dungeon-digger/assets/graphics/attributions.md](games/sponsor/dungeon-digger/assets/graphics/attributions.md), [games/sponsor/dungeon-digger/assets/sound/attributions.md](games/sponsor/dungeon-digger/assets/sound/attributions.md), [games/sponsor/dungeon-digger/assets/music/attributions.md](games/sponsor/dungeon-digger/assets/music/attributions.md)
-- Adventure: [games/sponsor/adventure/graphics/attributions.md](games/sponsor/adventure/graphics/attributions.md), [games/sponsor/adventure/sound/attributions.md](games/sponsor/adventure/sound/attributions.md), [games/sponsor/adventure/music/attributions.md](games/sponsor/adventure/music/attributions.md)
+Asset credits are tracked per game inside each game's folder (typically `assets/graphics/attributions.md` and similar). Launcher-specific assets live under [assets/](assets) and use the `Pixeled` pixel font.
 
-Other games either use no third-party assets or have not yet published an attributions file.
+## Credits
 
-## Project Notes
-
-- Launcher roadmap: [docs/TODO.md](docs/TODO.md)
-- Changelog: [docs/CHANGELOG.md](docs/CHANGELOG.md)
-- Testing notes: [docs/TESTING.md](docs/TESTING.md)
-- Root launcher files: [main.py](main.py), [settings.py](settings.py)
-- Game registry, preview images, and status flags (under-construction, no-controller-support) are all configured in [settings.py](settings.py) under `GameSettings`.
+- Launcher and games by Mr. Navarro.
+- Tutorial games written following [Clear Code](https://www.youtube.com/@ClearCode) tutorials.
+- Tribute games derive their rules from their original publishers (credited in each game's README).
