@@ -90,6 +90,11 @@ class GameManager:
         self.previous_left_stick_y = 0.0
         self.npcs: list = []
 
+        # State for quit confirmation dialog. quit_confirm_context tracks
+        # whether the quit was triggered from 'gameplay' or 'menu'.
+        self.quit_confirm_index = 0
+        self.quit_confirm_context = None
+
         # State for game over flow and leaderboard entry.
         self.game_over_message_complete_time = 0
         self.game_over_prompt_start_time = 0
@@ -326,17 +331,25 @@ class GameManager:
                 self.audio.play('menu_move')
 
     def handle_confirm_move(self, direction: int) -> None:
-        """Move the NO/YES cursor in the overwrite or delete confirm dialog.
+        """Move the NO/YES cursor in a confirm dialog (overwrite, delete, or quit).
 
         Args:
             direction: -1 for left (toward NO), +1 for right (toward YES).
         """
-        if self.ui_state not in ('overwrite_confirm', 'delete_confirm'):
+        if self.ui_state not in ('overwrite_confirm', 'delete_confirm', 'quit_confirm'):
             return
         new_index = (self.confirm_index + direction) % 2
-        if new_index != self.confirm_index:
-            self.confirm_index = new_index
-            self.audio.play('menu_move')
+        if self.ui_state == 'quit_confirm':
+            # quit_confirm uses quit_confirm_index instead of confirm_index
+            new_index = (self.quit_confirm_index + direction) % 2
+            if new_index != self.quit_confirm_index:
+                self.quit_confirm_index = new_index
+                self.audio.play('menu_move')
+        else:
+            # overwrite_confirm and delete_confirm use confirm_index
+            if new_index != self.confirm_index:
+                self.confirm_index = new_index
+                self.audio.play('menu_move')
 
     def handle_back_press(self) -> None:
         """Step one screen back in the menu hierarchy.
@@ -364,6 +377,39 @@ class GameManager:
             self.ui_state = 'slot_select_load'
             self.audio.play('menu_select')
             return
+
+    def open_quit_confirm_dialog(self) -> None:
+        """Open the quit confirmation dialog with appropriate context.
+
+        Determines whether the quit was triggered from gameplay or the menu,
+        sets the dialog state, and plays the select sound.
+        """
+        # Determine context: if currently playing, context is 'gameplay';
+        # otherwise (title, menus) it's 'menu'.
+        if self.ui_state == 'playing':
+            self.quit_confirm_context = 'gameplay'
+        else:
+            self.quit_confirm_context = 'menu'
+        
+        self.ui_state = 'quit_confirm'
+        self.quit_confirm_index = 0  # Default to NO
+        self.audio.play('menu_select')
+
+    def return_to_title_from_game(self) -> None:
+        """Return to the title menu from active gameplay, resetting game state.
+
+        Clears all game-specific state so the title screen appears fresh.
+        """
+        # Reset gameplay state
+        self.game_active = False
+        self.player_name = ""
+        self.active_save_slot = None
+        self.score = 0
+        self.current_level_index = 0
+        self.pending_level_index = 0
+        self.ui_state = 'title'
+        self.title_menu_index = 0
+        self.audio.stop_music()
 
     def handle_delete_press(self) -> None:
         """Open the delete-confirm dialog for the highlighted load slot.
@@ -448,9 +494,10 @@ class GameManager:
             self.commit_name_entry()
             return
         if event.key == pygame.K_ESCAPE:
-            # ESC during name entry still exits to the launcher to keep the
-            # exit shortcut consistent with every other game state.
-            self.close_game()
+            # ESC during name entry opens quit confirm dialog, but only if not
+            # already in one. The context (gameplay vs menu) is auto-determined.
+            if self.ui_state != 'quit_confirm':
+                self.open_quit_confirm_dialog()
             return
         # event.unicode is the keystroke's typed character with shift /
         # caps applied. Filter against the SaveManager whitelist and cap
@@ -562,6 +609,23 @@ class GameManager:
 
         if self.ui_state == 'enter_initials':
             self.score_manager.submit_initials_entry()
+            return
+
+        if self.ui_state == 'quit_confirm':
+            if self.quit_confirm_index == 1:  # YES
+                if self.quit_confirm_context == 'gameplay':
+                    # Return to title from active game
+                    self.return_to_title_from_game()
+                else:
+                    # Exit the game from title/menu
+                    self.close_game()
+            else:  # NO
+                # Dismiss the dialog and return to previous state
+                if self.quit_confirm_context == 'gameplay':
+                    self.ui_state = 'playing'
+                else:
+                    self.ui_state = 'title'
+            self.audio.play('menu_select')
             return
 
         if self.ui_state == 'leaderboard':
@@ -765,18 +829,17 @@ class GameManager:
                 self.handle_title_menu_move(1)
 
         # Confirm dialogs use horizontal nav for NO/YES selection.
-        if self.ui_state in ('overwrite_confirm', 'delete_confirm'):
+        if self.ui_state in ('overwrite_confirm', 'delete_confirm', 'quit_confirm'):
             if event.key == pygame.K_LEFT:
                 self.handle_confirm_move(-1)
             elif event.key == pygame.K_RIGHT:
                 self.handle_confirm_move(1)
 
-        # ESC always exits the game and returns to the arcade launcher,
-        # matching the L1+R1+START+SELECT controller combo. Save-flow menus
-        # still step backward via the controller B button (handled in
-        # _handle_joybuttondown) and via the BACKSPACE key below.
+        # ESC opens the quit confirmation dialog. Once in the dialog, ESC does
+        # nothing — the player must explicitly select YES or NO and press ENTER.
         if event.key == pygame.K_ESCAPE:
-            self.close_game()
+            if self.ui_state != 'quit_confirm':
+                self.open_quit_confirm_dialog()
 
         # BACKSPACE preserves the previous "step back through save-flow menus"
         # behavior on the keyboard now that ESC exits the game outright.
@@ -805,10 +868,16 @@ class GameManager:
         if self.quit_combo_pressed():
             self.close_game()
 
-        # BACK is the global fullscreen toggle and falls through.
+        # BACK toggles fullscreen globally, unless in quit_confirm where it
+        # acts as NO (dismiss the dialog).
         if event.button == InputSettings.JOY_BUTTON_BACK:
-            pygame.display.toggle_fullscreen()
-            self.full_screen = not self.full_screen
+            if self.ui_state == 'quit_confirm':
+                # BACK in quit_confirm acts as NO (dismiss)
+                self.quit_confirm_index = 0  # Move to NO
+                self.handle_start_press()      # Confirm NO
+            else:
+                pygame.display.toggle_fullscreen()
+                self.full_screen = not self.full_screen
 
         if (self.tutorial is not None and self.tutorial.is_blocking):
             self.tutorial.handle_event(event)
@@ -842,7 +911,7 @@ class GameManager:
             elif hat_y == -1:
                 self.handle_title_menu_move(1)
 
-        if self.ui_state in ('overwrite_confirm', 'delete_confirm'):
+        if self.ui_state in ('overwrite_confirm', 'delete_confirm', 'quit_confirm'):
             hat_x, _ = event.value
             if hat_x == -1:
                 self.handle_confirm_move(-1)
@@ -952,6 +1021,8 @@ class GameManager:
             self.render.draw_overwrite_confirm_screen()
         elif self.ui_state == 'delete_confirm':
             self.render.draw_delete_confirm_screen()
+        elif self.ui_state == 'quit_confirm':
+            self.render.draw_quit_confirm_screen()
         elif self.ui_state == 'game_over':
             self.render.draw_end_game_screens()
         elif self.ui_state == 'enter_initials':

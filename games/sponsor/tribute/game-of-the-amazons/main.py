@@ -47,6 +47,7 @@ class GameManager:
         self.hud = HUD()
         self.piece_animation = PieceAnimator()
         self.arrow_animation = ArrowAnimator()
+        self.mute_font = pygame.font.Font(None, FontSettings.MUTE_INDICATOR_SIZE)
 
         # Cursor State
         self.cursor_pos = [0, 0]  # [col, row]
@@ -85,8 +86,7 @@ class GameManager:
             None. Exits the process via sys.exit() when the new manager
             finishes its loop.
         """
-        current_surface = pygame.display.get_surface()
-        was_fullscreen = bool(current_surface and (current_surface.get_flags() & pygame.FULLSCREEN))
+        was_fullscreen = self._is_fullscreen()
 
         new_game_manager = GameManager(start_fullscreen=was_fullscreen)
         new_game_manager.run()
@@ -100,6 +100,23 @@ class GameManager:
         """
         pygame.quit()
         sys.exit()
+
+    def _is_fullscreen(self) -> bool:
+        """Return True when the current display surface is in fullscreen mode.
+
+        Returns:
+            True if the active display surface has the fullscreen flag set.
+        """
+        current_surface = pygame.display.get_surface()
+        return bool(current_surface and (current_surface.get_flags() & pygame.FULLSCREEN))
+
+    def _toggle_mute(self) -> None:
+        """Toggle global audio mute state.
+
+        Returns:
+            None.
+        """
+        self.audio.toggle_mute()
 
     def quit_combo_pressed(self) -> bool:
         """Return True if START + SELECT + L1 + R1 are held on any controller.
@@ -261,6 +278,9 @@ class GameManager:
         if event.key == pygame.K_F11:
             pygame.display.toggle_fullscreen()
             return
+        if event.key == pygame.K_m:
+            self._toggle_mute()
+            return
         if event.key == pygame.K_ESCAPE:
             # ESC always exits the game and returns to the launcher, matching
             # the L1+R1+START+SELECT controller combo.
@@ -409,6 +429,29 @@ class GameManager:
         self.hud.win_condition = self.turn.win_condition
         self.hud.territory_totals = self.turn.territory_totals
 
+    def _draw_mute_indicator(self) -> None:
+        """Draw the mute badge in the top-right corner when audio is muted.
+
+        Returns:
+            None.
+        """
+        if not AudioSettings.MUTE:
+            return
+
+        mute_surface = self.mute_font.render("MUTE", True, ColorSettings.TEXT_MUTED)
+        mute_rect = mute_surface.get_rect()
+        mute_rect.top = UISettings.MUTE_INDICATOR_Y_PADDING
+        mute_rect.right = ScreenSettings.WIDTH - UISettings.MUTE_INDICATOR_X_PADDING
+        self.screen.blit(mute_surface, mute_rect)
+
+    def _should_draw_crt(self) -> bool:
+        """Return True when the CRT overlay should be rendered.
+
+        Returns:
+            True if the game is not currently fullscreen.
+        """
+        return not self._is_fullscreen()
+
     def _render_frame(self) -> None:
         """Compose one frame: background, board, HUD, then CRT.
 
@@ -433,9 +476,11 @@ class GameManager:
             arrow_data,
         )
         self.hud.draw(self.screen)
+        self._draw_mute_indicator()
 
         # Apply CRT pass after world/UI rendering.
-        self.crt.draw()
+        if self._should_draw_crt():
+            self.crt.draw()
 
     # -------------------------
     # MAIN LOOP

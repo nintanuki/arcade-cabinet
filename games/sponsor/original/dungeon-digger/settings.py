@@ -193,13 +193,14 @@ class RenderSettings:
     SLOT_SELECT_CURSOR_OFFSET_X = -20
     SLOT_SELECT_PROMPT_Y_OFFSET = 35
 
-    # Name entry, overwrite confirm, and delete confirm share a centered
-    # layout pattern: a header, a contextual line, a focal element (the
-    # typed name buffer or NO/YES options), and a bottom controls hint.
-    SAVE_DIALOG_TITLE_Y = 150
-    SAVE_DIALOG_BODY_Y = 230
-    SAVE_DIALOG_FOCAL_Y = 320
-    SAVE_DIALOG_PROMPT_Y_OFFSET = 50
+    # Name entry, overwrite confirm, delete confirm, and quit confirm share a
+    # centered layout pattern: a header, a contextual line, and focal element
+    # (the typed name buffer or NO/YES options). With prompt text removed,
+    # positioning is adjusted for vertical centering.
+    SAVE_DIALOG_TITLE_Y = 180
+    SAVE_DIALOG_BODY_Y = 260
+    SAVE_DIALOG_FOCAL_Y = 350
+    SAVE_DIALOG_PROMPT_Y_OFFSET = 50  # Used for name entry screen prompt
     SAVE_DIALOG_OPTION_GAP = 100
 
 class GameSettings:
@@ -449,10 +450,14 @@ class FontSettings:
     FONT = os.path.join(
         os.path.dirname(__file__), 'assets', 'font', 'Pixeled.ttf'
     )
+    
+    # Base font sizes used across UI elements.
     MESSAGE_SIZE = 8
-    SCORE_SIZE = 12
     HUD_SIZE = 10
+    SCORE_SIZE = 12
+    LARGE_SIZE = 16
     ENDGAME_SIZE = 32
+    
     DEFAULT_COLOR = ColorSettings.TEXT_DEFAULT
     LAST_MESSAGE_COLOR = ColorSettings.TEXT_ACTIVE_MESSAGE
 
@@ -464,6 +469,23 @@ class FontSettings:
         "MONSTER": ColorSettings.PURPLE,
         "MONSTER REPELLENT": ColorSettings.PURPLE
     }
+
+class QuitDialogSettings:
+    """Quit confirmation dialog strings and layout."""
+
+    # Message strings for quit confirm dialog when quitting during gameplay.
+    TITLE_GAMEPLAY = "QUIT TO MAIN MENU?"
+    BODY_GAMEPLAY = "UNSAVED PROGRESS WILL BE LOST"
+
+    # Message strings for quit confirm dialog when quitting from title menu.
+    TITLE_MENU = "QUIT GAME?"
+    BODY_MENU = ""
+
+    # Styling for quit dialog title: use generic LARGE_SIZE from FontSettings,
+    # white text (TEXT_DEFAULT), and custom Y position for this dialog.
+    TITLE_FONT_SIZE = FontSettings.LARGE_SIZE
+    TITLE_COLOR = ColorSettings.TEXT_DEFAULT
+    TITLE_Y = 200
 
 class AudioSettings:
     """Global audio toggles and mixer-level defaults."""

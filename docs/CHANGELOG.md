@@ -40,6 +40,133 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-08T13:40:00-04:00 — Add repo-wide Pyright config to reduce false squiggles in migrated games
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+**File:** pyrightconfig.json
+**Lines (at time of edit):** (new file)
+**After:**
+        {
+            "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright/schema/pyrightconfig.schema.json",
+            "typeCheckingMode": "basic",
+            "reportUndefinedVariable": "none",
+            "reportAttributeAccessIssue": "none",
+            "reportMissingImports": "none",
+            "reportWildcardImportFromLibrary": "none",
+            "exclude": [
+                "**/__pycache__",
+                "**/.git",
+                "**/.venv",
+                "**/venv"
+            ]
+        }
+**Why:** Applies one workspace-level analyzer policy so wildcard imports and dynamically-attached attributes in standalone game code no longer flood the editor with false-positive diagnostics after migration into the mono-repo.
+
+**File:** docs/CHANGELOG.md
+**Lines (at time of edit):** 33-61 (modified)
+**Before:**
+        ---
+
+        ## 2026-05-08T12:54:00-04:00 — Split mute badge padding into separate X and Y settings
+**After:**
+        ---
+
+        ## 2026-05-08T13:40:00-04:00 — Add repo-wide Pyright config to reduce false squiggles in migrated games
+
+        **Editor:** GitHub Copilot (GPT-5.3-Codex)
+        ...
+
+        ## 2026-05-08T12:54:00-04:00 — Split mute badge padding into separate X and Y settings
+**Why:** Records this tooling/config update per repository policy so future maintainers understand why analysis behavior changed.
+
+## 2026-05-08T12:54:00-04:00 — Split mute badge padding into separate X and Y settings
+
+**Editor:** GitHub Copilot (GPT-5.4)
+
+**File:** games/sponsor/tribute/game-of-the-amazons/settings.py
+**Lines (at time of edit):** 96-97 (modified)
+**Before:**
+    MUTE_INDICATOR_PADDING = 16
+**After:**
+    MUTE_INDICATOR_X_PADDING = 16
+    MUTE_INDICATOR_Y_PADDING = 16
+**Why:** Separates horizontal and vertical positioning so the mute badge can be adjusted independently on each axis.
+
+**File:** games/sponsor/tribute/game-of-the-amazons/main.py
+**Lines (at time of edit):** 443-444 (modified)
+**Before:**
+    mute_rect.top = UISettings.MUTE_INDICATOR_PADDING
+    mute_rect.right = ScreenSettings.WIDTH - UISettings.MUTE_INDICATOR_PADDING
+**After:**
+    mute_rect.top = UISettings.MUTE_INDICATOR_Y_PADDING
+    mute_rect.right = ScreenSettings.WIDTH - UISettings.MUTE_INDICATOR_X_PADDING
+**Why:** Uses the new independent X/Y padding constants when placing the mute indicator in the top-right corner.
+
+## 2026-05-08T12:49:44-04:00 — Add mute hotkey and disable fullscreen CRT in Game of the Amazons
+
+**Editor:** GitHub Copilot (GPT-5.4)
+
+**File:** games/sponsor/tribute/game-of-the-amazons/settings.py
+**Lines (at time of edit):** 23-38, 96, 123 (modified)
+**Before:**
+    "YELLOW": (255, 255, 0),
+    "WHITE": (255, 255, 255),
+    TEXT_LABEL = COLOR_WORDS["DARK_GRAY"]
+**After:**
+    "YELLOW": (255, 255, 0),
+    "LIME_GREEN": (0, 255, 0),
+    "WHITE": (255, 255, 255)
+    TEXT_LABEL = COLOR_WORDS["DARK_GRAY"]
+    TEXT_MUTED = COLOR_WORDS["LIME_GREEN"]
+    MUTE_INDICATOR_PADDING = 16
+    MUTE_INDICATOR_SIZE = 18
+**Why:** Adds shared constants for the mute badge color, spacing, and font size instead of hard-coding UI values in the game loop.
+
+**File:** games/sponsor/tribute/game-of-the-amazons/systems/audio.py
+**Lines (at time of edit):** 38-48 (modified)
+**Before:**
+    if AudioSettings.MUTE:
+        pygame.mixer.stop()
+        pygame.mixer.music.stop()
+        return True
+**After:**
+    if AudioSettings.MUTE:
+        pygame.mixer.stop()
+        pygame.mixer.music.stop()
+        return True
+
+    return False
+**Why:** Makes the mute toggle return a valid state after unmuting so the input layer can treat mute as a proper reversible toggle.
+
+**File:** games/sponsor/tribute/game-of-the-amazons/main.py
+**Lines (at time of edit):** 50, 80-117, 277-283, 432-449, 478-480 (modified)
+**Before:**
+    self.arrow_animation = ArrowAnimator()
+    ...
+    if event.key == pygame.K_F11:
+        pygame.display.toggle_fullscreen()
+        return
+    ...
+    self.hud.draw(self.screen)
+    self.crt.draw()
+**After:**
+    self.arrow_animation = ArrowAnimator()
+    self.mute_font = pygame.font.Font(None, FontSettings.MUTE_INDICATOR_SIZE)
+    ...
+    if event.key == pygame.K_F11:
+        pygame.display.toggle_fullscreen()
+        return
+    if event.key == pygame.K_m:
+        self._toggle_mute()
+        return
+    ...
+    self.hud.draw(self.screen)
+    self._draw_mute_indicator()
+    if self._should_draw_crt():
+        self.crt.draw()
+**Why:** Wires the M key into the owning input loop, draws a green MUTE badge in the top-right corner while muted, and skips the CRT overlay whenever the game is fullscreen.
+
 ## 2026-05-08T00:00:00-04:00 — Add Fishy to the arcade launcher as a tribute game
 
 **Editor:** GitHub Copilot (Claude Sonnet 4.6)

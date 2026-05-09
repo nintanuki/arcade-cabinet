@@ -789,23 +789,33 @@ class RenderManager:
         )
         self._draw_confirm_dialog(title_text, body_text)
 
-    def _draw_confirm_dialog(self, title_text: str, body_text: str) -> None:
+    def _draw_confirm_dialog(self, title_text: str, body_text: str, override_index: int = None, title_font_size: int = None, title_color: str = None, title_y: int = None) -> None:
         """Render a generic centered NO/YES confirm dialog.
 
         Args:
             title_text: Big header text (e.g. "OVERWRITE SLOT 3?").
             body_text: Smaller line beneath the header explaining the
                 consequence of confirming.
+            override_index: If provided, use this index instead of confirm_index for selection highlighting.
+            title_font_size: If provided, use this font size for the title instead of SCORE_SIZE.
+            title_color: If provided, use this color for the title instead of TEXT_TITLE.
+            title_y: If provided, use this Y position for the title instead of SAVE_DIALOG_TITLE_Y.
         """
         self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
 
-        title_font = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
+        # Use provided overrides or defaults
+        title_size = title_font_size if title_font_size is not None else FontSettings.SCORE_SIZE
+        title_c = title_color if title_color is not None else ColorSettings.TEXT_TITLE
+        title_pos_y = title_y if title_y is not None else RenderSettings.SAVE_DIALOG_TITLE_Y
+        selected_index = override_index if override_index is not None else self.game.confirm_index
+
+        title_font = pygame.font.Font(FontSettings.FONT, title_size)
         body_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
         option_font = pygame.font.Font(FontSettings.FONT, FontSettings.SCORE_SIZE)
         prompt_font = pygame.font.Font(FontSettings.FONT, FontSettings.HUD_SIZE)
 
-        title_surf = title_font.render(title_text, False, ColorSettings.TEXT_TITLE)
-        title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, RenderSettings.SAVE_DIALOG_TITLE_Y))
+        title_surf = title_font.render(title_text, False, title_c)
+        title_rect = title_surf.get_rect(center=(ScreenSettings.WIDTH / 2, title_pos_y))
         self.screen.blit(title_surf, title_rect)
 
         body_surf = body_font.render(body_text, False, ColorSettings.TEXT_ERROR)
@@ -814,11 +824,11 @@ class RenderManager:
 
         # Render NO and YES side by side with the highlighted one in
         # selector color. NO sits left, YES sits right; the cursor maps
-        # 0 -> NO, 1 -> YES (matches confirm_index).
+        # 0 -> NO, 1 -> YES (matches selected_index).
         gap = RenderSettings.SAVE_DIALOG_OPTION_GAP
         center_x = ScreenSettings.WIDTH / 2
         for option_index, label in enumerate(("NO", "YES")):
-            is_selected = option_index == self.game.confirm_index
+            is_selected = option_index == selected_index
             color = ColorSettings.TEXT_SELECTOR if is_selected else ColorSettings.TEXT_DEFAULT
             option_surf = option_font.render(label, False, color)
             option_x = center_x - gap / 2 + option_index * gap
@@ -829,9 +839,25 @@ class RenderManager:
                 cursor_rect = cursor_surf.get_rect(midright=(option_rect.left - 8, option_rect.centery))
                 self.screen.blit(cursor_surf, cursor_rect)
 
-        prompt_text = "LEFT/RIGHT: SELECT     ENTER: CONFIRM     ESC: BACK"
-        prompt_surf = prompt_font.render(prompt_text, False, ColorSettings.TEXT_PROMPT)
-        prompt_rect = prompt_surf.get_rect(
-            center=(ScreenSettings.WIDTH / 2, ScreenSettings.HEIGHT - RenderSettings.SAVE_DIALOG_PROMPT_Y_OFFSET)
+    def draw_quit_confirm_screen(self) -> None:
+        """Draw the YES/NO confirm dialog for quitting the game.
+
+        The dialog message depends on quit_confirm_context:
+        - 'gameplay': warn about unsaved progress when quitting to menu
+        - 'menu': simple confirmation when exiting the game
+        """
+        if self.game.quit_confirm_context == 'gameplay':
+            title_text = QuitDialogSettings.TITLE_GAMEPLAY
+            body_text = QuitDialogSettings.BODY_GAMEPLAY
+        else:
+            title_text = QuitDialogSettings.TITLE_MENU
+            body_text = QuitDialogSettings.BODY_MENU
+        
+        self._draw_confirm_dialog(
+            title_text, 
+            body_text,
+            override_index=self.game.quit_confirm_index,
+            title_font_size=QuitDialogSettings.TITLE_FONT_SIZE,
+            title_color=QuitDialogSettings.TITLE_COLOR,
+            title_y=QuitDialogSettings.TITLE_Y
         )
-        self.screen.blit(prompt_surf, prompt_rect)
