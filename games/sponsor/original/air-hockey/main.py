@@ -12,7 +12,7 @@ import random
 os.chdir(Path(__file__).resolve().parent)
 
 from settings import *
-from audio import Audio
+from audio_manager import AudioManager
 from crt import CRT
 
 
@@ -35,7 +35,7 @@ class Game:
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SCALED)
         pygame.display.set_caption('Air Hockey')
         self.clock = pygame.time.Clock()
-        self.audio = Audio()
+        self.audio = AudioManager()
         self.crt = CRT(self.screen)
 
         # Joystick support
@@ -122,10 +122,10 @@ class Game:
 
         if self.puck.top <= 0 or self.puck.bottom >= SCREEN_HEIGHT:
             self.puck_speed_y *= -1
-            self.audio.channel_1.play(self.audio.plob_sound)
+            self.audio.play("plob")
         if self.puck.left <= 0 or self.puck.right >= SCREEN_WIDTH:
             self.puck_speed_x *= -1
-            self.audio.channel_1.play(self.audio.plob_sound)
+            self.audio.play("plob")
 
         if self.puck.colliderect(self.player):
             relative_x = (self.puck.centerx - self.player.centerx) / (self.player.width / 2)
@@ -135,14 +135,14 @@ class Game:
             self.puck_speed_x += self.player_velocity[0] * 0.5
             self.puck_speed_y += self.player_velocity[1] * 0.5
             self.increase_speed()
-            self.audio.channel_1.play(self.audio.plob_sound)
+            self.audio.play("plob")
 
         if self.puck.colliderect(self.opponent) and self.collision_cooldown == 0:
             self.puck_speed_x *= -1
             self.puck_speed_y *= -1
             self.increase_speed()
             self.collision_cooldown = 30
-            self.audio.channel_1.play(self.audio.plob_sound)
+            self.audio.play("plob")
 
         # TODO(bug): Applying friction every frame can create very slow puck drift states.
         self.puck_speed_x *= 0.995
@@ -228,11 +228,11 @@ class Game:
         if self.puck.colliderect(self.player_goal):
             self.opponent_score += 1
             self.start_countdown()
-            self.audio.channel_2.play(self.audio.score_sound)
+            self.audio.play("score")
         elif self.puck.colliderect(self.opponent_goal):
             self.player_score += 1
             self.start_countdown()
-            self.audio.channel_2.play(self.audio.score_sound)
+            self.audio.play("score")
 
     def start_countdown(self):
         """Begin the 3-second round restart countdown timer.
@@ -311,8 +311,8 @@ class Game:
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
-                        self.audio.channel_0.unpause()
-                        self.audio.channel_4.play(self.audio.unpause_sound)
+                        self.audio.resume_music()
+                        self.audio.play("unpause")
                         self.paused = False
                     elif event.key == pygame.K_ESCAPE:
                         # ESC always exits to the launcher to match the
@@ -324,8 +324,8 @@ class Game:
                         self.full_screen = not self.full_screen
                 if event.type == pygame.JOYBUTTONDOWN:
                     if event.button == 7:
-                        self.audio.channel_0.unpause()
-                        self.audio.channel_4.play(self.audio.unpause_sound)
+                        self.audio.resume_music()
+                        self.audio.play("unpause")
                         self.paused = False
                     elif event.button == 6:
                         pygame.display.toggle_fullscreen()
@@ -478,8 +478,8 @@ class Game:
                     elif event.button == 7:
                         # START button pauses gameplay; mirrors the keyboard
                         # ENTER binding and the rest of the arcade.
-                        self.audio.channel_0.pause()
-                        self.audio.channel_3.play(self.audio.pause_sound)
+                        self.audio.pause_music()
+                        self.audio.play("pause")
                         self.pause()
                 if event.type == pygame.JOYBUTTONUP:
                     if event.button == 0:
@@ -505,15 +505,15 @@ class Game:
                         pygame.quit()
                         sys.exit()
                     if event.key == pygame.K_RETURN:
-                        self.audio.channel_0.pause()
-                        self.audio.channel_3.play(self.audio.pause_sound)
+                        self.audio.pause_music()
+                        self.audio.play("pause")
                         self.pause()
                     if event.key == pygame.K_m:
-                        self.muted = not self.muted
-                        vols = [0] * 5 if self.muted else [0.5] * 5
-                        # TODO(bug): Unmuting forces fixed 0.5 volume instead of each channel's configured level.
-                        for ch, v in zip((self.audio.channel_0, self.audio.channel_1, self.audio.channel_2, self.audio.channel_3, self.audio.channel_4), vols):
-                            ch.set_volume(v)
+                        # AudioManager.toggle_mute owns the global mute flag,
+                        # stops everything when muting, and resumes BGM when
+                        # unmuting (skipped here because Air Hockey gates BGM
+                        # on its own MUTE_MUSIC flag from the gameplay loop).
+                        self.muted = self.audio.toggle_mute(resume_music=False)
                 if event.type == self.COUNTDOWN_EVENT and self.countdown > 0:
                     self.countdown -= 1
                     if self.countdown == 0:
@@ -596,9 +596,11 @@ class Game:
             pygame.draw.ellipse(self.screen, BLACK, self.puck)
             self.display_scores()
 
-            if not self.audio.channel_0.get_busy():
-                if not MUTE_MUSIC:
-                    self.audio.channel_0.play(self.audio.bg_music)
+            # Background music is started once in AudioManager.__init__ via
+            # play_random_music. The MUTE_MUSIC flag short-circuits the call
+            # to keep parity with the original behaviour where music could be
+            # disabled at the module level.
+            pass
 
             if not self.full_screen:
                 self.crt.draw()

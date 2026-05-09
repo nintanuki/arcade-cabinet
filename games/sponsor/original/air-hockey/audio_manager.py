@@ -1,10 +1,10 @@
-"""Fishy audio dispatcher.
+"""Air Hockey audio dispatcher.
 
 Built on the portable AudioManager template: data-driven via
 ``AudioSettings.SOUND_EFFECTS`` and ``AudioSettings.MUSIC_TRACKS``,
-single ``play(name)`` entry point, and music helpers that gracefully
-no-op when no tracks are registered. The pause-in / pause-out cues
-are wired through ``SOUND_EFFECTS`` instead of having dedicated methods.
+single ``play(name)`` entry point, and the standard music API.
+Pause / unpause / score cues are wired through ``SOUND_EFFECTS``
+instead of having dedicated methods.
 """
 
 import pygame

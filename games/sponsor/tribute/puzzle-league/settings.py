@@ -283,19 +283,26 @@ class InputBindings:
 
 
 class AudioSettings:
-    """Audio mixer and volume defaults."""
-
-    DEFAULT_MASTER_VOLUME = 0.5
-    DEBUG_MUTE = False
+    """Global audio toggles, volumes, and the sound/music registry consumed by AudioManager."""
 
     BASE_DIR = os.path.dirname(__file__)
     ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
     SOUND_DIR = os.path.join(ASSETS_DIR, 'sound')
     MUSIC_DIR = os.path.join(ASSETS_DIR, 'music')
 
-    # No bundled audio yet — leave the playlist empty so the audio
-    # system can boot without missing-file errors.
-    BGM_PLAYLIST = []
+    # Standard template contract.
+    MUTE = False
+    MUTE_MUSIC = False
+    MUSIC_VOLUME = 0.5  # Background music volume in the range [0.0, 1.0].
+    SFX_VOLUME = 0.5    # Sound effect volume in the range [0.0, 1.0].
+
+    # Logical name -> filesystem path. Empty until SFX assets are bundled
+    # (Puzzle League is still wiring up its sound design).
+    SOUND_EFFECTS: dict[str, str] = {}
+
+    # Background tracks; one is chosen at random each time music starts.
+    # Empty for now so the audio system can boot without missing-file errors.
+    MUSIC_TRACKS: list[str] = []
 
 
 class AssetPaths:

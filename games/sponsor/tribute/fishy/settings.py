@@ -102,13 +102,6 @@ class FontSettings:
         os.path.dirname(__file__), 'assets', 'font', 'Pixeled.ttf'
     )
 
-class AudioSettings:
-    """Global audio toggles and mixer-level defaults."""
-
-    MUTE = False
-    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
-    MUSIC_VOLUME = 1  # Background music volume in the range [0.0, 1.0].
-
 class AssetPaths:
     """Class to hold all the file paths for assets."""
     # __file__-relative so the project runs no matter the working directory
@@ -122,19 +115,26 @@ class AssetPaths:
         ASSETS_DIR, 'graphics', 'effects', 'tv.png'
     )
 
-    # # Music
-    # BACKGROUND_MUSIC = os.path.join(
-    #     MUSIC_DIR, 'aquarium.mp3'
-    # )
 
-    # Music
-    NORMAL_MUSIC_TRACKS = [
-        os.path.join(MUSIC_DIR, '8bit-aquarium.mp3'),
+class AudioSettings:
+    """Global audio toggles, volumes, and the sound/music registry consumed by AudioManager."""
+
+    MUTE = False
+    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
+    MUSIC_VOLUME = 1.0  # Background music volume in the range [0.0, 1.0].
+    SFX_VOLUME = 1.0  # Sound effect volume in the range [0.0, 1.0].
+
+    # Logical name -> filesystem path. Keys are what gameplay code passes to
+    # ``AudioManager.play(name)``.
+    SOUND_EFFECTS = {
+        "pause_in": os.path.join(AssetPaths.AUDIO_DIR, 'sound', 'sfx_sounds_pause2_in.ogg'),
+        "pause_out": os.path.join(AssetPaths.AUDIO_DIR, 'sound', 'sfx_sounds_pause2_out.ogg'),
+    }
+
+    # Background tracks; one is chosen at random each time music starts.
+    MUSIC_TRACKS = [
+        os.path.join(AssetPaths.MUSIC_DIR, '8bit-aquarium.mp3'),
     ]
-    MUSIC_TRACKS = NORMAL_MUSIC_TRACKS
-
-    PAUSE_IN_SOUND = os.path.join(AUDIO_DIR, 'sound', 'sfx_sounds_pause2_in.ogg')
-    PAUSE_OUT_SOUND = os.path.join(AUDIO_DIR, 'sound', 'sfx_sounds_pause2_out.ogg')
 
 class DebugSettings:
     """Settings related to debugging features."""

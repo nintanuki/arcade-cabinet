@@ -48,7 +48,7 @@ core/
   blocks.py        Block model
   board.py         Board: grid, cursor, rise/clear/chain state machine (stubbed)
 systems/
-  audio.py         Audio manager
+  audio_manager.py Audio manager
   managers.py      ScoreManager, SessionStateManager
 ui/
   crt.py           CRT overlay

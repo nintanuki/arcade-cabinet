@@ -1,10 +1,11 @@
-"""Fishy audio dispatcher.
+"""Adventure audio dispatcher.
 
 Built on the portable AudioManager template: data-driven via
 ``AudioSettings.SOUND_EFFECTS`` and ``AudioSettings.MUSIC_TRACKS``,
-single ``play(name)`` entry point, and music helpers that gracefully
-no-op when no tracks are registered. The pause-in / pause-out cues
-are wired through ``SOUND_EFFECTS`` instead of having dedicated methods.
+single ``play(name)`` entry point, standard music API. Adventure also
+ships a "chase" music mode triggered when monsters lock onto the
+player; that is layered on as an opt-in extension below the standard
+template body.
 """
 
 import pygame
@@ -31,6 +32,10 @@ class AudioManager:
 
         self._last_music_track: str | None = None
         self._music_is_paused = False
+        # "normal" or "chase". Tracked separately from the music channel
+        # so play_normal_music can rotate through MUSIC_TRACKS instead of
+        # always replaying the same song after a chase ends.
+        self._music_mode = "normal"
 
         self.play_random_music()
 
@@ -77,6 +82,7 @@ class AudioManager:
             pygame.mixer.music.set_volume(AudioSettings.MUSIC_VOLUME)
             pygame.mixer.music.play(loops=-1)
             self._music_is_paused = False
+            self._music_mode = "normal"
         except pygame.error as error:
             print(f"Could not load music track {track}: {error}")
 
@@ -119,3 +125,35 @@ class AudioManager:
         if resume_music and not AudioSettings.MUTE_MUSIC:
             self.play_random_music()
         return False
+
+    # ------------------------------------------------------------------
+    # GAME-SPECIFIC EXTENSIONS
+    # ------------------------------------------------------------------
+
+    def play_chase_music(self) -> None:
+        """Switch to battle music while a monster is chasing.
+
+        Adventure-only extension. ``AudioSettings.CHASE_MUSIC`` must be set
+        for this to actually do anything; otherwise the call is a no-op.
+        """
+        if AudioSettings.MUTE or AudioSettings.MUTE_MUSIC:
+            return
+        if self._music_mode == "chase":
+            return
+        track = getattr(AudioSettings, "CHASE_MUSIC", None)
+        if not track:
+            return
+        try:
+            pygame.mixer.music.load(track)
+            pygame.mixer.music.set_volume(AudioSettings.MUSIC_VOLUME)
+            pygame.mixer.music.play(loops=-1)
+            self._music_is_paused = False
+            self._music_mode = "chase"
+        except pygame.error as error:
+            print(f"Could not load chase music {track}: {error}")
+
+    def play_normal_music(self) -> None:
+        """Return to normal background music after a chase."""
+        if self._music_mode == "normal":
+            return
+        self.play_random_music()

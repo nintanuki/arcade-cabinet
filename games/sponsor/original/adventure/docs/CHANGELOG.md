@@ -37,3 +37,22 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 ---
 
 #
+## 2026-05-09 — AudioManager refactor to portable template standard
+
+**File:** systems/audio_manager.py
+**Lines (at time of edit):** (new file)
+**After:** Portable AudioManager: data-driven via `AudioSettings.SOUND_EFFECTS` / `MUSIC_TRACKS`, single `play(name)` entry point, standard `play_random_music`/`pause_music`/`resume_music`/`stop_music`/`toggle_mute` API. Adventure's chase-music swap is preserved as `play_chase_music` / `play_normal_music` extensions below the standard body.
+**Why:** Standardize on the AudioManager template shared across the cabinet. The previous implementation reserved fixed channels for SFX that don't actually need that protection, and used `from settings import *` which obscured its dependencies.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** systems/audio.py
+**Lines (at time of edit):** (deleted)
+**Why:** Replaced by `systems/audio_manager.py`.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** 202-238 (modified)
+**Before:** `AudioSettings` was a 3-field stub; per-sound paths and music paths lived under `AssetPaths`.
+**After:** `AudioSettings` now owns `MUTE`, `MUTE_MUSIC`, `MUSIC_VOLUME`, `SFX_VOLUME`, `SOUND_EFFECTS`, `MUSIC_TRACKS`, plus the `CHASE_MUSIC` extension. `AssetPaths` keeps only `SOUND_DIR` / `MUSIC_DIR` plumbing.
+**Why:** Match the AudioManager template contract.
+**Editor:** Bryan (Claude Opus 4.7)

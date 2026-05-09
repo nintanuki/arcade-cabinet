@@ -149,8 +149,23 @@ class InputSettings:
     JOY_TRIGGER_THRESHOLD = 0.5
 
 class AudioSettings:
-    """Global audio settings and state."""
+    """Global audio toggles, volumes, and the sound/music registry consumed by AudioManager."""
+
     MUTE = False
+    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
+    MUSIC_VOLUME = 1.0  # Background music volume in the range [0.0, 1.0].
+    SFX_VOLUME = 1.0  # Sound effect volume in the range [0.0, 1.0].
+
+    # Logical name -> filesystem path. Keys are what gameplay code passes to
+    # ``AudioManager.play(name)``.
+    SOUND_EFFECTS = {
+        "shoot": str(ASSETS_DIR / "audio" / "sfx_weapon_singleshot1.wav"),
+        "move": str(ASSETS_DIR / "audio" / "sfx_movement_footstepsloop4_fast.wav"),
+    }
+
+    # Background tracks. Amazons has no music, so the AudioManager music
+    # methods short-circuit to no-ops.
+    MUSIC_TRACKS: list[str] = []
 
 
 class AssetPaths:
@@ -160,9 +175,5 @@ class AssetPaths:
     BLACK_QUEEN = str(ASSETS_DIR / "graphics" / "black_queen.png")
     ARROW_SHEET = str(ASSETS_DIR / "graphics" / "Arrow.png")
 
-    SHOOT_SOUND = str(ASSETS_DIR / "audio" / "sfx_weapon_singleshot1.wav")
-    MOVE_SOUND = str(ASSETS_DIR / "audio" / "sfx_movement_footstepsloop4_fast.wav")
-
 class DebugSettings:
     """Global debug flags."""
-    MUTE = False

@@ -31,7 +31,7 @@ If a question is asked about *why* code was written a certain way, that is a req
 ## Architecture rules
 
 - `GameManager` ([game.py](../game.py)) owns gameplay state. `main.py` is the thin entry point: it pumps events, calls update / draw, and routes input.
-- Sprites (`Player`, `Opponent`, `Ball`) live in [sprites.py](../sprites.py); audio in [audio.py](../audio.py); CRT in [crt.py](../crt.py).
+- Sprites (`Player`, `Opponent`, `Ball`) live in [sprites.py](../sprites.py); audio in [audio_manager.py](../audio_manager.py); CRT in [crt.py](../crt.py).
 - All constants live in [settings.py](../settings.py). **No magic numbers anywhere else.**
 
 ## File and function layout

@@ -1,10 +1,11 @@
-"""Fishy audio dispatcher.
+"""Pong audio dispatcher.
 
 Built on the portable AudioManager template: data-driven via
 ``AudioSettings.SOUND_EFFECTS`` and ``AudioSettings.MUSIC_TRACKS``,
-single ``play(name)`` entry point, and music helpers that gracefully
-no-op when no tracks are registered. The pause-in / pause-out cues
-are wired through ``SOUND_EFFECTS`` instead of having dedicated methods.
+single ``play(name)`` entry point, standard music API. Pause / unpause
+SFX are wired through ``SOUND_EFFECTS`` instead of having dedicated
+methods, and the previously-bare module-level ``MASTER_VOLUME`` knob
+is now ``AudioSettings.MUSIC_VOLUME`` / ``SFX_VOLUME``.
 """
 
 import pygame

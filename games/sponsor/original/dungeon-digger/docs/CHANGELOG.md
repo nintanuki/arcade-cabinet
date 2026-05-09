@@ -1083,3 +1083,30 @@ the peek animation from firing in the middle of rapid action sequences.
     )
 **Why:** User requested a shorter idle animation: one peek left and one peek
 right per cycle instead of two of each.
+
+## 2026-05-09 — AudioManager refactor to portable template standard
+
+**File:** systems/audio_manager.py
+**Lines (at time of edit):** (new file)
+**After:** Portable AudioManager: data-driven via `AudioSettings.SOUND_EFFECTS` / `MUSIC_TRACKS`, single `play(name)` entry point, standard `play_random_music` / `pause_music` / `resume_music` / `stop_music` / `toggle_mute` API. Dungeon Digger's chase-music swap and the repellent-spray helper are preserved as `play_chase_music` / `play_normal_music` / `play_repellent_sound` extensions below the standard body. `play_random_bgm` is kept as a backwards-compatible alias for `play_random_music`.
+**Why:** Standardize on the AudioManager template shared across the cabinet. The previous implementation reserved 14 dedicated channels for SFX, but pygame's default 8-channel pool covers the actual concurrency, so the reservations were unnecessary complexity. Failure to load any individual asset is now non-fatal.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** systems/audio.py
+**Lines (at time of edit):** (deleted)
+**Why:** Replaced by `systems/audio_manager.py`.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** 490-582 (modified)
+**Before:** `AudioSettings` was a 3-field stub; per-sound paths and the chase-music path lived under `AssetPaths`.
+**After:** `AudioSettings` now owns the data-driven contract: `MUTE`, `MUTE_MUSIC`, `MUSIC_VOLUME`, `SFX_VOLUME`, `SOUND_EFFECTS`, `SFX_VOLUME_OVERRIDES` (mirrors the prior `coin_sound.set_volume(0.5)`), `MUSIC_TRACKS`, and `CHASE_MUSIC`. `AssetPaths` keeps only `SOUND_DIR` / `MUSIC_DIR` plumbing.
+**Why:** Match the AudioManager template contract.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** main.py
+**Lines (at time of edit):** 10 (modified)
+**Before:** `from systems.audio import AudioManager`
+**After:** `from systems.audio_manager import AudioManager`
+**Why:** Module renamed to match the template.
+**Editor:** Bryan (Claude Opus 4.7)

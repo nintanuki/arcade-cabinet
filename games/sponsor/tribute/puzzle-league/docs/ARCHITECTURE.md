@@ -29,7 +29,7 @@ Responsibility split:
 - **`GameManager`** owns the screen, clock, joystick list, fonts, and the title/game-over copy. It pumps the event queue, dispatches by event type, runs the per-frame update, renders, and applies the CRT pass. It does **not** implement any gameplay rules.
 - **`Board`** ([core/board.py](../core/board.py)) — the gameplay model: the 6×12+1 grid, the cursor, the rise/clear/chain state machine. Public surface is `tick(delta_time)` plus read-only state for the renderer. **The board never touches a Surface.**
 - **`Block`** ([core/blocks.py](../core/blocks.py)) — a single grid cell's data (type, animation state).
-- **`Audio`** ([systems/audio.py](../systems/audio.py)) — music + SFX, with the silent-on-missing-asset contract used across the cabinet.
+- **`AudioManager`** ([systems/audio_manager.py](../systems/audio_manager.py)) — portable AudioManager template (data-driven music + SFX dispatcher) with the silent-on-missing-asset contract used across the cabinet.
 - **`ScoreManager`** ([systems/managers.py](../systems/managers.py)) — current score, high-score persistence to `high_score.txt`, leaderboard plumbing.
 - **`SessionStateManager`** ([systems/managers.py](../systems/managers.py)) — `game_active` flag, `reset_for_new_game()`, transitions between title / play / game-over.
 - **`CRT`** ([ui/crt.py](../ui/crt.py)) — last-pass overlay (image + flicker + scanlines).
@@ -181,7 +181,7 @@ core/
   blocks.py        Block model
   board.py         Board: grid, cursor, rise/clear/chain state machine (stubbed)
 systems/
-  audio.py         Audio
+  audio_manager.py AudioManager
   managers.py      ScoreManager, SessionStateManager
 ui/
   crt.py           CRT overlay

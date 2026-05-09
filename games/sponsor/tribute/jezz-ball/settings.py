@@ -117,18 +117,33 @@ class GameplaySettings:
 
 
 class AudioSettings:
-	"""Paths and volume controls for Jezz Ball music and sound effects."""
+	"""Global audio toggles, volumes, and the sound/music registry consumed by AudioManager."""
 
-	MUSIC_PATH = Path("music") / "pong_bg_music.ogg"
-	MUSIC_HALF_VOLUME_TOGGLE = True
-	MUSIC_BASE_VOLUME = 0.6
-	SFX_WALL_START = Path("sound") / "pong.ogg"
-	SFX_WALL_COMPLETE = Path("sound") / "pong.ogg"
-	SFX_BALL_HIT_CURSOR = Path("sound") / "explosion.wav"
-	SFX_LEVEL_CLEAR = Path("sound") / "score.ogg"
-	SFX_PAUSE_IN = Path("sound") / "sfx_sounds_pause2_in.wav"
-	SFX_PAUSE_OUT = Path("sound") / "sfx_sounds_pause2_out.wav"
-	SFX_VOLUME = 0.0
+	_SOUND_DIR = Path("sound")
+	_MUSIC_DIR = Path("music")
+
+	# Standard template contract.
+	MUTE = False
+	MUTE_MUSIC = False
+	# 0.6 base * 0.5 (the legacy MUSIC_HALF_VOLUME_TOGGLE) = 0.3.
+	MUSIC_VOLUME = 0.3
+	SFX_VOLUME = 0.0  # SFX volumes are intentionally muted; raise to re-enable.
+
+	# Logical name -> filesystem path. Keys are what gameplay code
+	# passes to ``AudioManager.play(name)``.
+	SOUND_EFFECTS = {
+		"wall_start":       _SOUND_DIR / "pong.ogg",
+		"wall_complete":    _SOUND_DIR / "pong.ogg",
+		"ball_hit_cursor":  _SOUND_DIR / "explosion.wav",
+		"level_clear":      _SOUND_DIR / "score.ogg",
+		"pause_in":         _SOUND_DIR / "sfx_sounds_pause2_in.wav",
+		"pause_out":        _SOUND_DIR / "sfx_sounds_pause2_out.wav",
+	}
+
+	# Background tracks; one is chosen at random each time music starts.
+	MUSIC_TRACKS = [
+		_MUSIC_DIR / "pong_bg_music.ogg",
+	]
 
 
 @dataclass(frozen=True)

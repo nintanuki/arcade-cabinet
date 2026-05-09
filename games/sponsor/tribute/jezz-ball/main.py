@@ -20,6 +20,7 @@ os.chdir(Path(__file__).resolve().parent)
 
 from ball import Ball
 from wall import BuildingWall, Orientation
+from audio_manager import AudioManager
 
 SETTINGS_PATH = Path(__file__).resolve().parent / "settings.py"
 SETTINGS_SPEC = importlib.util.spec_from_file_location("jezz_ball_settings", SETTINGS_PATH)
@@ -89,110 +90,6 @@ class CRT:
                 1,
             )
         self.screen.blit(overlay, (0, 0))
-
-
-class AudioManager:
-    """Load and control Jezz Ball music and sound effects."""
-
-    def __init__(self) -> None:
-        """Initialize mixer state, load audio assets, and start background music."""
-        self.enabled = False
-        self.sfx: dict[str, pygame.mixer.Sound] = {}
-
-        try:
-            if not pygame.mixer.get_init():
-                pygame.mixer.init()
-            self.enabled = True
-        except pygame.error:
-            self.enabled = False
-            return
-
-        self._load_sounds()
-        # Music is started when gameplay begins, not at init
-
-    def _load_sounds(self) -> None:
-        """Load all configured one-shot sound effects into memory."""
-        sound_map = {
-            "wall_start": AudioSettings.SFX_WALL_START,
-            "wall_complete": AudioSettings.SFX_WALL_COMPLETE,
-            "ball_hit_cursor": AudioSettings.SFX_BALL_HIT_CURSOR,
-            "level_clear": AudioSettings.SFX_LEVEL_CLEAR,
-            "pause_in": AudioSettings.SFX_PAUSE_IN,
-            "pause_out": AudioSettings.SFX_PAUSE_OUT,
-        }
-
-        for key, path in sound_map.items():
-            try:
-                sound = pygame.mixer.Sound(str(path))
-                sound.set_volume(AudioSettings.SFX_VOLUME)
-                self.sfx[key] = sound
-            except (FileNotFoundError, pygame.error):
-                continue
-
-    def _start_music(self) -> None:
-        """Start looping background music if the configured file is available."""
-        if not self.enabled:
-            return
-
-        try:
-            music_volume = AudioSettings.MUSIC_BASE_VOLUME
-            if AudioSettings.MUSIC_HALF_VOLUME_TOGGLE:
-                music_volume *= 0.5
-            pygame.mixer.music.load(str(AudioSettings.MUSIC_PATH))
-            pygame.mixer.music.set_volume(music_volume)
-            pygame.mixer.music.play(-1)
-        except (FileNotFoundError, pygame.error):
-            pass
-
-    def restart_music(self) -> None:
-        """Restart background music from the beginning if audio is enabled."""
-        if not self.enabled:
-            return
-
-        try:
-            pygame.mixer.music.stop()
-        except pygame.error:
-            pass
-
-        self._start_music()
-
-    def stop_music(self) -> None:
-        """Stop background music without tearing down the mixer."""
-        if not self.enabled:
-            return
-
-        try:
-            pygame.mixer.music.stop()
-        except pygame.error:
-            pass
-
-    def play(self, sound_key: str) -> None:
-        """Play a named one-shot effect when audio is available.
-
-        Args:
-            sound_key: Dictionary key for the preloaded effect.
-        """
-        if not self.enabled:
-            return
-
-        sound = self.sfx.get(sound_key)
-        if sound is not None:
-            sound.play()
-
-    def shutdown(self) -> None:
-        """Stop all playback and close the mixer device."""
-        if not self.enabled:
-            return
-
-        try:
-            pygame.mixer.music.stop()
-        except pygame.error:
-            pass
-
-        try:
-            pygame.mixer.quit()
-        except pygame.error:
-            pass
 
 
 class GameManager:

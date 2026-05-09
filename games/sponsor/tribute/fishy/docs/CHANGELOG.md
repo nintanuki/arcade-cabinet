@@ -366,3 +366,26 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
     self.base_image, _ = build_fish_surface(int(self.size), PlayerSettings.COLOR)
 **Why:** `PLAYER_GROWTH_COEFFICIENT` is 0.10, so eating a small fish (size 8) yields `growth_amount = 0.8`. `int(16 + 0.8) = 16` — the size never changed. Storing `self.size` as float lets fractional growth accumulate across multiple fish until it crosses a whole pixel boundary.
 **Editor:** Bryan (GitHub Copilot — Claude Sonnet 4.6)
+
+## 2026-05-09 — AudioManager refactor to portable template standard
+
+**File:** systems/audio_manager.py
+**Lines (at time of edit):** 1-180 (rewritten)
+**Before:** Bespoke AudioManager with `play_random_bgm`, `play_pause_in_sound`, `play_pause_out_sound`, plus a long block of commented-out code from a port of dungeon-digger's manager.
+**After:** Slimmed-down AudioManager built on the portable template: data-driven via `AudioSettings.SOUND_EFFECTS` and `AudioSettings.MUSIC_TRACKS`, with `play(name)`, `play_random_music`, `pause_music`, `resume_music`, `stop_music`, and `toggle_mute`. Pause SFX are now ordinary entries in `SOUND_EFFECTS`.
+**Why:** Standardize on the template that's used across the cabinet. The dedicated `play_pause_*_sound` methods were duplicating what `play(name)` already gives us.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** 105-138 (modified)
+**Before:** `AudioSettings` was a 3-field stub; pause SFX paths and `MUSIC_TRACKS` lived under `AssetPaths`.
+**After:** `AudioSettings` now owns the data-driven contract: `MUTE`, `MUTE_MUSIC`, `MUSIC_VOLUME`, `SFX_VOLUME`, `SOUND_EFFECTS`, `MUSIC_TRACKS`. Pause SFX paths moved into `SOUND_EFFECTS`. `AssetPaths` keeps only the BASE_DIR / TV directory plumbing.
+**Why:** Single source of truth for the sound and music registry, matching the template contract.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** main.py
+**Lines (at time of edit):** 138-145 (modified)
+**Before:** `self.audio.play_pause_in_sound()` / `self.audio.play_pause_out_sound()`.
+**After:** `self.audio.play("pause_in")` / `self.audio.play("pause_out")`.
+**Why:** Match the template's single `play(name)` entry point.
+**Editor:** Bryan (Claude Opus 4.7)

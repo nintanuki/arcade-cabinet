@@ -1,7 +1,38 @@
 """Global configuration constants for Air Hockey gameplay and rendering."""
 
+import os
+
 FRAMERATE = 60
 MUTE_MUSIC = True
+
+
+class AudioSettings:
+    """Global audio toggles, volumes, and the sound/music registry consumed by AudioManager."""
+
+    BASE_DIR = os.path.dirname(__file__)
+    AUDIO_DIR = os.path.join(BASE_DIR, 'audio')
+
+    # Standard template contract.
+    MUTE = False
+    # Mirror the module-level MUTE_MUSIC flag so the AudioManager template
+    # contract is satisfied without forcing a wholesale rewrite of legacy
+    # `from settings import *` call sites.
+    MUTE_MUSIC = MUTE_MUSIC
+    MUSIC_VOLUME = 0.5  # Background music volume in the range [0.0, 1.0].
+    SFX_VOLUME = 0.5  # Sound effect volume in the range [0.0, 1.0].
+
+    # Logical name -> filesystem path.
+    SOUND_EFFECTS = {
+        "plob": os.path.join(AUDIO_DIR, 'pong.ogg'),
+        "score": os.path.join(AUDIO_DIR, 'score.ogg'),
+        "pause": os.path.join(AUDIO_DIR, 'sfx_sounds_pause2_in.wav'),
+        "unpause": os.path.join(AUDIO_DIR, 'sfx_sounds_pause2_out.wav'),
+    }
+
+    # Background tracks; one is chosen at random each time music starts.
+    MUSIC_TRACKS = [
+        os.path.join(AUDIO_DIR, 'pong_bg_music.ogg'),
+    ]
 
 # Constants
 BLOCK_SIZE = 8  # Smallest unit of the grid

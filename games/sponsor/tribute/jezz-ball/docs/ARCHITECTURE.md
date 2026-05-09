@@ -26,7 +26,7 @@ Responsibility split:
 - **`GameManager`** owns the screen, clock, controllers, audio, fonts, and the game state machine. It owns the cursor, the active wall (if any), the ball list, the wall/claim grids, and the leaderboard. It dispatches input and orchestrates level flow but does not implement physics or wall geometry itself.
 - **`Ball`** owns its own position, velocity, and visual spin. Each ball updates itself against the playfield and the current wall set.
 - **`BuildingWall`** is the in-flight wall: a position, an orientation (`HORIZONTAL` / `VERTICAL`), and two grow-direction segments. While building, the wall reports its rectangles for both rendering and ball-collision so a ball that touches it can destroy it.
-- **`AudioManager`** loads music and one-shots, handles the half-volume music toggle, and survives a missing mixer device by going silent rather than crashing.
+- **`AudioManager`** ([audio_manager.py](../audio_manager.py)) loads music and one-shots from a data-driven registry in `AudioSettings`, and survives a missing mixer device by going silent rather than crashing.
 - **`CRT`** is a last-pass overlay (image + flickering alpha + scanlines).
 - **`GameState`** (`Enum`) gates which input handler and renderer are active each frame: `TITLE`, `PLAYING`, `GAME_OVER`, `INITIALS`, `LEADERBOARD`.
 - **`LevelConfig`** in [settings.py](../settings.py) is a frozen dataclass; the `LEVELS` tuple is the **only** place the per-level numbers live.
@@ -122,10 +122,10 @@ The selected input mode (`mouse` / `controller`) is chosen on the title screen a
 
 ## 8. Audio
 
-`AudioManager` loads:
+`AudioManager` ([audio_manager.py](../audio_manager.py)) loads:
 
-- One looping music track (`AudioSettings.MUSIC_PATH`), respecting the `MUSIC_HALF_VOLUME_TOGGLE` flag.
-- Six one-shot SFX (`SFX_WALL_START`, `SFX_WALL_COMPLETE`, `SFX_BALL_HIT_CURSOR`, `SFX_LEVEL_CLEAR`, `SFX_PAUSE_IN`, `SFX_PAUSE_OUT`).
+- One looping music track from `AudioSettings.MUSIC_TRACKS` at `AudioSettings.MUSIC_VOLUME`.
+- Six one-shot SFX keyed by logical name in `AudioSettings.SOUND_EFFECTS` (`wall_start`, `wall_complete`, `ball_hit_cursor`, `level_clear`, `pause_in`, `pause_out`).
 
 If the mixer can't initialize or any file is missing, `AudioManager.enabled` is `False` and every method becomes a no-op. **Do not** raise from missing-audio paths — silent degradation is the contract.
 
@@ -170,7 +170,7 @@ If the overlay image is missing, `CRT` falls back to a transparent surface so th
 - `FontSettings` — pixel-font sizes for HUD/overlay/title text.
 - `CRTSettings` — overlay image, scanline thickness, flicker alpha range.
 - `GameplaySettings` — global gameplay constants (ball radius, build speed, scoring).
-- `AudioSettings` — paths and volumes.
+- `AudioSettings` — portable AudioManager template contract: `MUTE`, `MUTE_MUSIC`, `MUSIC_VOLUME`, `SFX_VOLUME`, `SOUND_EFFECTS` (logical-name dict), `MUSIC_TRACKS`.
 - `LEVELS` — the 10 stage configs as `LevelConfig` entries.
 
 When adding a new tunable, add it to the most appropriate class with a comment explaining its **units**. Per-stage values must go into `LEVELS`, not into branching code.
@@ -198,13 +198,13 @@ Most rules live in [.github/copilot-instructions.md](../.github/copilot-instruct
 ```
 ball.py             Ball: position, velocity, render, collision response
 wall.py             BuildingWall, Orientation
-audio.py            (legacy / standalone audio helpers)
+audio_manager.py    AudioManager (data-driven music + SFX dispatcher)
 crt.py              (legacy / standalone CRT)
-main.py             GameManager, embedded AudioManager + CRT, entry point
+main.py             GameManager, embedded CRT, entry point
 settings.py         All tunables grouped into *Settings classes; LEVELS tuple
 high_score.txt      JSON: { high_score, leaderboard[] }
 font/, graphics/, music/, sound/   Asset folders
 docs/               ARCHITECTURE, TODO, TESTING, CHANGELOG
 ```
 
-> The standalone `audio.py` and `crt.py` files predate the embedded `AudioManager` and `CRT` classes inside `main.py`. They are not imported in the main entry path; treat them as legacy until consolidated. See [docs/TODO.md](TODO.md).
+> The standalone `crt.py` predates the embedded `CRT` class inside `main.py`; it is not imported in the main entry path and should be treated as legacy until consolidated. See [docs/TODO.md](TODO.md).

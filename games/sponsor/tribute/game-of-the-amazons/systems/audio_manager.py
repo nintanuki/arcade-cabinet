@@ -1,10 +1,10 @@
-"""Fishy audio dispatcher.
+"""Game of the Amazons audio dispatcher.
 
-Built on the portable AudioManager template: data-driven via
-``AudioSettings.SOUND_EFFECTS`` and ``AudioSettings.MUSIC_TRACKS``,
-single ``play(name)`` entry point, and music helpers that gracefully
-no-op when no tracks are registered. The pause-in / pause-out cues
-are wired through ``SOUND_EFFECTS`` instead of having dedicated methods.
+Built on the portable ``AudioManager`` template: data-driven, single
+``play(name)`` entry point, music API stubs that no-op when no tracks
+are registered. Amazons currently has no background music — only the
+``shoot`` and ``move`` SFX — so ``MUSIC_TRACKS`` is empty and the
+music methods short-circuit harmlessly.
 """
 
 import pygame

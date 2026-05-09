@@ -171,11 +171,11 @@ class Ball(Block):
 		"""
 		# TODO(refactor): Cache spritecollide result to avoid duplicate collision queries.
 		if self.rect.top <= 0 or self.rect.bottom >= SCREEN_HEIGHT:
-			self.audio.channel_1.play(self.audio.plob_sound)
+			self.audio.play("plob")
 			self.speed_y *= -1
 
 		if pygame.sprite.spritecollide(self,self.paddles,False):
-			self.audio.channel_1.play(self.audio.plob_sound)
+			self.audio.play("plob")
 			collision_paddle = pygame.sprite.spritecollide(self,self.paddles,False)[0].rect
 			if abs(self.rect.right - collision_paddle.left) < 10 and self.speed_x > 0:
 				self.speed_x *= -1
@@ -202,7 +202,7 @@ class Ball(Block):
 		self.speed_y *= random.choice((-1,1))
 		self.score_time = pygame.time.get_ticks()
 		self.rect.center = (SCREEN_WIDTH /2,SCREEN_HEIGHT/2)
-		self.audio.channel_2.play(self.audio.score_sound)
+		self.audio.play("score")
 
 	def restart_counter(self):
 		"""Render a short 3-2-1 countdown before reactivating the ball.

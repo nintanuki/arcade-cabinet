@@ -199,13 +199,6 @@ class FontSettings:
     #     "MONSTER REPELLENT": ColorSettings.PURPLE
     # }
 
-class AudioSettings:
-    """Global audio toggles and mixer-level defaults."""
-
-    MUTE = False
-    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
-    MUSIC_VOLUME = 1  # Background music volume in the range [0.0, 1.0].
-
 class AssetPaths:
     """Class to hold all the file paths for game assets."""
 
@@ -221,21 +214,40 @@ class AssetPaths:
     WALL_TILE = os.path.join(GRAPHICS_DIR, 'tile_0014.png')
     FLOOR_TILE = os.path.join(GRAPHICS_DIR, 'tile_0000.png')
 
-        # Audio
+    # Audio asset directories. The actual per-sound paths live in
+    # AudioSettings.SOUND_EFFECTS / MUSIC_TRACKS so the AudioManager has
+    # exactly one place to read them from.
     SOUND_DIR = os.path.join(BASE_DIR, 'assets', 'sound')
-    MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_movement_footstepsloop4_slow.ogg')
-    BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'wall_bump_sound_effect.ogg')
-    COIN_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_cluster3.ogg')
-    MENU_MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_move2.ogg')
-    MENU_SELECT_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_select3.ogg')
-
-    # Music
     MUSIC_DIR = os.path.join(BASE_DIR, 'assets', 'music')
-    NORMAL_MUSIC_TRACKS = [
-        os.path.join(MUSIC_DIR, 'Goblins_Den_(Regular).ogg'),
+
+
+class AudioSettings:
+    """Global audio toggles, volumes, and the sound/music registry consumed by AudioManager."""
+
+    MUTE = False
+    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
+    MUSIC_VOLUME = 1.0  # Background music volume in the range [0.0, 1.0].
+    SFX_VOLUME = 1.0  # Sound effect volume in the range [0.0, 1.0].
+
+    # Logical name -> filesystem path. Keys are what gameplay code passes to
+    # ``AudioManager.play(name)``.
+    SOUND_EFFECTS = {
+        "move": os.path.join(AssetPaths.SOUND_DIR, 'sfx_movement_footstepsloop4_slow.ogg'),
+        "boundary": os.path.join(AssetPaths.SOUND_DIR, 'wall_bump_sound_effect.ogg'),
+        "coin": os.path.join(AssetPaths.SOUND_DIR, 'sfx_coin_cluster3.ogg'),
+        "menu_move": os.path.join(AssetPaths.SOUND_DIR, 'sfx_menu_move2.ogg'),
+        "menu_select": os.path.join(AssetPaths.SOUND_DIR, 'sfx_menu_select3.ogg'),
+    }
+
+    # Background tracks; one is chosen at random each time music starts.
+    MUSIC_TRACKS = [
+        os.path.join(AssetPaths.MUSIC_DIR, 'Goblins_Den_(Regular).ogg'),
     ]
-    CHASE_MUSIC = os.path.join(MUSIC_DIR, 'Goblins_Dance_(Battle).ogg')
-    MUSIC_TRACKS = NORMAL_MUSIC_TRACKS
+
+    # Adventure extension: track to swap to when a monster locks onto the
+    # player. Read by AudioManager.play_chase_music; left as None / unset
+    # disables the chase-music feature without changing the manager.
+    CHASE_MUSIC = os.path.join(AssetPaths.MUSIC_DIR, 'Goblins_Dance_(Battle).ogg')
 
 class DebugSettings:
     """Settings related to debugging features."""

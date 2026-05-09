@@ -13,7 +13,7 @@ from core.animation import PieceAnimator, ArrowAnimator
 from ui.board_view import BoardView
 from ui.crt import CRT
 from ui.hud import HUD
-from systems.audio import AudioManager
+from systems.audio_manager import AudioManager
 from settings import *
 
 

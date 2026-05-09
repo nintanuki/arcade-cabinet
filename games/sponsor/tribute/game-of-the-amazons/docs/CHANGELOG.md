@@ -36,3 +36,31 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+
+## 2026-05-09 — AudioManager refactor to portable template standard
+
+**File:** systems/audio_manager.py
+**Lines (at time of edit):** (new file)
+**After:** Portable AudioManager: data-driven via `AudioSettings.SOUND_EFFECTS` and `MUSIC_TRACKS`, single `play(name)` entry point, music API stubs that no-op while `MUSIC_TRACKS` is empty (Amazons has no BGM yet).
+**Why:** Standardize on the AudioManager template shared across the cabinet. Failure to load any individual asset is now non-fatal.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** systems/audio.py
+**Lines (at time of edit):** (deleted)
+**Before:** Per-game AudioManager that reserved fixed channels and tracked sounds via SOUND_BINDINGS / SOUND_BINDINGS dicts.
+**Why:** Replaced by `systems/audio_manager.py`. Fixed-channel reservation was unnecessary for the two cues this game has.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** 151-167 (modified)
+**Before:** `AudioSettings` only had `MUTE`; `AssetPaths.SHOOT_SOUND`/`MOVE_SOUND` were the per-sound paths; `DebugSettings.MUTE` duplicated `AudioSettings.MUTE`.
+**After:** Added `MUTE_MUSIC`, `MUSIC_VOLUME`, `SFX_VOLUME`, `SOUND_EFFECTS`, `MUSIC_TRACKS` to `AudioSettings`; moved `shoot`/`move` paths into `SOUND_EFFECTS`; removed the duplicate `DebugSettings.MUTE`.
+**Why:** Match the AudioManager template contract; eliminate the duplicate mute flag.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** main.py
+**Lines (at time of edit):** 16 (modified)
+**Before:** `from systems.audio import AudioManager`
+**After:** `from systems.audio_manager import AudioManager`
+**Why:** Module renamed to match the template.
+**Editor:** Bryan (Claude Opus 4.7)

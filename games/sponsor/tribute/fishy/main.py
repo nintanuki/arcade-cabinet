@@ -136,12 +136,12 @@ class GameManager:
         if self.game_state == GameStateSettings.PLAYING:
             self.game_state = GameStateSettings.PAUSED
             self.audio.pause_music()
-            self.audio.play_pause_in_sound()
+            self.audio.play("pause_in")
             return
 
         if self.game_state == GameStateSettings.PAUSED:
             self.game_state = GameStateSettings.PLAYING
-            self.audio.play_pause_out_sound()
+            self.audio.play("pause_out")
             self.audio.resume_music()
             return
 

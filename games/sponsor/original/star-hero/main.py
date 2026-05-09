@@ -13,7 +13,7 @@ from core.animations import Background, Explosion
 from core.sprites import Player, BombBlast
 from ui.style import Style
 from ui.crt import CRT
-from systems.audio import Audio
+from systems.audio_manager import AudioManager
 from systems.managers import (
     CollisionManager,
     ScoreManager,
@@ -43,7 +43,7 @@ class GameManager:
 
         # -------- Subsystems --------
         self.crt = CRT(self.screen)
-        self.audio = Audio()
+        self.audio = AudioManager()
         self.style = Style(self.screen, self.audio)
 
         # Volume display state. The timer fires once after VOLUME_DISPLAY_TIME
@@ -189,8 +189,8 @@ class GameManager:
     # -------------------------
 
     def toggle_debug_mute(self) -> None:
-        """Flip the debug mute flag and immediately reapply audio volumes."""
-        AudioSettings.DEBUG_MUTE = not AudioSettings.DEBUG_MUTE
+        """Flip the global mute flag and immediately reapply audio volumes."""
+        self.audio.toggle_mute(resume_music=False)
         self.audio.update()
 
     def adjust_master_volume(self, delta: float, show_overlay: bool = False) -> None:
@@ -340,7 +340,7 @@ class GameManager:
 
     def _on_player_death_timer(self) -> None:
         """Tear down the active run when the post-death delay expires."""
-        self.audio.player_down.play()
+        self.audio.play_game_over_music()
         self.aliens.empty()
         self.powerups.empty()
 

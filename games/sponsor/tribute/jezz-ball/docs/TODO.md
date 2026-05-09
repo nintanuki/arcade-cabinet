@@ -22,14 +22,14 @@ The build is **playable end-to-end**: title screen, ten levels, game-over, initi
 
 ## Phase 4 — Asset / housekeeping
 
-- [ ] Consolidate audio. The legacy standalone `audio.py` is not imported by `main.py` (which has its own embedded `AudioManager`). Either remove the legacy file or refactor to import it.
+- [x] Consolidate audio. The legacy standalone `audio.py` is not imported by `main.py` (which has its own embedded `AudioManager`). Either remove the legacy file or refactor to import it. *(Done 2026-05-09: extracted `AudioManager` into `audio_manager.py` next to `main.py`, conformed it to the cabinet's portable AudioManager template, deleted `audio.py`, and rewrote `AudioSettings`. See CHANGELOG entry 2026-05-09 13:55.)*
 - [ ] Consolidate CRT. Same situation as audio — `crt.py` is legacy; the live one is embedded in `main.py`.
 
 ---
 
 ## Code health
 
-- [ ] `main.py` is over 1500 lines and contains four classes (`CRT`, `AudioManager`, `GameManager`, plus `GameState`). Splitting `CRT` and `AudioManager` into their own files (replacing the legacy `crt.py` / `audio.py`) would make the file easier to navigate and align with the per-class-per-file convention used elsewhere in the cabinet.
+- [x] `main.py` is over 1500 lines and contains four classes (`CRT`, `AudioManager`, `GameManager`, plus `GameState`). Splitting `CRT` and `AudioManager` into their own files (replacing the legacy `crt.py` / `audio.py`) would make the file easier to navigate and align with the per-class-per-file convention used elsewhere in the cabinet. *(`AudioManager` extracted to `audio_manager.py` on 2026-05-09; `CRT` still lives inside `main.py`.)*
 - [ ] `from settings import *` style is avoided here in favor of `importlib.util` loading — that's defensive, but the resulting `JEZZ_SETTINGS` indirection is harder to read than a direct `from settings import ...`. Reconsider during the next major main.py touch.
 
 ---

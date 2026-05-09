@@ -38,7 +38,7 @@ from settings import (
     UISettings,
 )
 from core.board import Board
-from systems.audio import Audio
+from systems.audio_manager import AudioManager
 from systems.managers import ScoreManager, SessionStateManager
 from ui.crt import CRT
 
@@ -71,7 +71,7 @@ class GameManager:
 
         # -------- Subsystems --------
         self.crt = CRT(self.screen)
-        self.audio = Audio()
+        self.audio = AudioManager()
 
         # -------- Managers --------
         self.scores = ScoreManager(self)

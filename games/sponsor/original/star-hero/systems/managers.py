@@ -389,7 +389,7 @@ class SessionStateManager:
     def unpause_game(self) -> None:
         """Resume music channels and play the unpause SFX."""
         game = self.game
-        game.audio.unpause_music()
+        game.audio.resume_music()
         game.audio.play('unpause')
         self.paused = False
 
@@ -410,7 +410,7 @@ class SessionStateManager:
 
         if has_upgrade:
             # Play the same alarm as losing the first heart
-            game.audio.play('alarm_med')
+            game.audio.play_alarm('alarm_med')
             player.trigger_damage_effect()
             return
 
@@ -420,13 +420,13 @@ class SessionStateManager:
             player.trigger_damage_effect()
 
         if game.hearts == 2:
-            game.audio.play('alarm_med')
+            game.audio.play_alarm('alarm_med')
         elif game.hearts == 1:
-            game.audio.play('alarm_low')
+            game.audio.play_alarm('alarm_low')
 
         if game.hearts <= 0:
             game.explode(player.rect.centerx, player.rect.centery)
-            game.audio.channels['bg_music'].pause()
+            game.audio.pause_music()
             self.player_alive = False
             player.ready = False
             player.shoot_button_held = True

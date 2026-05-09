@@ -12,7 +12,7 @@ from settings import *
 from sprites import Player, Opponent, Ball
 from game import GameManager
 from crt import CRT
-from audio import Audio
+from audio_manager import AudioManager
 
 
 ASSET_DIR = Path(__file__).resolve().parent
@@ -100,7 +100,7 @@ def controller_vertical_direction(connected_joysticks: list[pygame.joystick.Joys
 pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()
 clock = pygame.time.Clock()
-audio = Audio()
+audio = AudioManager()
 
 # Joystick setup
 pygame.joystick.init()
@@ -120,41 +120,16 @@ up_pressed = False
 down_pressed = False
 
 
-def load_optional_sound(sound_path: Path) -> 'pygame.mixer.Sound | None':
-    """Load a sound file when present, returning ``None`` for missing assets.
-
-    Args:
-        sound_path (Path): Filesystem location of the candidate sound.
-
-    Returns:
-        pygame.mixer.Sound | None: Loaded sound, or ``None`` when unavailable.
-    """
-    try:
-        if sound_path.exists():
-            return pygame.mixer.Sound(str(sound_path))
-    except pygame.error:
-        return None
-    return None
-
-
-# TODO: pause sound assets are added by the user; the playback hook below
-# guards against a missing file so the game keeps running until then.
-pause_sound = load_optional_sound(ASSET_DIR / 'audio' / 'sfx_sounds_pause2_in.wav')
-unpause_sound = load_optional_sound(ASSET_DIR / 'audio' / 'sfx_sounds_pause2_out.wav')
-
-
 def play_pause_transition(was_paused: bool) -> None:
     """Play the appropriate pause transition sound when entering/leaving pause.
+
+    The AudioManager already handles missing-asset gracefully (logs and skips),
+    so call sites don't have to guard for it.
 
     Args:
         was_paused (bool): True if the game was paused before the toggle.
     """
-    if was_paused:
-        if unpause_sound is not None:
-            unpause_sound.play()
-    else:
-        if pause_sound is not None:
-            pause_sound.play()
+    audio.play("unpause" if was_paused else "pause")
 
 # Game objects
 player = Player(str(ASSET_DIR / 'graphics' / 'white_paddle.png'), SCREEN_WIDTH - 20, SCREEN_HEIGHT / 2, 5)

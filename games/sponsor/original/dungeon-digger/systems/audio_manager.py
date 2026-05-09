@@ -1,10 +1,12 @@
-"""Fishy audio dispatcher.
+"""Dungeon Digger audio dispatcher.
 
 Built on the portable AudioManager template: data-driven via
 ``AudioSettings.SOUND_EFFECTS`` and ``AudioSettings.MUSIC_TRACKS``,
-single ``play(name)`` entry point, and music helpers that gracefully
-no-op when no tracks are registered. The pause-in / pause-out cues
-are wired through ``SOUND_EFFECTS`` instead of having dedicated methods.
+single ``play(name)`` entry point, standard music API. Dungeon Digger
+also runs an opt-in "chase" music mode while a monster is hunting the
+player, layered onto the template body as ``play_chase_music`` /
+``play_normal_music``. The repellent SFX picks between the short/long
+spray cue based on remaining cans (``play_repellent_sound``).
 """
 
 import pygame
@@ -25,12 +27,20 @@ class AudioManager:
         self.sounds: dict[str, pygame.mixer.Sound] = {}
         for name, path in AudioSettings.SOUND_EFFECTS.items():
             sound = self._load_sound(path)
-            if sound is not None:
-                sound.set_volume(AudioSettings.SFX_VOLUME)
-                self.sounds[name] = sound
+            if sound is None:
+                continue
+            volume = AudioSettings.SFX_VOLUME_OVERRIDES.get(
+                name, AudioSettings.SFX_VOLUME
+            )
+            sound.set_volume(volume)
+            self.sounds[name] = sound
 
         self._last_music_track: str | None = None
         self._music_is_paused = False
+        # "normal" or "chase". Tracked separately so play_normal_music can
+        # rotate through MUSIC_TRACKS instead of always replaying the same
+        # song after a chase ends.
+        self._music_mode = "normal"
 
         self.play_random_music()
 
@@ -77,8 +87,12 @@ class AudioManager:
             pygame.mixer.music.set_volume(AudioSettings.MUSIC_VOLUME)
             pygame.mixer.music.play(loops=-1)
             self._music_is_paused = False
+            self._music_mode = "normal"
         except pygame.error as error:
             print(f"Could not load music track {track}: {error}")
+
+    # Legacy alias kept for older call sites that still say play_random_bgm.
+    play_random_bgm = play_random_music
 
     def stop_music(self) -> None:
         """Stop the current background track."""
@@ -119,3 +133,35 @@ class AudioManager:
         if resume_music and not AudioSettings.MUTE_MUSIC:
             self.play_random_music()
         return False
+
+    # ------------------------------------------------------------------
+    # GAME-SPECIFIC EXTENSIONS
+    # ------------------------------------------------------------------
+
+    def play_chase_music(self) -> None:
+        """Switch to battle music while a monster is chasing the player."""
+        if AudioSettings.MUTE or AudioSettings.MUTE_MUSIC:
+            return
+        if self._music_mode == "chase":
+            return
+        track = getattr(AudioSettings, "CHASE_MUSIC", None)
+        if not track:
+            return
+        try:
+            pygame.mixer.music.load(track)
+            pygame.mixer.music.set_volume(AudioSettings.MUSIC_VOLUME)
+            pygame.mixer.music.play(loops=-1)
+            self._music_is_paused = False
+            self._music_mode = "chase"
+        except pygame.error as error:
+            print(f"Could not load chase music {track}: {error}")
+
+    def play_normal_music(self) -> None:
+        """Return to normal background music after a chase."""
+        if self._music_mode == "normal":
+            return
+        self.play_random_music()
+
+    def play_repellent_sound(self, cans_left: int) -> None:
+        """Play the longer spray when repellent runs out, the short variant otherwise."""
+        self.play("long_spray" if cans_left == 0 else "short_spray")

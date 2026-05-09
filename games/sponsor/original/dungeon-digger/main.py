@@ -7,7 +7,7 @@ import sys
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 from settings import *
-from systems.audio import AudioManager
+from systems.audio_manager import AudioManager
 from ui.windows import MessageLog, InventoryWindow, MapWindow
 from core.dungeon import DungeonLevel
 from core.dungeon_config import DUNGEON_CONFIG, LEVEL_DUNGEON_ORDER

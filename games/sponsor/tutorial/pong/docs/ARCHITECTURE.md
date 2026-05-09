@@ -18,8 +18,8 @@
    +--------+----------+--------+--------+
    |        |          |                 |
    v        v          v                 v
- Player  Opponent     Ball             Audio + CRT
- (sprites)(sprites)  (sprites)         (audio.py / crt.py)
+ Player  Opponent     Ball          AudioManager + CRT
+ (sprites)(sprites)  (sprites)      (audio_manager.py / crt.py)
 ```
 
 `main.py` owns the screen, clock, joystick list, and global controls (fullscreen, quit). `GameManager` owns sprite groups, score, AI logic, and the per-frame update / draw cycle. Sprites are simple `pygame.sprite.Sprite` subclasses.
@@ -46,7 +46,7 @@ Globals: `F11` and the Back button toggle fullscreen. `Esc` or `Start + Back + L
 
 ## 5. Audio
 
-[audio.py](../audio.py) wraps the music track and per-collision SFX. Music starts on boot and loops indefinitely.
+[audio_manager.py](../audio_manager.py) is a drop-in of the cabinet's portable AudioManager template. It is data-driven by `AudioSettings.SOUND_EFFECTS` and `AudioSettings.MUSIC_TRACKS` in [settings.py](../settings.py); call sites use `audio.play(name)` for SFX and the standard `play_random_music` / `pause_music` / `resume_music` / `stop_music` / `toggle_mute` API for music. Background music is muted by default (`MUTE_MUSIC = True`); flip the flag in `AudioSettings` to enable it.
 
 ## 6. CRT
 
@@ -60,7 +60,7 @@ Globals: `F11` and the Back button toggle fullscreen. `Esc` or `Start + Back + L
 
 ```
 audio/, font/, graphics/   Asset folders
-audio.py                   Audio wrapper
+audio_manager.py           Portable AudioManager template
 crt.py                     CRT overlay
 game.py                    GameManager
 main.py                    Entry point + event loop

@@ -487,13 +487,6 @@ class QuitDialogSettings:
     TITLE_COLOR = ColorSettings.TEXT_DEFAULT
     TITLE_Y = 200
 
-class AudioSettings:
-    """Global audio toggles and mixer-level defaults."""
-
-    MUTE = False
-    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
-    MUSIC_VOLUME = 1  # Background music volume in the range [0.0, 1.0].
-
 class AssetPaths:
     """Resolved asset paths for sprites, audio, and music content."""
 
@@ -553,33 +546,59 @@ class AssetPaths:
     # CRT Effect
     TV = os.path.join(EFFECTS_DIR, 'tv.png')
 
-    # Audio
+    # Audio asset directories. The actual per-sound and per-track paths live
+    # in AudioSettings.SOUND_EFFECTS / MUSIC_TRACKS so the AudioManager has
+    # exactly one place to read them from.
     SOUND_DIR = os.path.join(ASSETS_DIR, 'sound')
-    MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_movement_footstepsloop4_slow.ogg')
-    DIG_SOUND = os.path.join(SOUND_DIR, 'dig_sound_effect.ogg')
-    BOUNDARY_SOUND = os.path.join(SOUND_DIR, 'wall_bump_sound_effect.ogg')
-    KEY_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_single1.ogg')
-    SCREAM_SOUND = os.path.join(SOUND_DIR, 'wilhelm_scream.ogg')
-    MONSTER_CHASE_SOUND = os.path.join(SOUND_DIR, 'sfx_sound_nagger1.ogg')
-    COIN_SOUND = os.path.join(SOUND_DIR, 'sfx_coin_cluster3.ogg')
-    LIGHT_SOUND = os.path.join(SOUND_DIR, 'Torch Whoosh Sound Effect.ogg')
-    MATCH_LIGHT_SOUND = os.path.join(SOUND_DIR, 'Lighting A Match Sound Effect.ogg')
-    VANISH_SOUND = os.path.join(SOUND_DIR, 'Vanish Sound Effect.ogg')
-    SHORT_SPRAY_SOUND = os.path.join(SOUND_DIR, 'short_spray.ogg')
-    LONG_SPRAY_SOUND = os.path.join(SOUND_DIR, 'long_spray.ogg')
-    FOUND_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop3.ogg')
-    HOT_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop7.ogg')
-    WARM_DETECTOR_SOUND = os.path.join(SOUND_DIR, 'sfx_alarm_loop6.ogg')
-    MENU_MOVE_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_move2.ogg')
-    MENU_SELECT_SOUND = os.path.join(SOUND_DIR, 'sfx_menu_select3.ogg')
-
-    # Music
     MUSIC_DIR = os.path.join(ASSETS_DIR, 'music')
-    NORMAL_MUSIC_TRACKS = [
-        os.path.join(MUSIC_DIR, 'Goblins_Den_(Regular).ogg'),
+
+
+class AudioSettings:
+    """Global audio toggles, volumes, and the sound/music registry consumed by AudioManager."""
+
+    MUTE = False
+    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
+    MUSIC_VOLUME = 1.0  # Background music volume in the range [0.0, 1.0].
+    SFX_VOLUME = 1.0  # Default sound effect volume in the range [0.0, 1.0].
+
+    # Logical name -> filesystem path. Keys are what gameplay code passes to
+    # ``AudioManager.play(name)``.
+    SOUND_EFFECTS = {
+        "move": os.path.join(AssetPaths.SOUND_DIR, 'sfx_movement_footstepsloop4_slow.ogg'),
+        "dig": os.path.join(AssetPaths.SOUND_DIR, 'dig_sound_effect.ogg'),
+        "boundary": os.path.join(AssetPaths.SOUND_DIR, 'wall_bump_sound_effect.ogg'),
+        "key": os.path.join(AssetPaths.SOUND_DIR, 'sfx_coin_single1.ogg'),
+        "scream": os.path.join(AssetPaths.SOUND_DIR, 'wilhelm_scream.ogg'),
+        "monster_chase": os.path.join(AssetPaths.SOUND_DIR, 'sfx_sound_nagger1.ogg'),
+        "coin": os.path.join(AssetPaths.SOUND_DIR, 'sfx_coin_cluster3.ogg'),
+        "light": os.path.join(AssetPaths.SOUND_DIR, 'Torch Whoosh Sound Effect.ogg'),
+        "match_light": os.path.join(AssetPaths.SOUND_DIR, 'Lighting A Match Sound Effect.ogg'),
+        "vanish": os.path.join(AssetPaths.SOUND_DIR, 'Vanish Sound Effect.ogg'),
+        "short_spray": os.path.join(AssetPaths.SOUND_DIR, 'short_spray.ogg'),
+        "long_spray": os.path.join(AssetPaths.SOUND_DIR, 'long_spray.ogg'),
+        "detector_found": os.path.join(AssetPaths.SOUND_DIR, 'sfx_alarm_loop3.ogg'),
+        "detector_hot": os.path.join(AssetPaths.SOUND_DIR, 'sfx_alarm_loop7.ogg'),
+        "detector_warm": os.path.join(AssetPaths.SOUND_DIR, 'sfx_alarm_loop6.ogg'),
+        "menu_move": os.path.join(AssetPaths.SOUND_DIR, 'sfx_menu_move2.ogg'),
+        "menu_select": os.path.join(AssetPaths.SOUND_DIR, 'sfx_menu_select3.ogg'),
+    }
+
+    # Per-sound volume overrides, applied at load time. Anything not listed
+    # here uses SFX_VOLUME. Mirrors the previous bespoke `coin_sound.set_volume(0.5)`.
+    SFX_VOLUME_OVERRIDES = {
+        "coin": 0.5,
+    }
+
+    # Background tracks; one is chosen at random each time music starts.
+    MUSIC_TRACKS = [
+        os.path.join(AssetPaths.MUSIC_DIR, 'Goblins_Den_(Regular).ogg'),
     ]
-    CHASE_MUSIC = os.path.join(MUSIC_DIR, 'Goblins_Dance_(Battle).ogg')
-    MUSIC_TRACKS = NORMAL_MUSIC_TRACKS
+
+    # Dungeon Digger extension: track that swaps in while a monster is
+    # chasing. Read by AudioManager.play_chase_music; setting to None / unset
+    # disables the chase-music feature without changing the manager.
+    CHASE_MUSIC = os.path.join(AssetPaths.MUSIC_DIR, 'Goblins_Dance_(Battle).ogg')
+
 
 class DebugSettings:
     """Settings related to debugging features."""

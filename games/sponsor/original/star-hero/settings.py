@@ -246,14 +246,23 @@ class UISettings:
     VOLUME_BAR_RATIO = MAX_VOLUME / VOLUME_BAR__LENGTH
 
 class AudioSettings:
+    """Global audio toggles, volumes, and the sound/music registry consumed by AudioManager.
+
+    Star Hero adds a runtime-tunable ``DEFAULT_MASTER_VOLUME`` for the volume HUD
+    (``audio.master_volume``), an intro track, and a separate game-over track on
+    top of the standard template contract.
     """
-    Defines settings related to audio in the game,
-    including the volume boost applied during the intro sequence
-    and the default master volume level for all sounds.
-    """
+
+    # Standard template contract.
+    MUTE = False
+    MUTE_MUSIC = False  # Keep music disabled while retaining sound effects.
+    MUSIC_VOLUME = 1.0  # Background music volume in the range [0.0, 1.0].
+    SFX_VOLUME = 1.0  # Sound effect volume in the range [0.0, 1.0].
+
+    # Star Hero extensions.
     INTRO_VOL_BOOST = 2.0
-    DEFAULT_MASTER_VOLUME = 0.5 # default value is 1.0
-    DEBUG_MUTE = False # set True to silence all audio for debugging
+    DEFAULT_MASTER_VOLUME = 0.5
+
     # All bundled media now lives under a single assets/ folder
     # (assets/audio, assets/font, assets/graphics, assets/music) so the
     # project root only carries code + docs + saves.
@@ -261,9 +270,32 @@ class AudioSettings:
     ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
     MUSIC_DIR = os.path.join(ASSETS_DIR, 'music')
     AUDIO_DIR = os.path.join(ASSETS_DIR, 'audio')
-    BGM_PLAYLIST = [
-        'star_hero.ogg'
+
+    # Logical name -> filesystem path. Keys are what gameplay code passes to
+    # ``AudioManager.play(name)``.
+    SOUND_EFFECTS = {
+        "laser": os.path.join(AUDIO_DIR, 'laser.ogg'),
+        "hyper": os.path.join(AUDIO_DIR, 'hyper.ogg'),
+        "explosion": os.path.join(AUDIO_DIR, 'explosion.ogg'),
+        "alarm_med": os.path.join(AUDIO_DIR, 'sfx_alarm_loop2.ogg'),
+        "alarm_low": os.path.join(AUDIO_DIR, 'sfx_alarm_loop1.ogg'),
+        "ufo": os.path.join(AUDIO_DIR, 'sfx_sound_bling.ogg'),
+        "pause": os.path.join(AUDIO_DIR, 'sfx_sounds_pause2_in.ogg'),
+        "unpause": os.path.join(AUDIO_DIR, 'sfx_sounds_pause2_out.ogg'),
+        "powerup_twin": os.path.join(AUDIO_DIR, 'sfx_sounds_powerup1.ogg'),
+        "powerup_weapon": os.path.join(AUDIO_DIR, 'sfx_sounds_powerup2.ogg'),
+        "powerup_heart": os.path.join(AUDIO_DIR, 'sfx_coin_cluster4.ogg'),
+    }
+
+    # Background tracks; one is chosen at random each time music starts.
+    MUSIC_TRACKS = [
+        os.path.join(MUSIC_DIR, 'star_hero.ogg'),
     ]
+
+    # Star Hero extensions: dedicated tracks that aren't part of the
+    # random rotation.
+    INTRO_MUSIC = os.path.join(MUSIC_DIR, 'star_hero_intro.ogg')
+    GAME_OVER_MUSIC = os.path.join(MUSIC_DIR, 'game_over.ogg')
 
 class AssetPaths:
     """Centralized filesystem paths for static graphics used by the game."""

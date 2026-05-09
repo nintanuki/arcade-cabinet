@@ -405,3 +405,37 @@ be re-run on Windows since the sandbox here has no display or
 `pygame` install.
 
 
+
+## 2026-05-09 — AudioManager refactor to portable template standard
+
+**File:** systems/audio_manager.py
+**Lines (at time of edit):** (new file)
+**After:** Renamed `Audio` to `AudioManager` and rebuilt around the portable template: data-driven SFX loading via `AudioSettings.SOUND_EFFECTS`, single `play(name)` entry point, standard `play_random_music` / `pause_music` / `resume_music` / `stop_music` / `toggle_mute` API. Star Hero's intro/game-over music, alarm channel, and master-volume HUD live as clearly-marked extensions below the standard body. Failure to load any individual asset is now non-fatal.
+**Why:** Standardize on the AudioManager template shared across the cabinet while preserving the bespoke needs (alarms must not be cut off, intro music has its own channel, master volume drives a HUD slider).
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** systems/audio.py
+**Lines (at time of edit):** (deleted)
+**Why:** Replaced by `systems/audio_manager.py`.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** 248-300 (modified)
+**Before:** `AudioSettings` exposed `INTRO_VOL_BOOST`, `DEFAULT_MASTER_VOLUME`, `DEBUG_MUTE`, and a `BGM_PLAYLIST` of bare filenames; per-sound paths were resolved inside `audio.py`.
+**After:** Standard template fields (`MUTE`, `MUTE_MUSIC`, `MUSIC_VOLUME`, `SFX_VOLUME`, `SOUND_EFFECTS`, `MUSIC_TRACKS`) plus Star Hero-specific extensions (`INTRO_MUSIC`, `GAME_OVER_MUSIC`, `INTRO_VOL_BOOST`, `DEFAULT_MASTER_VOLUME`). `DEBUG_MUTE` retired in favour of the unified `MUTE` flag.
+**Why:** Match the AudioManager template contract so a future template update doesn't have to special-case star-hero.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** main.py
+**Lines (at time of edit):** 16, 46, 191-194, 343 (modified)
+**Before:** Imported `Audio`, instantiated it, toggled `AudioSettings.DEBUG_MUTE` directly, and called `self.audio.player_down.play()` on death.
+**After:** Imports `AudioManager`, uses `self.audio.toggle_mute(resume_music=False)` for the debug mute toggle, and calls `self.audio.play_game_over_music()` on death.
+**Why:** Mirror the new manager's API.
+**Editor:** Bryan (Claude Opus 4.7)
+
+**File:** systems/managers.py
+**Lines (at time of edit):** 392, 413, 423, 425, 429 (modified)
+**Before:** Called `unpause_music`, `play('alarm_*')`, and `audio.channels['bg_music'].pause()` directly.
+**After:** Uses `resume_music`, `play_alarm('alarm_*')` (so alarms land on the reserved channel that `stop_alarms` can clear), and `pause_music`.
+**Why:** Match the new manager's API; alarms now go through `play_alarm` so `stop_alarms` actually stops them.
+**Editor:** Bryan (Claude Opus 4.7)
