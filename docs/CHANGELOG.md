@@ -40,6 +40,28 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-09T14:00:00-04:00 — Update launcher settings for ms-fishy folder rename
+
+**Editor:** GitHub Copilot (Claude Haiku 4.5)
+
+**File:** settings.py
+**Lines (at time of edit):** 291, 311, 337 (modified)
+**Before:**
+        ("Fishy", Path("games") / "sponsor" / "tribute" / "fishy" / "main.py"),
+        ...
+        "Fishy": Path("assets") / "previews" / "fishy.png",
+        ...
+        "Fishy": "EAT SMALLER FISH TO GROW BIGGER, AVOID THE BIGGER ONES",
+**After:**
+        ("MS. FISHY", Path("games") / "sponsor" / "tribute" / "ms-fishy" / "main.py"),
+        ...
+        "MS. FISHY": Path("assets") / "previews" / "fishy.png",
+        ...
+        "MS. FISHY": "EAT SMALLER FISH TO GROW BIGGER, AVOID THE BIGGER ONES",
+**Why:** Game folder renamed from `fishy/` to `ms-fishy/` to match the Ms. Fishy rebrand (per the game's TODO.md). Updated OPTIONS, PREVIEW_IMAGES, and GAME_DESCRIPTIONS dictionary keys. Display name changed to "MS. FISHY" (all caps) per copilot-instructions.md requirement for UI text and consistency with the game's internal title text.
+
+---
+
 ## 2026-05-08T13:40:00-04:00 — Add repo-wide Pyright config to reduce false squiggles in migrated games
 
 **Editor:** GitHub Copilot (GPT-5.3-Codex)

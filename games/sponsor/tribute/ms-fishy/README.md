@@ -1,6 +1,6 @@
-# Fishy
+# Ms. Fishy
 
-A classic eat-or-be-eaten arcade game. You are a fish. Eat fish smaller than you to grow. Get eaten by a fish bigger than you to lose. Keep growing as long as you can.
+A classic eat-or-be-eaten arcade game, inspired by the classic internet flash game "Fishy." You are Ms. Fishy. Eat fish smaller than you to grow. Get eaten by a fish bigger than you to lose. Keep growing as long as you can.
 
 ## Status
 

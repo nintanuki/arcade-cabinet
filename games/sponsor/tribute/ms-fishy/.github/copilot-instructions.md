@@ -27,6 +27,8 @@ If a question is asked about *why* code was written a certain way, that is a req
 - Less code is better; clean and readable is best.
 - Prefer clear names over short ones. New class and function names must clearly describe their purpose.
 - Do not change function or variable names unless the role has *completely* changed.
+- **Before creating a new function, search the file for an existing function with a similar purpose. Prefer updating or fixing the existing function over adding a new one with a different name.** If a new name is chosen, the old function must be deleted at the same time.
+- **No imported visual assets.** All sprites, backgrounds, particles, and visual effects must be drawn at runtime with `pygame.draw`, `pygame.Surface` operations, or per-pixel manipulation. Audio files and font files are allowed. The CRT overlay PNG (`assets/graphics/effects/tv.png`) is grandfathered as the only exception; do not add new image files.
 - No dead imports, unused variables, unused functions, or legacy code.
 
 ## Architecture rules
@@ -36,6 +38,13 @@ If a question is asked about *why* code was written a certain way, that is a req
 - Keep middlemen minimal: if A calls B and B only calls C, have A call C directly.
 - All constants live in [settings.py](../settings.py). **No magic numbers anywhere else.** When adding a constant, include a comment explaining its units and effect.
 - Prefer adding a new `*Settings` class in `settings.py` over expanding an existing one when the new field is not closely related to its neighbors.
+- **Input-handler isolation.** Two input handlers (e.g. `_handle_keydown`, `_handle_joybuttondown`, `_handle_enter_key`, `_handle_start_button`) must never call each other. When two input sources share a behaviour, extract that behaviour into a dedicated *action method* named for the action (e.g. `_handle_pause_action`, `_toggle_fullscreen`) and have each handler call the action method directly. Action methods are not handlers — they take no event object and don't care which input fired.
+
+## Documentation truth rules
+
+- **Code is the source of truth.** When code and a doc disagree, the doc is stale — fix the doc, not the code.
+- The only legitimate "contradiction" between docs and code is a `[ ]` item in [docs/TODO.md](../docs/TODO.md) describing planned-but-not-yet-built behaviour. Anywhere else (README, ARCHITECTURE, TESTING, CHANGELOG entries newer than the change) a contradiction means the doc must be updated to match the code.
+- Do not change code to match a stale doc claim. If you suspect a real bug *and* the doc supports your suspicion, confirm with the user before changing behaviour.
 
 ## File and function layout
 
@@ -63,6 +72,8 @@ If a question is asked about *why* code was written a certain way, that is a req
 
 - ALL text displayed to the user in-game must be **ALL CAPS**. The pixel font (`Pixeled`) is designed for caps-style retro display.
 - Documentation files stay in normal sentence case.
+- **Do not add, remove, or modify any in-game UI element, text string, or screen layout unless the user explicitly asks for it.** If the user requests a simple screen (e.g. "just show GAME OVER"), implement exactly that — nothing more.
+- **Title-screen lock:** keep `TitleScene` to exactly two centered text lines (`MS. FISHY` and `PRESS START TO PLAY`) over the ocean background + background fish. Do not add score/high-score/extra prompts there unless the user explicitly requests it.
 
 ## Mental testing checklist
 

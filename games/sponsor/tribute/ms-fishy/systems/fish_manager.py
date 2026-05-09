@@ -15,20 +15,25 @@ class FishManager:
         self.sprite_group = sprite_group
         self.spawn_timer = 0
 
-    def update(self, player):
+    def update(self, player=None):
         """Advance fish systems by one frame.
 
         Args:
-            player: The player fish sprite used for collision checks.
+            player: The player fish sprite used for collision checks, or None
+                to run spawn/movement without collisions.
 
         Returns:
-            bool: True when the player was eaten this frame.
+            tuple[bool, list[int]]: (game_over, eaten_fish_sizes) — True when
+            the player was eaten this frame, and a list of eaten fish sizes.
         """
         self.spawn_timer += 1
         if self.spawn_timer >= FishSettings.SPAWN_RATE:
             self.spawn_fish()
             self.spawn_timer = 0
-        
+
+        if player is None:
+            return False, []
+
         return self.check_collisions(player)
 
     def spawn_fish(self):
@@ -37,7 +42,7 @@ class FishManager:
 
         # random.random() gives 0.0 to 1.0. 
         # Squaring it (or cubing it) makes small numbers much more common.
-        skew_factor = random.random()**32  # Higher exponent = more small fish
+        skew_factor = random.random()**16  # Higher exponent = more small fish
         size_range = FishSettings.MAX_SIZE - FishSettings.MIN_SIZE
         size = int(FishSettings.MIN_SIZE + (skew_factor * size_range))
 
@@ -60,28 +65,30 @@ class FishManager:
             player: The player fish sprite.
 
         Returns:
-            bool: True if a larger or equal fish consumed the player.
+            tuple[bool, list[int]]: (game_over, eaten_fish_sizes) — True if a
+            larger or equal fish consumed the player, and eaten fish sizes.
         """
         # We use pygame.sprite.spritecollide with a custom callback or manual loop
         # We pass False for dokill because we want to decide which one gets removed (player or fish) based on their relative sizes.
         collided_fish = pygame.sprite.spritecollide(player, self.sprite_group, False, pygame.sprite.collide_mask)
-        
+
+        eaten_sizes = []
         # If there are multiple collisions in the same frame, we process them one at a time.
         for fish in collided_fish:
-            # Compare areas to determine if the player eats the fish or vice versa.
-            player_area = player.rect.width * player.rect.height
-            fish_area = fish.size * fish.size
-            
-            # If the player's area is larger than the fish's area, the player eats the fish.
-            if player_area > fish_area:
+            # Compare conceptual sizes directly — both player.size and fish.size are the
+            # same unit (body width in pixels), so this is an apples-to-apples comparison.
+            # Using player.rect area was wrong because the rect height includes the bow,
+            # inflating the player's apparent size relative to enemies.
+            if player.size > fish.size:
                 # Player eats fish
                 fish.kill()
                 self.grow_player(player, fish)
+                eaten_sizes.append(fish.size)
             else:
                 # Fish eats player
-                return True
+                return True, eaten_sizes
 
-        return False
+        return False, eaten_sizes
 
     def grow_player(self, player, fish):
         """Increase player size after eating a fish.
