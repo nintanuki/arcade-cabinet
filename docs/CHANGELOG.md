@@ -40,6 +40,29 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-08T00:00:00-04:00 — Add Fishy to the arcade launcher as a tribute game
+
+**Editor:** GitHub Copilot (Claude Sonnet 4.6)
+
+**File:** settings.py
+**Lines (at time of edit):** 287, 307, 337 (modified)
+**Before:**
+    ("Game of the Amazons", ...),
+    ...
+    "Flappy Bird": Path("assets") / "previews" / "flappy_bird.png",
+    ...
+    "Flappy Bird": "A FLAPPY BIRD CLONE...",
+**After:**
+    ("Fishy", Path("games") / "sponsor" / "tribute" / "fishy" / "main.py"),
+    ("Game of the Amazons", ...),
+    ...
+    "Fishy": Path("assets") / "previews" / "fishy.png",
+    "Flappy Bird": Path("assets") / "previews" / "flappy_bird.png",
+    ...
+    "Fishy": "EAT SMALLER FISH TO GROW BIGGER, AVOID THE BIGGER ONES",
+    "Flappy Bird": "A FLAPPY BIRD CLONE...",
+**Why:** Fishy was a complete tribute game already in the repo but missing from GameSettings.OPTIONS, so it never appeared in the launcher menu.
+
 ## 2026-05-07T09:29:20-04:00 — Normalize sponsor game entrypoints to resolve assets from game folder
 
 **Editor:** GitHub Copilot (GPT-5.3-Codex)

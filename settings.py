@@ -288,6 +288,7 @@ class GameSettings:
         ("Ninja Frog", Path("games") / "sponsor" / "original" / "ninja-frog" / "main.py"),
         ("Star Hero", Path("games") / "sponsor" / "original" / "star-hero" / "main.py"),
 
+        ("Fishy", Path("games") / "sponsor" / "tribute" / "fishy" / "main.py"),
         ("Game of the Amazons", Path("games") / "sponsor" / "tribute" / "game-of-the-amazons" / "main.py"),
         ("Jezz Ball", Path("games") / "sponsor" / "tribute" / "jezz-ball" / "main.py"),
         ("Pazaak", Path("games") / "sponsor" / "tribute" / "pazaak" / "main.py"),
@@ -307,6 +308,7 @@ class GameSettings:
         "Air Hockey": Path("assets") / "previews" / "air_hockey.png",
         "Breakout": Path("assets") / "previews" / "breakout.png",
         "Dungeon Digger": Path("assets") / "previews" / "dungeon_digger.png",
+        "Fishy": Path("assets") / "previews" / "fishy.png",
         "Flappy Bird": Path("assets") / "previews" / "flappy_bird.png",
         "Game of the Amazons": Path("assets") / "previews" / "game_of_the_amazons.png",
         "Jezz Ball": Path("assets") / "previews" / "jezz_ball.png",
@@ -332,6 +334,7 @@ class GameSettings:
         "Air Hockey": "IT'S AIR HOCKEY, YOU KNOW WHAT AIR HOCKEY IS",
         "Breakout": "THE CLASSIC BLOCK-BREAKING ARCADE GAME",
         "Dungeon Digger": "DUNGEON CRAWLING RPG WITH TURN-BASED AND TEXT-BASED FLAVOR",
+        "Fishy": "EAT SMALLER FISH TO GROW BIGGER, AVOID THE BIGGER ONES",
         "Flappy Bird": "A FLAPPY BIRD CLONE. THIS IS WHERE I LEARNED HOW TO PARALLAX",
         "Game of the Amazons": "CLASSIC STRATEGY GAME USING CHESS PIECES",
         "Jezz Ball": "THE CLASSIC MICROSOFT GAME FOR WHEN THE INTERNET WAS DOWN",
