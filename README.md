@@ -65,6 +65,27 @@ python main.py
 
 On Windows, `py main.py` works as well.
 
+## Packaging a distributable build
+
+The launcher can be packaged into a click-to-run Windows folder via PyInstaller plus a bundled embeddable Python that runs the games as subprocesses. End users do not need Python installed.
+
+One-time setup:
+
+```powershell
+pip install -r requirements-build.txt
+.\scripts\setup_runtime.ps1
+```
+
+Build:
+
+```powershell
+.\build.ps1
+```
+
+The result is `dist/ArcadeCabinet/`, a self-contained folder containing `ArcadeCabinet.exe`, the launcher's assets, the `games/` tree, and the bundled `runtime/python/` interpreter. Zip and ship that folder; users double-click the exe.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (section 7) for how `LauncherSettings.GAME_PYTHON` selects the interpreter at runtime.
+
 ## Launcher Controls
 
 | Action | Keyboard | Controller |

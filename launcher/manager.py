@@ -379,6 +379,29 @@ class ArcadeLauncher:
             self.renderer.draw_loading_frame(f"LOADING{'.' * dot_count}")
             self.clock.tick(ScreenSettings.FPS)
 
+    def _resolve_game_interpreter(self) -> str:
+        """
+        Resolve which Python interpreter should run game subprocesses.
+
+        Uses ``LauncherSettings.GAME_PYTHON`` when set (resolved relative to
+        the launcher root if not absolute), otherwise falls back to
+        ``sys.executable``. The fallback is correct for normal source runs
+        but not for a frozen build, where ``sys.executable`` is the launcher
+        exe itself; packaged builds must set ``GAME_PYTHON`` to a bundled
+        interpreter such as ``runtime/python/python.exe``.
+
+        Returns:
+            str: Path to the interpreter to invoke via subprocess.
+        """
+        configured = LauncherSettings.GAME_PYTHON
+        if configured is not None:
+            interpreter_path = Path(configured)
+            if not interpreter_path.is_absolute():
+                interpreter_path = self.root_dir / interpreter_path
+            if interpreter_path.exists():
+                return str(interpreter_path)
+        return sys.executable
+
     def launch_selected_game(self, node: MenuNode) -> None:
         """
         Launch the given game node, then restore launcher runtime after exit.
@@ -404,9 +427,22 @@ class ArcadeLauncher:
 
         self.suspend_runtime()
 
+        # The Windows embeddable Python used by packaged builds ships with a
+        # `._pth` file that disables both PYTHONPATH and the default
+        # "prepend script's directory to sys.path" behavior. Build a runner
+        # that explicitly inserts the game folder at sys.path[0] before
+        # executing main.py via runpy, so games can do `from settings import
+        # *` against their own local module. Equivalent to a normal
+        # `python main.py` for source runs.
+        runner = (
+            "import sys, runpy; "
+            f"sys.path.insert(0, r'{game_dir}'); "
+            f"runpy.run_path(r'{game_main}', run_name='__main__')"
+        )
+
         try:
             subprocess.run(
-                [sys.executable, str(game_main)],
+                [self._resolve_game_interpreter(), "-c", runner],
                 cwd=str(game_dir),
                 check=False,
             )

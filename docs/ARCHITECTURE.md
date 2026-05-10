@@ -25,7 +25,7 @@ This document explains **how the launcher code is put together and why**. It is 
   surfaces, hitboxes
 
   Data:  MenuNode  MenuFrame  StudentGameRecord  (models.py)
-  Game launch: subprocess.run([python, game_main], cwd=game_folder)
+  Game launch: subprocess.run([interpreter, game_main], cwd=game_folder)
 ```
 
 `ArcadeLauncher` ([launcher/manager.py](../launcher/manager.py)) is intentionally thin. Its only jobs are:
@@ -139,7 +139,7 @@ Launching a game is a four-step sequence inside `launch_selected_game`:
 1. Play the select SFX, then run `show_loading_screen` for ~2.2 seconds with an animated `LOADING...` ellipsis. This both masks the perceived startup delay and lets the player feel the launcher acknowledged their input.
 2. Validate that `node.main_path` exists and its parent folder exists. Failures call `show_status_message` and abort without tearing down the launcher.
 3. `suspend_runtime` calls `pygame.display.quit() / pygame.joystick.quit() / pygame.quit()` so the child game has a clean slate to initialize Pygame on its own. The cabinet has only one display and audio device; we cannot share them.
-4. `subprocess.run([sys.executable, game_main], cwd=game_main.parent, check=False)` runs the game in **its own folder as the working directory**. This is the contract that lets games use relative asset paths and stay agnostic to the launcher.
+4. `subprocess.run([interpreter, game_main], cwd=game_main.parent, check=False)` runs the game in **its own folder as the working directory**. This is the contract that lets games use relative asset paths and stay agnostic to the launcher. `interpreter` comes from `_resolve_game_interpreter`: if `LauncherSettings.GAME_PYTHON` is set (and exists, resolved relative to `root_dir`), that path is used; otherwise it falls back to `sys.executable`. Source runs (`python main.py`) leave `GAME_PYTHON = None` and use the active interpreter as before. **Frozen builds (PyInstaller) must set `GAME_PYTHON`** to a bundled embeddable Python (e.g. `runtime/python/python.exe`) because in a frozen process `sys.executable` is the launcher exe itself and cannot run game scripts.
 
 When the subprocess exits (game window closed, quit combo pressed, or the game crashes), control returns to the launcher and `_restore_runtime` rebuilds the display, joysticks, renderer, and preview cache. Previews must be reloaded because the old display context is gone — surfaces created against it would not blit correctly.
 

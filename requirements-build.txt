@@ -1,0 +1,4 @@
+# Extra dependencies needed only to PRODUCE a packaged build.
+# Regular users running `python main.py` do not need these.
+-r requirements.txt
+pyinstaller>=6.0

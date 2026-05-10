@@ -40,7 +40,189 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
-## 2026-05-09T14:00:00-04:00 — Update launcher settings for ms-fishy folder rename
+## 2026-05-09T16:25:00-04:00 — Launch games via runpy.run_path to bypass embeddable-Python _pth restrictions
+
+**Editor:** GitHub Copilot (Claude Opus 4.7)
+
+**File:** launcher/manager.py
+**Lines (at time of edit):** 1-6 (removed `import os`), 428-447 (modified launch block)
+**Before:**
+            env = os.environ.copy()
+            ...
+            env["PYTHONPATH"] = str(game_dir) + ...
+            subprocess.run(
+                [self._resolve_game_interpreter(), str(game_main)],
+                cwd=str(game_dir),
+                env=env,
+                check=False,
+            )
+**After:**
+            runner = (
+                "import runpy, sys; "
+                f"runpy.run_path(r'{game_main}', run_name='__main__')"
+            )
+            subprocess.run(
+                [self._resolve_game_interpreter(), "-c", runner],
+                cwd=str(game_dir),
+                check=False,
+            )
+**Why:** The previous PYTHONPATH approach was a dead end: when a `._pth` file
+is present (always true for the Windows embeddable distribution), Python
+ignores PYTHONPATH and disables the usual "prepend script directory to
+sys.path" behavior, so games doing `from settings import *` still failed
+with ModuleNotFoundError. `runpy.run_path` explicitly inserts the script's
+folder at sys.path[0] before executing, which works regardless of `_pth`
+restrictions and matches the behavior of `python game/main.py` from source.
+
+---
+
+**Editor:** GitHub Copilot (Claude Opus 4.7)
+
+**File:** launcher/manager.py
+**Lines (at time of edit):** 1-7 (added `import os`), 428-447 (modified launch block)
+**Before:**
+            subprocess.run(
+                [self._resolve_game_interpreter(), str(game_main)],
+                cwd=str(game_dir),
+                check=False,
+            )
+**After:**
+            env = os.environ.copy()
+            existing_pythonpath = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = (
+                str(game_dir) + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
+            )
+            subprocess.run(
+                [self._resolve_game_interpreter(), str(game_main)],
+                cwd=str(game_dir),
+                env=env,
+                check=False,
+            )
+**Why:** The Windows embeddable Python distribution used by packaged builds
+ships with a `._pth` file that puts the interpreter in isolated mode and does
+not auto-prepend the script's directory to `sys.path`. Games that do
+`from settings import *` (i.e. their own local module) crashed with
+`ModuleNotFoundError`. Setting `PYTHONPATH` to the game folder restores the
+expected behavior. Harmless in source runs.
+
+---
+
+**Editor:** GitHub Copilot (Claude Opus 4.7)
+
+**File:** arcade.spec
+**Lines (at time of edit):** (new file)
+**After:** PyInstaller spec bundling main.py + launcher/ + assets/ + settings.py
+into a windowed (no-console) ArcadeCabinet exe. Deliberately omits games/ and
+runtime/ so they remain on-disk siblings of the exe.
+**Why:** Defines a reproducible build recipe.
+
+**File:** scripts/setup_runtime.ps1
+**Lines (at time of edit):** (new file)
+**After:** Downloads the official Windows embeddable Python, extracts to
+runtime/python/, enables `import site` in the `_pth` file, bootstraps pip via
+get-pip.py, and installs requirements.txt into the bundled interpreter.
+**Why:** Automates the one-time provisioning of the bundled runtime that
+packaged builds use to launch game subprocesses.
+
+**File:** build.ps1
+**Lines (at time of edit):** (new file)
+**After:** Cleans build/ and dist/, runs `python -m PyInstaller arcade.spec`,
+then copies games/ and runtime/ next to the produced exe.
+**Why:** One-command distributable build.
+
+**File:** requirements.txt
+**Lines (at time of edit):** 1 (added)
+**Before:** (empty)
+**After:** pygame>=2.5
+**Why:** Declares the launcher's actual runtime dependency so both source
+installs and the bundled-runtime setup can use `pip install -r`.
+
+**File:** requirements-build.txt
+**Lines (at time of edit):** (new file)
+**After:** `-r requirements.txt` plus `pyinstaller>=6.0`
+**Why:** Keeps build-only tooling out of the runtime requirement set.
+
+**File:** settings.py
+**Lines (at time of edit):** 41-49 (modified)
+**Before:**
+        GAME_PYTHON: "Path | None" = None
+**After:**
+        GAME_PYTHON: "Path | None" = Path("runtime") / "python" / "python.exe"
+**Why:** With the resolver's `exists()` fallback to `sys.executable`, this is
+safe in source runs (the path is absent so dev keeps using the active
+interpreter) and automatically activates the bundled runtime in packaged
+builds without any build-time patching.
+
+**File:** .gitignore
+**Lines (at time of edit):** PyInstaller block (modified), bottom (added)
+**After:** Added `!arcade.spec` exception so the packaging spec is tracked,
+and added `runtime/` to ignore the locally-provisioned embeddable Python.
+**Why:** Keep the build recipe in source control, keep the ~30 MB binary
+runtime out.
+
+**File:** README.md
+**Lines (at time of edit):** after Install & Run (added)
+**After:** New "Packaging a distributable build" section documenting
+`pip install -r requirements-build.txt`, `.\scripts\setup_runtime.ps1`, and
+`.\build.ps1`.
+**Why:** Surface the new workflow at the top-level entry point.
+
+---
+
+**Editor:** GitHub Copilot (Claude Opus 4.7)
+
+**File:** settings.py
+**Lines (at time of edit):** 41-49 (added)
+**Before:**
+    JIL_LOGO_PLACEHOLDER_COLOR = (255, 0, 0)
+**After:**
+    JIL_LOGO_PLACEHOLDER_COLOR = (255, 0, 0)
+    # Path to a Python interpreter used to launch games as subprocesses.
+    # ... (relative to launcher root; None falls back to sys.executable)
+    GAME_PYTHON: "Path | None" = None
+**Why:** Frozen PyInstaller builds set sys.executable to the launcher exe, which
+cannot run game scripts. Adding a configurable interpreter path lets a packaged
+build point at a bundled embeddable Python (e.g. `runtime/python/python.exe`)
+without affecting normal `python main.py` runs (None -> sys.executable).
+
+**File:** launcher/manager.py
+**Lines (at time of edit):** 384-405 (added), 410-414 (modified)
+**Before:**
+            subprocess.run(
+                [sys.executable, str(game_main)],
+                cwd=str(game_dir),
+                check=False,
+            )
+**After:**
+            subprocess.run(
+                [self._resolve_game_interpreter(), str(game_main)],
+                cwd=str(game_dir),
+                check=False,
+            )
+Plus new `_resolve_game_interpreter` method that reads
+`LauncherSettings.GAME_PYTHON`, resolves it relative to `self.root_dir`, and
+falls back to `sys.executable` if unset or missing.
+**Why:** Routes game subprocess launches through a single, swappable interpreter
+selector so a packaged build can use a bundled Python while source runs are
+unchanged.
+
+**File:** main.py
+**Lines (at time of edit):** 1-20 (modified)
+**Before:**
+    def main() -> None:
+        ArcadeLauncher(Path(__file__).resolve().parent).run()
+**After:**
+    def main() -> None:
+        if getattr(sys, "frozen", False):
+            root_dir = Path(sys.executable).resolve().parent
+        else:
+            root_dir = Path(__file__).resolve().parent
+        ArcadeLauncher(root_dir).run()
+**Why:** When frozen, `__file__` lives inside PyInstaller's temp extraction dir,
+but assets/games/runtime ship next to the exe. Anchoring root_dir to the exe's
+folder in frozen mode keeps every existing relative path correct.
+
+---
 
 **Editor:** GitHub Copilot (Claude Haiku 4.5)
 

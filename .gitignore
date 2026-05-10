@@ -29,6 +29,8 @@ MANIFEST
 # PyInstaller
 *.manifest
 *.spec
+# ...but track our packaging spec so the build is reproducible.
+!arcade.spec
 
 # Installer logs
 pip-log.txt
@@ -117,6 +119,10 @@ games/air-hockey/high_score.txt
 star-hero/high_score.txt
 dungeon-digger/high_score.txt
 dungeon-digger/leaderboard.txt
+
+# Bundled embeddable Python for packaged builds. Populated locally by
+# scripts/setup_runtime.ps1; not source-controlled.
+runtime/
 
 # Marimo
 marimo/_static/

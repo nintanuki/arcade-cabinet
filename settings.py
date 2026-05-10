@@ -36,6 +36,15 @@ class LauncherSettings:
     # Deliberately hotter than ColorSettings.RED so a missing-asset bug
     # cannot be visually confused with a normal red UI element.
     JIL_LOGO_PLACEHOLDER_COLOR = (255, 0, 0)
+    # Path to a Python interpreter used to launch games as subprocesses.
+    # Relative paths resolve against the launcher base directory (the repo
+    # root in dev, or the folder containing the frozen exe in a PyInstaller
+    # build). When the resolved path does not exist, the launcher falls back
+    # to sys.executable -- correct for normal `python main.py` runs. In a
+    # frozen build sys.executable is the launcher exe itself and cannot run
+    # game scripts, so packaged builds rely on this default pointing at the
+    # bundled embeddable interpreter populated by scripts/setup_runtime.ps1.
+    GAME_PYTHON: "Path | None" = Path("runtime") / "python" / "python.exe"
 
 
 class ColorSettings:
