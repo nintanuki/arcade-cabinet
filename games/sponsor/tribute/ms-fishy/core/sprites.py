@@ -440,11 +440,16 @@ class Fish(pygame.sprite.Sprite):
         else:
             self.rect.left = ScreenSettings.WIDTH
 
+        # Track horizontal position as float so sub-pixel fish speeds do not
+        # get truncated away by integer Rect assignment each frame.
+        self._pos_x = float(self.rect.x)
+
         self.rect.y = random.randint(0, ScreenSettings.HEIGHT - body_height)
 
     def update(self):
         """Advance enemy fish position and remove it once it clears the screen."""
-        self.rect.x += self.speed * self.direction
+        self._pos_x += self.speed * self.direction
+        self.rect.x = int(self._pos_x)
         
         # Kill if off-screen
         if self.rect.right < -50 or self.rect.left > ScreenSettings.WIDTH + 50:

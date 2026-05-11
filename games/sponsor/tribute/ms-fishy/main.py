@@ -1,7 +1,7 @@
 from __future__ import annotations
+import asyncio
 
 import pygame
-import sys
 
 from systems.audio_manager import AudioManager
 from systems.leaderboard import Leaderboard
@@ -9,6 +9,7 @@ from systems.scene_manager import SceneManager
 from crt import CRT
 from settings import (
     ColorSettings,
+    DebugSettings,
     FontSettings,
     InputSettings,
     ScreenSettings,
@@ -44,7 +45,10 @@ class GameManager:
         # Post-processing: tracked separately because the CRT pass is skipped
         # when the player is already on a real CRT (i.e. fullscreen on the cabinet).
         self.full_screen = False
-        self.crt = CRT(self.screen)
+        self.running = True
+        self.crt_enabled = DebugSettings.ENABLE_CRT
+        self.web_safe_exit = DebugSettings.WEB_SAFE_EXIT
+        self.crt = CRT(self.screen) if self.crt_enabled else None
 
         # Scene management
         self.scenes = SceneManager()
@@ -78,8 +82,12 @@ class GameManager:
 
     def close_game(self) -> None:
         """Close the game process cleanly."""
+        if self.web_safe_exit:
+            self.running = False
+            return
+
         pygame.quit()
-        sys.exit()
+        raise SystemExit
 
     def quit_combo_pressed(self) -> bool:
         """Return True if START + SELECT + L1 + R1 are held on any controller."""
@@ -169,20 +177,26 @@ class GameManager:
         self.scenes.current.render(self.screen)
 
         # Apply CRT pass after scene rendering.
-        if not self.full_screen:
+        if self.crt_enabled and not self.full_screen and self.crt is not None:
             self.crt.draw()
 
-    def run(self):
+    async def run(self):
         """Run the main game loop until the player quits."""
-        while True:
+        while self.running:
             if self.quit_combo_pressed():
                 self.close_game()
+            if not self.running:
+                break
             self._process_events()
+            if not self.running:
+                break
             self._update_world()
             self._render_frame()
             pygame.display.flip()
             self.clock.tick(ScreenSettings.FPS)
 
+        pygame.quit()
+
 if __name__ == "__main__":
     game_manager = GameManager()
-    game_manager.run()
+    asyncio.run(game_manager.run())

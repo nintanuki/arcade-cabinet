@@ -470,6 +470,129 @@ doing the actual implementation.
 
 ---
 
+## 2026-05-11T14:00:00-04:00 — ratio-based time bonus to fix trivial late-game hunger
+
+**File:** settings.py
+**Lines (at time of edit):** 222-231 (modified)
+**Before:**
+    # Base seconds added per pixel of fish width when the player eats it.
+    SECONDS_PER_FISH_PIXEL = 0.4
+    # Minimum ratio ... value of 0.1 ...
+    TIMER_MIN_RATIO = 0.05
+**After:**
+    # Seconds added for eating a fish exactly the player's own size.
+    SECONDS_PER_EAT = 6
+    # Minimum ratio ... value of 0.05 ...
+    TIMER_MIN_RATIO = 0.05
+**Why:** The old formula multiplied the absolute fish-size in pixels by SECONDS_PER_FISH_PIXEL, so a large player eating a large peer could gain 80+ seconds per eat, making the hunger meter trivial. The new constant is ratio-only: bonus = effective_ratio × SECONDS_PER_EAT. Eating a peer always gives the same seconds regardless of size, keeping the timer meaningful in the late game. Lowering TIMER_MIN_RATIO alone did not fix this because it only affects the floor for tiny fish, not the absolute-size explosion.
+
+**File:** ui/scenes/play_scene.py
+**Lines (at time of edit):** 227-234 (modified)
+**Before:**
+    self._remaining_time_seconds += (
+        fish_size * TimerSettings.SECONDS_PER_FISH_PIXEL * effective_ratio
+    )
+**After:**
+    self._remaining_time_seconds += (
+        effective_ratio * TimerSettings.SECONDS_PER_EAT
+    )
+**Why:** Implements the ratio-only formula — absolute fish size no longer appears in the bonus calculation.
+
+**File:** docs/ARCHITECTURE.md
+**Lines (at time of edit):** 77 (modified)
+**Before:**
+    Time bonus formula referenced SECONDS_PER_FISH_PIXEL and said TIMER_MIN_RATIO default was 0.1.
+**After:**
+    Updated to describe ratio-only formula and correct TIMER_MIN_RATIO default of 0.05.
+**Why:** Keep docs in sync with code.
+
+**Editor:** GitHub Copilot (Claude Sonnet 4.6)
+
+---
+
+## 2026-05-11T12:40:42-04:00 — prevent tally lines from shifting during reveal
+
+**File:** ui/scenes/game_over_scene.py
+**Lines (at time of edit):** 171-179 in `render` (modified)
+**Before:**
+    `block_width` was computed from only currently visible lines, so when a
+    wider line appeared later, `block_left_x` changed and previously drawn
+    lines appeared to jump left.
+**After:**
+    `block_width` is computed from all tally lines up front (including rows not
+    yet visible), then a fixed `block_left_x` is used for every reveal step.
+**Why:** Keeps the centered left-justified tally block visually stable while rows pop in one-by-one.
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+---
+
+## 2026-05-11T12:37:18-04:00 — centered outcome restored; centered left-justified tally block
+
+**File:** ui/scenes/game_over_scene.py
+**Lines (at time of edit):** 148-187 (modified)
+**Before:**
+    Outcome text used a left-edge anchor (`midleft`) and appeared left-aligned.
+    Tally lines also used a left-edge anchor tied to generic HUD padding.
+    Final score row shared the same vertical rhythm as the tally rows.
+**After:**
+    Outcome text now uses a true centered anchor (`center=(WIDTH//2, HEIGHT//2)`).
+    Tally lines are rendered into a centered block with a shared computed left
+    edge (`block_left_x`), so each line is left-justified while the whole
+    group remains centered on-screen.
+    Added an explicit extra gap before the final TOTAL SCORE row.
+**Why:** User requested a centered composition with left-justified tally text shape, while restoring centered outcome messaging and adding clearer separation before the final score.
+
+**File:** settings.py
+**Lines (at time of edit):** 87-90 (modified)
+**Before:**
+    TALLY_LINE_START_Y_RATIO = 0.34
+    (no dedicated extra-gap constant before total row)
+**After:**
+    TALLY_LINE_START_Y_RATIO = 0.30
+    TALLY_TOTAL_TOP_GAP = 24
+**Why:** Moves the tally block upward and adds tunable spacing between the stat lines and the final total line.
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+---
+
+## 2026-05-11T12:33:19-04:00 — left-aligned tally text, non-padded values, and larger total row
+
+**File:** ui/scenes/game_over_scene.py
+**Lines (at time of edit):** 17-187 (modified)
+**Before:**
+    from utils.text import draw_centered_text
+    ...
+    f"+ NUMBER OF FISH EATEN: ... ({fish_points:05d})"
+    ...
+    f"TOTAL SCORE = {self.score.total:05d}!"
+    ...
+    draw_centered_text(... center=(ScreenSettings.WIDTH // 2, ...))
+**After:**
+    (removed centered-text helper import from this scene)
+    ...
+    f"+ NUMBER OF FISH EATEN: ... ({fish_points})"
+    ...
+    f"TOTAL SCORE = {self.score.total}!"
+    ...
+    Outcome and tally lines are rendered via font surfaces with `midleft`
+    anchors using `UiSettings.HUD_PADDING` so all text is left-aligned.
+    Final total row uses `self._tally_total_font` for larger text.
+**Why:** Requested UI polish for the new tally scene: left alignment, no trailing zero padding in numeric output, and stronger visual emphasis on the final TOTAL SCORE line.
+
+**File:** settings.py
+**Lines (at time of edit):** 89 (modified)
+**Before:**
+    (no dedicated total-row font-size setting for game-over tally)
+**After:**
+    TALLY_TOTAL_FONT_SIZE = 36
+**Why:** Keeps the larger final-score row size configurable in settings and avoids hardcoded font-size values in scene code.
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+---
+
 ## 2026-05-09T23:44:00-04:00 — outcome text colors for loss/win messaging
 
 **File:** settings.py
@@ -624,6 +747,158 @@ doing the actual implementation.
     Added explicit rule: keep `TitleScene` to exactly two centered lines (`MS. FISHY` and
     `PRESS START TO PLAY`) over ocean background + background fish unless user explicitly requests otherwise.
 **Why:** Prevents future Copilot sessions from reintroducing title-screen extras without direct user instruction.
+
+---
+
+## 2026-05-09T18:47:18-04:00 — settings CRT toggle for testing and pybag
+
+**File:** settings.py
+**Lines (at time of edit):** 264-272 (modified)
+**Before:**
+    class DebugSettings:
+        """Settings related to debugging features."""
+        START_LARGE_PLAYER = False
+        LARGE_PLAYER_SIZE = 640
+**After:**
+    class DebugSettings:
+        """Settings related to debugging features."""
+
+        ENABLE_CRT = True
+        START_LARGE_PLAYER = False
+        LARGE_PLAYER_SIZE = 640
+**Why:** Adds a single settings-level switch to disable the CRT overlay for pybag runs or quick testing without changing runtime code.
+
+**File:** main.py
+**Lines (at time of edit):** 11-17, 47-50, 175-176 (modified)
+**Before:**
+    from settings import (...)
+    self.crt = CRT(self.screen)
+    if not self.full_screen:
+        self.crt.draw()
+**After:**
+    from settings import (..., DebugSettings, ...)
+    self.crt_enabled = DebugSettings.ENABLE_CRT
+    self.crt = CRT(self.screen) if self.crt_enabled else None
+    if self.crt_enabled and not self.full_screen and self.crt is not None:
+        self.crt.draw()
+**Why:** Keeps the CRT decision at the game-manager render boundary and skips loading the overlay asset entirely when disabled.
+
+**File:** docs/ARCHITECTURE.md
+**Lines (at time of edit):** 174, 192 (modified)
+**Before:**
+    CRT section described windowed-only rendering but not a settings kill switch.
+    DebugSettings was documented only as a large-player testing bucket.
+**After:**
+    CRT section now documents `DebugSettings.ENABLE_CRT` as the construction gate.
+    DebugSettings is documented as owning both CRT and large-player debug toggles.
+**Why:** Architecture documentation now matches the runtime control point for the CRT overlay.
+
+**File:** docs/TESTING.md
+**Lines (at time of edit):** 18, 22 (modified)
+**Before:**
+    CRT overlay is visible (scanlines + slight flicker).
+    `F11` toggles fullscreen. CRT overlay disappears in fullscreen, reappears in windowed.
+**After:**
+    CRT visibility checks are conditional on `DebugSettings.ENABLE_CRT`.
+    Fullscreen CRT expectations are only asserted when the CRT toggle is enabled.
+
+---
+
+## 2026-05-11T12:30:14-04:00 — game-over stat tally reveal and direct leaderboard handoff
+
+**File:** ui/scenes/game_over_scene.py
+**Lines (at time of edit):** 20-178 (modified)
+**Before:**
+    class GameOverScene(Scene):
+        """Two-step end-of-run scene before leaderboard routing.
+
+        Step 1 displays the outcome text (loss or victory). After confirm, step 2
+        displays GAME OVER. A second confirm routes to InitialsEntryScene or
+        LeaderboardScene based on leaderboard qualification.
+        """
+
+    def _advance_flow_action(self) -> None:
+        if self._phase == self._PHASE_OUTCOME_MESSAGE:
+            self._phase = self._PHASE_GAME_OVER_MESSAGE
+            return
+        self._route_to_post_game_scene()
+
+    def _route_to_post_game_scene(self) -> None:
+        if self.score is not None and self.game.leaderboard.qualifies(self.score.total):
+            from ui.scenes.initials_entry_scene import InitialsEntryScene
+            self.game.scenes.change_to(InitialsEntryScene(self.game, self.score))
+        else:
+            from ui.scenes.leaderboard_scene import LeaderboardScene
+            self.game.scenes.change_to(LeaderboardScene(self.game, self.score))
+**After:**
+    class GameOverScene(Scene):
+        """Outcome message then timed stat tally before leaderboard routing."""
+
+    def _advance_flow_action(self) -> None:
+        if self._phase == self._PHASE_OUTCOME_MESSAGE:
+            self._phase = self._PHASE_TALLY
+            self._tally_elapsed_ms = 0
+            return
+        if self._phase == self._PHASE_TALLY and self._all_tally_lines_visible():
+            self._route_to_post_game_scene()
+
+    def _tally_lines(self) -> list[str]:
+        return [
+            "+ NUMBER OF FISH EATEN: ...",
+            "+ TOTAL WEIGHT EATEN: ...",
+            "+ MS. FISHY'S FINAL WEIGHT: ...",
+            "+ SECONDS LEFT ON THE TIMER: ...",
+            "= TOTAL SCORE! ...",
+        ]
+
+    def _route_to_post_game_scene(self) -> None:
+        from ui.scenes.leaderboard_scene import LeaderboardScene
+        self.game.scenes.change_to(LeaderboardScene(self.game, self.score))
+**Why:** Implements requested end-of-run pacing: remove the standalone GAME OVER interstitial, reveal each stat line one-by-one, and only allow confirm-to-leaderboard after the tally is fully shown.
+
+**File:** settings.py
+**Lines (at time of edit):** 86-88 in `UiSettings` (modified)
+**Before:**
+    (no game-over tally reveal timing/layout constants)
+**After:**
+    TALLY_LINE_REVEAL_DELAY_MS = 700
+    TALLY_LINE_START_Y_RATIO = 0.34
+    TALLY_LINE_ROW_GAP = 60
+**Why:** Keeps reveal cadence and tally layout tunable from settings, avoiding magic numbers in scene code.
+
+**File:** docs/ARCHITECTURE.md
+**Lines (at time of edit):** 85-102 (modified)
+**Before:**
+    GameOverScene phase 2 was documented as centered `GAME OVER` text,
+    with routing to InitialsEntryScene when leaderboard qualification passed.
+**After:**
+    GameOverScene phase 2 is documented as delayed stat tally reveal using
+    `UiSettings.TALLY_LINE_REVEAL_DELAY_MS`, with routing directly to
+    LeaderboardScene after tally confirmation.
+**Why:** Documentation truth update to match actual runtime flow.
+
+**File:** docs/TODO.md
+**Lines (at time of edit):** 108, 118-122 (modified)
+**Before:**
+    - [x] End-of-run messaging flow ... then `GAME OVER` on confirm, then leaderboard routing.
+    - [ ] Add a timer ... Seconds left on timer add to the score
+    - [ ] # of fish adds to score
+    - [ ] player's final weight adds to score
+    - [ ] Display all statistics at the end ... and add to final score
+**After:**
+    - [x] End-of-run messaging flow ... then delayed stat tally, then leaderboard routing.
+    - [x] Add a timer ... Seconds left on timer add to the score
+    - [x] # of fish adds to score
+    - [x] player's final weight adds to score
+    - [x] Display all statistics at the end ... and add to final score
+**Why:** Marks completed roadmap items and updates the completed messaging description to the new tally flow.
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+**Why:** The smoke checklist must reflect that CRT is now an optional debug setting rather than always-on behavior.
+
+**Editor:** GitHub Copilot (GPT-5.4)
+
+---
 
 **File:** docs/ARCHITECTURE.md
 **Lines (at time of edit):** 62, 111 (modified)
@@ -1003,6 +1278,64 @@ doing the actual implementation.
 **Lines (at time of edit):** 1-170 (modified)
 **After:** `GameManager.__init__` now creates `Player`, `all_sprites`, `enemy_sprites`, and `FishManager`. `_update_world` drives all three. `_render_frame` draws both sprite groups.
 **Why:** Wire the new sprites and manager into the frame loop.
+
+---
+
+## 2026-05-09T18:51:59-04:00 — web-safe exit toggle for pybag/browser runs
+
+**File:** settings.py
+**Lines (at time of edit):** 264-282 (modified)
+**Before:**
+    class DebugSettings:
+        """Settings related to debugging features."""
+
+        ENABLE_CRT = False
+        START_LARGE_PLAYER = False
+        LARGE_PLAYER_SIZE = 640
+**After:**
+    class DebugSettings:
+        """Settings related to debugging features."""
+
+        ENABLE_CRT = False
+        WEB_SAFE_EXIT = False
+        START_LARGE_PLAYER = False
+        LARGE_PLAYER_SIZE = 640
+**Why:** Adds a dedicated settings toggle so browser-safe builds can avoid `sys.exit()` while keeping existing desktop shutdown behavior available.
+
+**File:** main.py
+**Lines (at time of edit):** 1-4, 42-51, 82-89, 185-197 (modified)
+**Before:**
+    Imported `sys`.
+    `close_game()` always called `pygame.quit()` followed by `sys.exit()`.
+    `run()` loop was `while True`, so there was no clean loop-exit path.
+**After:**
+    Removed the unused `sys` import.
+    Added `self.running` and `self.web_safe_exit` state to `GameManager`.
+    `close_game()` now clears `self.running` and returns when `WEB_SAFE_EXIT` is enabled; otherwise it keeps desktop-style `SystemExit` shutdown.
+    `run()` now uses `while self.running`, breaks immediately after quit requests, and calls `pygame.quit()` after loop exit.
+**Why:** Keeps shutdown behavior controlled at the owning game-loop abstraction and makes pybag/browser exits stop the frame loop cleanly instead of raising a browser-console "clean crash".
+
+**File:** docs/ARCHITECTURE.md
+**Lines (at time of edit):** 25, 37-42, 192 (modified)
+**Before:**
+    `GameManager` ownership list did not mention the loop-running flag.
+    Frame-loop docs ended at `flip()` and `tick()`.
+    `DebugSettings` docs did not include any exit-mode toggle.
+**After:**
+    Documented the `running` flag on `GameManager`.
+    Documented the shutdown path after loop exit and the `WEB_SAFE_EXIT` behavior split.
+    `DebugSettings` docs now include the web-safe exit toggle.
+**Why:** Architecture docs now match the actual shutdown control flow.
+
+**File:** docs/TESTING.md
+**Lines (at time of edit):** 23 (modified)
+**Before:**
+    `Esc` exits cleanly.
+**After:**
+    `Esc` exits cleanly, and with `DebugSettings.WEB_SAFE_EXIT = True` it should do so by leaving the loop without a `sys.exit()` traceback.
+**Why:** The manual smoke test now reflects the optional web-safe shutdown mode.
+
+**Editor:** GitHub Copilot (GPT-5.4)
 **Editor:** Bryan
 
 ## 2026-05-08 — Docs rewritten for Fishy
@@ -1990,3 +2323,195 @@ doing the actual implementation.
 **Why:** Guarantees equal spacing between row 1->2 and 2->3 while centering the whole trio vertically.
 
 **Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+## 2026-05-10T10:38:00-04:00 — fix fish sticking at left screen edge
+
+**File:** core/sprites.py
+**Lines (at time of edit):** 445-452 (modified)
+**Before:**
+    def update(self):
+        """Advance enemy fish position and remove it once it clears the screen."""
+        self.rect.x += self.speed * self.direction
+
+        # Kill if off-screen
+        if self.rect.right < -50 or self.rect.left > ScreenSettings.WIDTH + 50:
+            self.kill()
+**After:**
+    self._pos_x = float(self.rect.x)
+
+    def update(self):
+        """Advance enemy fish position and remove it once it clears the screen."""
+        self._pos_x += self.speed * self.direction
+        self.rect.x = int(self._pos_x)
+
+        # Kill if off-screen
+        if self.rect.right < -50 or self.rect.left > ScreenSettings.WIDTH + 50:
+            self.kill()
+**Why:** Fish speeds are floats, but `pygame.Rect` stores integers. Directly adding sub-pixel values to `rect.x` caused truncation artifacts that pinned right-moving fish at the left edge. A float accumulator preserves fractional movement and resolves the left-side sticking.
+
+**File:** docs/ARCHITECTURE.md
+**Lines (at time of edit):** 137 (modified)
+**Before:**
+    - **Movement:** Constant horizontal speed in `[FishSettings.MIN_SPEED, FishSettings.MAX_SPEED]`. Self-destructs (`kill()`) once it clears the opposite edge by 50 px.
+**After:**
+    - **Movement:** Constant horizontal speed in `[FishSettings.MIN_SPEED, FishSettings.MAX_SPEED]`, integrated through a float x-position accumulator and then written to `rect.x` each frame so sub-pixel speeds move smoothly in both directions. Self-destructs (`kill()`) once it clears the opposite edge by 50 px.
+**Why:** Architecture docs must reflect the runtime movement model used by `Fish`.
+
+**File:** docs/CHANGELOG.md
+**Lines (at time of edit):** (appended)
+**After:**
+    Added this change-log entry.
+**Why:** Required append-only history update for this fix.
+
+**Editor:** GitHub Copilot (GPT-5.3-Codex)
+
+## 2026-05-11T12:00:00-04:00 — countdown timer, fish time bonus, starvation ending
+
+**File:** settings.py
+**Lines (at time of edit):** 45-53, 169-201 (modified)
+**Before:**
+    UiSettings defined only the bigger-fish and victory outcome text/colors.
+    No dedicated timer settings block existed.
+**After:**
+    Added `UiSettings.STARVED_TO_DEATH_TEXT` and `UiSettings.STARVED_TO_DEATH_COLOR`.
+    Added `TimerSettings` with `STARTING_SECONDS = 60` and `SECONDS_PER_FISH_PIXEL = 1`.
+**Why:** Makes the countdown start time and per-fish time bonus easy to tune in one place.
+
+**File:** ui/hud.py
+**Lines (at time of edit):** 1-53 (modified)
+**Before:**
+    HUD formatted an elapsed-time counter from whole seconds.
+**After:**
+    HUD now formats a countdown using `math.ceil(remaining_seconds)` and still renders fish count and score.
+**Why:** Top-right HUD label now shows time remaining instead of time elapsed.
+
+**File:** ui/scenes/play_scene.py
+**Lines (at time of edit):** 1-227 (modified)
+**Before:**
+    PlayScene tracked `_elapsed_frames`, passed elapsed seconds into the HUD, and only ended on bigger-fish or win conditions.
+**After:**
+    PlayScene now owns `_remaining_time_seconds`, decrements it during ACTIVE play, adds `fish.size * TimerSettings.SECONDS_PER_FISH_PIXEL` when fish are eaten, passes remaining time into the HUD, and ends the run with a starvation outcome when the timer reaches zero.
+**Why:** Converts the timer from a passive elapsed counter into an active countdown that can end the run and reward eating fish with more time.
+
+**File:** ui/scenes/game_over_scene.py
+**Lines (at time of edit):** 19-131 (modified)
+**Before:**
+    Outcome text handled only bigger-fish loss and victory.
+**After:**
+    Added a starvation outcome branch that renders `YOU STARVED TO DEATH` in red with the same size and centered position as the other outcome messages.
+**Why:** Gives the new countdown fail-state its own dedicated game-over card.
+
+**File:** docs/ARCHITECTURE.md
+**Lines (at time of edit):** 73-109 (modified)
+**Before:**
+    PlayScene docs described elapsed-time HUD behavior and only two loss/victory endings.
+**After:**
+    Docs now describe the countdown timer, fish-width time bonus, starvation routing, and the new top-right countdown HUD label.
+**Why:** Keeps the architecture notes aligned with the new runtime behavior.
+
+**File:** docs/TESTING.md
+**Lines (at time of edit):** 18-25 (modified)
+**Before:**
+    Gameplay smoke checks covered bigger-fish loss, victory, and pause behavior but not the countdown timer.
+**After:**
+    Smoke checks now verify the one-minute starting timer, the fish-width time bonus, the starvation fail-state, and the updated red end-of-run message.
+**Why:** Adds a manual check for the new countdown behavior.
+
+**Editor:** GitHub Copilot (GPT-5.4 mini)
+
+## 2026-05-11T13:30:00-04:00 — HUD redesign, diminishing-returns timer, compound score formula
+
+**File:** settings.py
+**Lines (at time of edit):** UiSettings (added HUD layout constants), TimerSettings (added TIMER_MIN_RATIO), new ScoreSettings class
+**Before:**
+    UiSettings had no HUD layout constants.
+    TimerSettings had only STARTING_SECONDS and SECONDS_PER_FISH_PIXEL.
+    No ScoreSettings class existed.
+**After:**
+    UiSettings: added HUD_LINE_SPACING, HUD_BAR_WIDTH, HUD_BAR_HEIGHT, HUNGER_WARNING_SECONDS.
+    TimerSettings: added TIMER_MIN_RATIO = 0.1 (floor for diminishing-returns ratio).
+    ScoreSettings: new class with WEIGHT_EATEN_FACTOR=1, FISH_EATEN_BONUS=10,
+    FINAL_WEIGHT_FACTOR=3, TIME_LEFT_BONUS=20.
+**Why:** Centralises all tunable constants for the new HUD and compound score formula.
+
+**File:** core/score.py
+**Lines (at time of edit):** 1-40 (modified)
+**Before:**
+    Tracked fish_eaten and size_eaten only; total returned size_eaten.
+**After:**
+    Added final_weight and time_left_seconds fields (default 0, set at run end).
+    total property now returns the compound formula:
+        size_eaten * WEIGHT_EATEN_FACTOR
+        + fish_eaten * FISH_EATEN_BONUS
+        + int(final_weight) * FINAL_WEIGHT_FACTOR
+        + int(time_left_seconds) * TIME_LEFT_BONUS
+**Why:** Score should reflect all run metrics, not just raw weight eaten.
+
+**File:** ui/hud.py
+**Lines (at time of edit):** 1-87 (rewritten)
+**Before:**
+    Three labels (FISH top-left, SCORE centre-top, TIME top-right); no hunger bar.
+**After:**
+    Four stacked top-left labels:
+        TOTAL FISH EATEN: NN
+        WEIGHT EATEN: NNNNN
+        CURRENT WEIGHT: NNNNN   (reads player.size live)
+        HUNGER TIMER: MM:SS     (turns red at <= HUNGER_WARNING_SECONDS)
+    Hunger bar below timer: green->red RGB lerp, drains as fraction of STARTING_SECONDS.
+    Score no longer shown in HUD; computed at run end.
+    Constructor now accepts player argument to read live current weight.
+**Why:** User requested this exact layout and hunger-bar visual.
+
+**File:** ui/scenes/play_scene.py
+**Lines (at time of edit):** Hud constructor call, update loop, _end_run (modified)
+**Before:**
+    Hud(score=..., font=...)
+    Time bonus was fish_size * SECONDS_PER_FISH_PIXEL (no diminishing returns).
+    _end_run did not set score.final_weight or score.time_left_seconds.
+**After:**
+    Hud(score=..., font=..., player=self.player)
+    Time bonus now applies diminishing returns:
+        effective_ratio = max(TIMER_MIN_RATIO, min(1.0, fish_size / player.size))
+        bonus = fish_size * SECONDS_PER_FISH_PIXEL * effective_ratio
+    _end_run sets score.final_weight = player.size and
+        score.time_left_seconds = _remaining_time_seconds before transitioning.
+**Why:** Near-peer fish give full time bonus; tiny fish give minimal time to a large player.
+    Score.total must reflect all stats, so they must be captured before the scene change.
+
+**Editor:** GitHub Copilot (Claude Sonnet 4.6)
+
+## 2026-05-11T14:15:00-04:00 — HUD polish: font size, line gap, bar fix, color, no leading zeros
+
+**File:** settings.py
+**Lines (at time of edit):** UiSettings block (modified)
+**Before:**
+    HUD_FONT_SIZE_SMALL = 16
+    HUD_LINE_SPACING = 22
+    HUD_BAR_HEIGHT = 8          # (no HUD_BAR_TOP_GAP)
+**After:**
+    HUD_FONT_SIZE_SMALL = 13
+    HUD_LINE_SPACING = 26
+    HUD_BAR_HEIGHT = 8
+    HUD_BAR_TOP_GAP = 4         # pixel gap between hunger timer text and hunger bar
+**Why:** Smaller font and wider spacing improve readability; HUD_BAR_TOP_GAP ensures
+    the bar never overlaps the timer text regardless of font size.
+
+**File:** ui/hud.py
+**Lines (at time of edit):** stat_rows, timer_color, bar_y (modified)
+**Before:**
+    f"TOTAL FISH EATEN: {self.score.fish_eaten:02d}"   # leading zeros
+    f"WEIGHT EATEN: {self.score.size_eaten:05d}"
+    f"CURRENT WEIGHT: {int(self.player.size):05d}"
+    ColorSettings.WHITE (stat labels and timer default)
+    bar_y = timer_y + line_h   # fixed offset -- overlapped timer text
+**After:**
+    f"TOTAL FISH EATEN: {self.score.fish_eaten}"       # plain integer, starts at 0
+    f"WEIGHT EATEN: {self.score.size_eaten}"
+    f"CURRENT WEIGHT: {int(self.player.size)}"
+    ColorSettings.IN_GAME_HUD_TEXT (stat labels and timer default)
+    bar_y = timer_y + timer_surf.get_height() + UiSettings.HUD_BAR_TOP_GAP
+**Why:** User requested no leading zeros (values start at 0), TRINIDAD color for
+    contrast against the aqua background, and the bar was visually overlapping the
+    timer label -- fixed by anchoring to the actual rendered text height.
+
+**Editor:** GitHub Copilot (Claude Sonnet 4.6)
