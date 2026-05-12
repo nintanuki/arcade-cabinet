@@ -12,16 +12,17 @@ The build is a fully-playable Space Invaders. Items below preserve the open work
 
 - [ ] Add an initials high-score system (mirrors jezz-ball).
 - [ ] Animate the alien sprites (alternate frames as the wave marches).
-- [ ] Add pause functionality (`P` / Start) with an overlay.
-- [ ] Add a fullscreen toggle (`F11` / Back).
-- [ ] Add a reset key combo to return cleanly to the launcher.
+- [x] Add pause functionality (`Enter` / Start) with an overlay.
+- [x] Add a fullscreen toggle (`F11` / Back).
+- [x] Add a reset key combo to return cleanly to the launcher (`Esc` / `Start + Back + L1 + R1`).
 
 ---
 
 ## Code health
 
-- [ ] Extract a `settings.py` for window size, alien grid layout, alien speed, laser cooldown, scoring values, and asset paths. (No central settings file exists today.)
-- [ ] `from settings import *` should be replaced with explicit imports once `settings.py` is added.
+- [x] Extract a `settings.py` for window size, alien grid layout, alien speed, laser cooldown, scoring values, and asset paths.
+- [x] Use explicit imports from `settings` (no `from settings import *`).
+- [x] Move sprite classes under `core/`, the CRT overlay under `ui/`, and bundled media under `assets/` to mirror the star-hero reference layout.
 
 ---
 

@@ -5,59 +5,71 @@
 ## 1. The shape of the program
 
 ```
-                          +--------------+
-                          |   main.py    |   (coordinator: event loop, sprite
-                          |    Game      |    groups, alien wave logic, score)
-                          +-----+--------+
-                                |
-   +--------+----------+--------+--------+----------+
-   |        |          |                 |          |
-   v        v          v                 v          v
- Player    Alien     Extra            Laser      Obstacle
- (player)  (alien)   (alien)          (laser)    (obstacle)
+                         +---------------+
+                         |   main.py     |   (entry point, event loop,
+                         |     Game      |    sprite groups, score, pause)
+                         +-----+---------+
+                               |
+   +-------------+-------------+-----------+-----------------+
+   |             |             |           |                 |
+   v             v             v           v                 v
+core/sprites   ui/crt        settings    assets/        pause helpers
+(Player,       (CRT          (all       (audio/,       (in main.py:
+Alien,         overlay)      constants  font/,         render_pause_overlay,
+Extra,                       grouped    graphics/)     run_pause_loop)
+Laser,                       into
+Block)                       *Settings)
 ```
 
-`Game` (in `main.py`) owns the screen, clock, joystick list, alien wave, sprite groups, score, lives, and the per-frame update / draw cycle.
+`Game` (in [main.py](../main.py)) owns the screen, clock, joystick list, alien wave, sprite groups, score, lives, and the per-frame update / draw cycle. The entry-point `main()` function builds the screen, the `Game`, and the `CRT` overlay before entering the run loop.
 
-## 2. Sprites
-
-- **`Player`** ([player.py](../player.py)) — horizontally-constrained ship. Reads keyboard + controller input each frame; fires a `Laser` on cooldown.
-- **`Alien`** ([alien.py](../alien.py)) — single invader; multiple rows of these are spawned in a grid.
-- **`Extra`** ([alien.py](../alien.py)) — UFO that occasionally streaks across the top for bonus points.
-- **`Laser`** ([laser.py](../laser.py)) — projectile, owned by either the player or an alien.
-- **`Obstacle`** ([obstacle.py](../obstacle.py)) — destructible bunker built from a brick grid; bricks `kill()` themselves on laser collision.
-
-## 3. Alien wave
-
-Aliens are arranged in rows. Each frame `Game` shifts the whole group horizontally; if any alien hits a screen edge, the group flips horizontal direction and drops one row. Aliens occasionally fire by selecting a random alien and spawning an alien-owned `Laser` from its position.
-
-## 4. Frame loop
-
-`Game.run()` (per frame): drain events → check quit combo → update player → update alien group + alien lasers → update player lasers → resolve collisions (player-laser ↔ alien / extra / obstacle ; alien-laser ↔ player / obstacle) → draw → CRT pass → flip.
-
-## 5. Scoring
-
-Each alien type has a different point value (front rows worth less, back rows more). `Extra` is worth a randomized bonus. Score is rendered at the top of the screen.
-
-## 6. Pause
-
-A pause overlay reuses the shared `Pixeled` font (loaded by `load_pause_font`, which falls back to alternative font paths if the local copy is missing). Toggling pause freezes the update loop but keeps drawing the last frame.
-
-## 7. Input model
-
-- Keyboard: `Left` / `Right` move; `Space` fires; `Esc` quits.
-- Controller: D-pad left / right move; A button fires; `Start + Back + L1 + R1` quit combo exits.
-
-## 8. Source tree
+## 2. Source tree
 
 ```
-audio/, font/, graphics/   Asset folders
-alien.py                   Alien + Extra sprites
-laser.py                   Laser sprite
-main.py                    Game + entry point + controller helpers
-obstacle.py                Obstacle bunker
-player.py                  Player ship
-docs/                      ARCHITECTURE, TODO, TESTING, CHANGELOG
+main.py                Entry point + Game class + pause overlay helpers
+settings.py            Every tuning value, grouped into *Settings classes
+core/
+    __init__.py
+    sprites.py         Player, Alien, Extra, Laser, Block sprite classes
+ui/
+    __init__.py
+    crt.py             CRT scanline + flicker overlay
+assets/
+    audio/             Music + sound effects
+    font/              Pixeled.ttf bitmap font
+    graphics/          Player ship, aliens, UFO, bunker, TV overlay
+docs/                  ARCHITECTURE, TODO, TESTING, CHANGELOG
 ```
 
-There is no `settings.py` yet — moving constants out of `main.py` is a roadmap item.
+## 3. Sprites ([core/sprites.py](../core/sprites.py))
+
+- **`Player`** — horizontally-constrained ship. Reads keyboard + controller input each frame; fires a `Laser` on cooldown.
+- **`Alien`** — single invader; multiple rows are spawned in a grid by `Game.alien_setup`.
+- **`Extra`** — UFO that occasionally streaks across the top for bonus points.
+- **`Laser`** — projectile, owned by either the player or an alien.
+- **`Block`** — single brick used to build destructible bunkers (the bunker shape lives in `ObstacleSettings.SHAPE`).
+
+## 4. Alien wave
+
+Aliens march horizontally each frame. When any alien touches a screen edge, `Game.alien_position_checker` flips `alien_direction` and steps the whole group down by `AlienSettings.DESCEND_DISTANCE`. A repeating pygame timer event (`AlienSettings.LASER_INTERVAL_MS`) drives `Game.alien_shoot`, which spawns an alien-owned `Laser` from a random alien's center.
+
+## 5. Frame loop ([main.py](../main.py) `main()`)
+
+Per frame: poll quit combo → drain events (keyboard, joystick, alien-laser timer) → fill background → `Game.run(screen)` → CRT draw pass → flip. `Game.run` advances every sprite group, runs `collision_checks`, then draws lasers, ships, aliens, the UFO, and the HUD in order.
+
+## 6. Scoring ([settings.py](../settings.py) `AlienSettings.POINTS`)
+
+`AlienSettings.POINTS` maps each color to a point value (red 100, green 200, yellow 300). The UFO (`ExtraSettings.POINTS`) is worth 500. Score is rendered at the top-left in ALL CAPS by `Game.display_score`.
+
+## 7. Pause ([main.py](../main.py))
+
+`render_pause_overlay` paints a translucent backdrop plus a centered `PAUSED` label. `run_pause_loop` snapshots the active frame, blits that snapshot every tick, and waits for `Enter` / `Start` to resume or any quit signal to exit. Optional `sfx_sounds_pause2_in/out.wav` play if present.
+
+## 8. Input model ([settings.py](../settings.py) `ControllerSettings`)
+
+- Keyboard: `Left` / `Right` move; `Space` fires; `Enter` toggles pause; `F11` fullscreen; `Esc` quits.
+- Controller: D-pad / left analog move; `A` fires; `Start` toggles pause; `Back` fullscreen; `Start + Back + L1 + R1` quit combo exits.
+
+## 9. Constants discipline
+
+All tuning values live in [settings.py](../settings.py). Adding a new number should mean adding a class attribute (or a new `*Settings` class when the value isn't closely related to its neighbors). Sprite modules and the CRT only import the settings they need — they never hard-code dimensions, colors, or asset paths.

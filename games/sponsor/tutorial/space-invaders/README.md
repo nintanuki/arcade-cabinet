@@ -4,7 +4,7 @@ A Pygame Space Invaders clone. Move the player ship horizontally, shoot lasers, 
 
 ## Status
 
-**Phase: Tutorial / playable.** Player movement + shooting, a grid of `Alien` rows that march and descend, `Laser` projectiles, destructible `Obstacle` blocks, and an `Extra` UFO are all implemented. Pause overlay and CRT scanlines render. Open polish items (initials high-score, animations, full-screen, post-game flow) live in [docs/TODO.md](docs/TODO.md).
+**Phase: Tutorial / playable.** Player movement + shooting, a grid of `Alien` rows that march and descend, `Laser` projectiles, destructible bunker `Block`s, and an `Extra` UFO are all implemented. Pause overlay and CRT scanlines render. The code now follows the star-hero folder layout: sprites under [core/](core/), the CRT overlay under [ui/](ui/), tuning values in [settings.py](settings.py), and bundled media under [assets/](assets/). Open polish items (initials high-score, alien animations, post-game flow) live in [docs/TODO.md](docs/TODO.md).
 
 ## Requirements
 

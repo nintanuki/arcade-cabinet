@@ -30,8 +30,11 @@ If a question is asked about *why* code was written a certain way, that is a req
 
 ## Architecture rules
 
-- Coordination lives in [main.py](../main.py). Sprites split across [player.py](../player.py), [alien.py](../alien.py) (`Alien` + `Extra`), [laser.py](../laser.py), [obstacle.py](../obstacle.py).
-- There is no centralized `settings.py` yet — magic numbers should move there during the next major refactor (see [docs/TODO.md](../docs/TODO.md)). Until then, keep new constants at the top of `main.py` with named identifiers.
+- Coordination lives in [main.py](../main.py) (entry point + `Game` class + pause helpers).
+- Sprite classes (`Player`, `Alien`, `Extra`, `Laser`, `Block`) all live in [core/sprites.py](../core/sprites.py).
+- The CRT overlay lives in [ui/crt.py](../ui/crt.py).
+- All tuning values live in [settings.py](../settings.py) grouped into `*Settings` classes. **No magic numbers anywhere else.** Add a new `*Settings` class when the new value is not closely related to existing fields.
+- Bundled media lives under [assets/](../assets/) (`audio/`, `font/`, `graphics/`); never hard-code asset paths — go through `AssetPaths`.
 
 ## File and function layout
 
