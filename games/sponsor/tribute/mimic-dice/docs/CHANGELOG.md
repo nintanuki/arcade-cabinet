@@ -1,0 +1,245 @@
+# Change Log
+
+This file is an append-only record of every code change made to Mimic Dice
+by a human, AI assistant, or copilot tool. Read it before making changes so you know the current state of the codebase.
+
+## Format
+
+Each entry covers one logical change (which may touch multiple files). Use the
+template below, with one `**File:** ... **Why:** ...` block per file touched.
+
+    ## YYYY-MM-DD HH:MM â€” short summary
+
+    **File:** path/to/file.py
+    **Lines (at time of edit):** 38-52 (modified)
+    **Before:**
+        [old code]
+    **After:**
+        [new code]
+    **Why:** explanation
+
+## Conventions
+
+* Line numbers reflect the file as it existed at the moment of the edit. Edits
+  above shift line numbers below, so older entries will not match the current
+  file. Never go back and "fix" old line numbers.
+* Entries are append-only. Never delete history. If a later edit reverts an
+  earlier one, write a new entry that references the original.
+* For new files, write `(new file)` instead of a line range. The "Before"
+  block can be omitted or marked `(file did not exist)`.
+* For deletes, write `(deleted)` and put the removed code in "Before" with no
+  "After" block.
+* Keep "Before" / "After" blocks short. If a change is huge, summarize with a
+  diff-style excerpt of the most important lines plus a sentence describing the
+  rest, instead of pasting the entire file.
+* New Entries should be BELOW this line, do not add new log entries to the top. These instructions must stay on top.
+
+---
+
+## 2026-05-07 18:20 -04:00 â€” Physics-driven dice roll with bounded tray
+
+**File:** systems/dice_tray.py
+**Lines (at time of edit):** (new file)
+**Before:** (file did not exist)
+**After:** New `DiceTray` class owning a `pygame.Rect` anchored top-left via
+`DiceSettings.TRAY_PADDING`/`TRAY_SIZE`, with `resize()`, `inner_rect()`, and
+`draw()` for the visible border.
+**Why:** The tray needed to be a discrete UI region so the rest of the window
+could host other HUD elements later, and so dice physics had a single source
+of truth for bounds.
+
+**File:** systems/die.py
+**Lines (at time of edit):** 1-160 (rewritten)
+**Before:** Lerp from `HAND_Y_POS` straight up to a fixed target with random
+face flicker; no physics, no tumble frames, no bounds awareness.
+**After:** 2D physics body with `pos`/`vel`, `roll(tray_rect)` that spawns
+just outside the configured tray corner and launches with a random
+angle/speed in the configured spread, exponential drag, AABB wall reflection
+with restitution, speed-scaled tumble-frame cycling, and settle-on-low-speed
+that picks a random face from the face row.
+**Why:** The previous animation looked unnatural; the rewrite gives each die
+independent trajectory, in-tray bouncing, the bottom-row tumble animation,
+and a settled face from the top row, all driven by `settings.py` constants.
+
+**File:** systems/dice_manager.py
+**Lines (at time of edit):** 1-70 (rewritten)
+**Before:** Spaced 3 dice horizontally at fixed `(x, TABLE_CENTER_Y)` targets
+and only loaded the face row of the sprite sheet.
+**After:** Owns a `DiceTray`, loads both face row (`AssetPaths.DICE_FACE_ROW`)
+and tumble row (`AssetPaths.DICE_TUMBLE_ROW`), constructs `DiceSettings.COUNT`
+dice, exposes `resize()` for window changes, and feeds `tray.inner_rect(...)`
+to each die's update for tray-relative collisions.
+**Why:** `DiceManager` is now the single point of contact between
+`GameManager` and the dice systems, per the architecture rules.
+
+**File:** settings.py
+**Lines (at time of edit):** 14-22, 65-103
+**Before:** `ScreenSettings` carried dead dice constants (`DICE_Y_POS`,
+`DICE_SCALE`, `TABLE_CENTER_Y`, `HAND_Y_POS`); `AssetPaths` only knew about
+the face tile size.
+**After:** Added `ScreenSettings.UI_BORDER_WIDTH`, removed dead constants,
+extended `AssetPaths` with `DICE_FACE_ROW`/`DICE_TUMBLE_ROW`/
+`DICE_TUMBLE_FRAME_COUNT`, and added a new `DiceSettings` class covering
+`COUNT`, `SCALE`, tray padding/size/border, throw origin/angle/spread/speed,
+linear drag/restitution/settle threshold, and tumble FPS range.
+**Why:** Centralizes every dice-related knob in one place so size, position,
+direction, and physics can all be tuned without code edits.
+
+**File:** utils/spritesheet.py
+**Lines (at time of edit):** 1-2, 30-34
+**Before:** Imported `ScreenSettings` and scaled output by
+`ScreenSettings.DICE_SCALE`.
+**After:** Imports `DiceSettings` and scales by `DiceSettings.SCALE`.
+**Why:** `DICE_SCALE` belongs with the rest of the dice knobs in
+`DiceSettings`.
+
+**File:** main.py
+**Lines (at time of edit):** 22-32, 116-130
+**Before:** Created the display with `pygame.SCALED`, instantiated
+`DiceManager()` with no args, and the event loop ignored `VIDEORESIZE`.
+**After:** Switched to `pygame.RESIZABLE`, passes `self.screen.get_size()`
+to `DiceManager`, and forwards `VIDEORESIZE` events to
+`DiceManager.resize(...)`.
+**Why:** The user wants to move/resize the window and have the tray (and
+dice) follow.
+## 2026-05-07 18:47 -04:00 — Dice subsystem refactor: roles, naming, settings, no magic numbers
+
+**File:** settings.py
+**Lines (at time of edit):** 1-160 (rewritten)
+**Before:** Inline numeric defaults for CRT scanline width (`1`), no tray
+corner radius, no tray fill color; `AssetPaths` mixed `DIE_SIZE` /
+`DICE_FACE_ROW` / `DICE_TUMBLE_ROW` / `DICE_TUMBLE_FRAME_COUNT` with
+file paths under inconsistent names; only `WHITE`/`NERO` were available
+as named colors; module-level docstring was missing.
+**After:** Full module docstring; `ColorSettings` split into a raw palette
+(adds `LIGHT_GREY`, `VELVET_GREEN`, `MAROON`) and role aliases
+(`TRAY_BORDER_COLOR`, `TRAY_FILL_COLOR`); `ScreenSettings` adds
+`CRT_SCANLINE_LINE_WIDTH`; `AssetPaths` renamed sheet-layout constants
+to `DIE_TILE_SIZE`/`DIE_FACE_ROW`/`DIE_TUMBLE_ROW`/`DIE_FACE_COUNT`/
+`DIE_TUMBLE_FRAME_COUNT` with explanatory comments; `DiceSettings` adds
+`TRAY_CORNER_RADIUS = 8` and a header comment describing how
+`DiceRoller` / `DiceTray` / `AnimatedDie` cooperate; every constant
+has an inline comment explaining its meaning.
+**Why:** User asked for zero magic numbers, role-based color naming, a
+configurable corner radius, a tray fill color, and clear cross-class
+documentation.
+
+**File:** utils/spritesheet.py
+**Lines (at time of edit):** 1-50 (rewritten)
+**Before:** `SpriteSheet.get_image` imported `DiceSettings` and always
+multiplied output dimensions by `DiceSettings.SCALE`.
+**After:** Module docstring added; `get_image` takes an explicit
+`scale: int = 1` argument and no longer imports `DiceSettings`.
+**Why:** A generic sprite-sheet utility should not know about the dice
+subsystem; callers now pass the scale they want.
+
+**File:** systems/dice_tray.py
+**Lines (at time of edit):** 1-85 (rewritten)
+**Before:** Single-letter local names (`win_w`, `win_h`, `pad_x`,
+`pad_y`, `max_w`, `max_h`, `w`, `h`); only drew the border
+outline; no module docstring.
+**After:** Module docstring describes the tray's role and how it fits
+between `DiceRoller` and `AnimatedDie`; locals renamed to
+`window_width`/`window_height`/`padding_x`/`padding_y`/
+`max_width`/`max_height`/`tray_width`/`tray_height`;
+`draw()` now paints `ColorSettings.TRAY_FILL_COLOR` first and the
+border on top with `DiceSettings.TRAY_CORNER_RADIUS` rounding.
+**Why:** Readability and the user-requested rounded, filled tray look.
+
+**File:** systems/animated_die.py
+**Lines (at time of edit):** (new file)
+**Before:** Logic lived in `systems/die.py` under class `Die`.
+**After:** New file containing class `AnimatedDie` with module docstring
+explaining its role (single die's physics + animation + sprite) and the
+two non-obvious bits of math (frame-rate-independent exponential drag, and
+absolute-value wall reflection so a die spawned outside the tray is pulled
+in). Locals renamed: `self.pos` -> `self.position`, `self.vel` ->
+`self.velocity`, `half` -> `half_size`, `decay` -> `drag_decay`,
+`corners` -> `corner_positions`, `t` -> `speed_ratio`,
+`speed_max` -> `peak_speed`; `_bounce_against` renamed to
+`_bounce_against_walls`; sprite-sheet layout reads from the new
+`DIE_FACE_COUNT`/`DIE_TUMBLE_FRAME_COUNT` constants.
+**Why:** `Die` did not describe what the class does; `AnimatedDie`
+makes the role obvious. Variable rename pass per the user's request to
+eliminate single-letter names.
+
+**File:** systems/die.py
+**Lines (at time of edit):** (deleted)
+**Before:** Held the previous `Die` class.
+**After:** (removed)
+**Why:** Replaced by `systems/animated_die.py`.
+
+**File:** systems/dice_roller.py
+**Lines (at time of edit):** (new file)
+**Before:** Logic lived in `systems/dice_manager.py` under class
+`DiceManager`.
+**After:** New file containing class `DiceRoller` with module docstring
+explaining that this is the only entry point `GameManager` uses to talk
+to the dice subsystem. `_load_row` renamed to `_load_sheet_row`; loop
+variable `i` renamed to `column_index`; passes
+`DiceSettings.SCALE` explicitly to `SpriteSheet.get_image`.
+**Why:** `DiceManager` did not communicate its role; `DiceRoller`
+clearly describes what it does (rolls dice).
+
+**File:** systems/dice_manager.py
+**Lines (at time of edit):** (deleted)
+**Before:** Held the previous `DiceManager` class.
+**After:** (removed)
+**Why:** Replaced by `systems/dice_roller.py`.
+
+**File:** crt.py
+**Lines (at time of edit):** 1-58 (rewritten)
+**Before:** `from settings import *` star-import; hard-coded scanline
+width of `1`; parameter `surf`, loop variable `y`; no module
+docstring.
+**After:** Explicit imports of `AssetPaths`/`ColorSettings`/
+`ScreenSettings`; module docstring; uses
+`ScreenSettings.CRT_SCANLINE_LINE_WIDTH`; renamed parameter to
+`overlay` and loop variable to `line_y`.
+**Why:** Eliminates wildcard imports, removes the last magic number, and
+improves readability.
+
+**File:** main.py
+**Lines (at time of edit):** 6, 30-32, 91-93, 117-118, 130-141
+**Before:** Imported `DiceManager` from `systems.dice_manager`;
+attribute `self.dice_manager`; resize handler used `event.w`/`event.h`;
+`_update_world` and `_render_frame` had no docstrings.
+**After:** Imports `DiceRoller` from `systems.dice_roller`; attribute
+renamed to `self.dice_roller`; resize handler uses `event.width`/
+`event.height`; both helper methods now have one-line docstrings, and
+the dt comment explains why milliseconds are converted to seconds.
+**Why:** Wires up the renamed dice subsystem and clarifies the loop helpers.
+
+## 2026-05-07 19:22 -04:00 — Documentation overhaul: phased roadmap, architecture manual, contributor rules
+
+**File:** README.md
+**Lines (at time of edit):** 1-95 (rewritten)
+**Before:** Short description with project goal, theme mapping, and a Wikipedia rules quote.
+**After:** Reorganized into About, Status, Rules, Requirements, Install & Run, Controls, Project Structure, Documentation map, and Credits. Adds explicit pointers to TODO, ARCHITECTURE, CHANGELOG, and copilot-instructions.
+**Why:** README is the front door; it needed to clearly say what the project is, how to run it, and where every other doc lives.
+
+**File:** docs/TODO.md
+**Lines (at time of edit):** 1-110 (rewritten)
+**Before:** Five flat bullet points.
+**After:** Six-phase roadmap (Playable Prototype, Multiplayer, Theming, Audio, Polish, Cabinet Integration) with goals and checklists per phase, plus an Open Questions section and a Documentation Maintenance section. Adds explicit Phase 1 task to temporarily map 1-6 number dice to Zombie Dice outcomes; Phase 1 includes AI opponents via legacy bots.
+**Why:** A flat list did not communicate priority or sequencing. Phases enforce 'get it playable, then refine.'
+
+**File:** docs/ARCHITECTURE.md
+**Lines (at time of edit):** (new file)
+**Before:** (file did not exist)
+**After:** Manual-style breakdown of the program shape, frame loop, dice subsystem (DiceRoller / DiceTray / AnimatedDie), CRT overlay, settings philosophy, asset pipeline, input model, and code conventions. Includes a placeholder note that current 1-6 dice will be mapped to Zombie Dice outcomes during Phase 1 and replaced in Phase 3.
+**Why:** New required reading for contributors. Explains the parts unique to this game so editors do not have to reverse-engineer them.
+
+**File:** .github/copilot-instructions.md
+**Lines (at time of edit):** 1-80 (rewritten)
+**Before:** Single-section refactoring rules with one short reading requirement and a UI-text rule.
+**After:** Reorganized into Required reading order (README -> TODO -> ARCHITECTURE -> CHANGELOG -> source), Required actions after a change (CHANGELOG + ARCHITECTURE + TODO updates), Code style, Architecture rules, File and function layout (codifies the all-caps banner comment as the standard section separator and includes the literal template), Comments and docstrings, UI text, and the Mental testing checklist.
+**Why:** Existing rules survived but were reorganized for clarity, and three new rules were added: doc reading order, ARCHITECTURE.md maintenance after system changes, and the codified section-banner comment style the user pointed at.
+
+**File:** requirements.txt
+**Lines (at time of edit):** (new file)
+**Before:** (file did not exist)
+**After:** Single line `pygame>=2.5`.
+**Why:** Standard Python dependency manifest. Lets new contributors run `pip install -r requirements.txt` instead of guessing what to install.
+
+**Editor:** Bryan, with GitHub Copilot (Claude Sonnet 4.5).

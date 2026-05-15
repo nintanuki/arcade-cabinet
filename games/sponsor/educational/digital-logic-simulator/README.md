@@ -1,0 +1,134 @@
+# Digital Logic Simulator
+
+A digital logic sandbox written in Python with Pygame. Students drag NAND gates onto a grid, wire them together, and discover that every other gate (NOT, AND, OR, XOR, latches, adders) can be built from that one universal block.
+
+## Background
+
+Inspired by Sebastian Lague's [Digital Logic Sim](https://github.com/SebLague/Digital-Logic-Sim) to follow along with the video [Exploring How Computers Work](https://www.youtube.com/watch?v=QZwneRb-zqA). The original is written in C# and Unity; this is a from-scratch reimagining in Python so it can be modified, extended, and used as a teaching tool in my classroom without an engine in the way.
+
+## Classroom Use
+
+Used in computer science class and during IT and coding enrichment to teach how logic gates compose into real computation. The intended progression is:
+
+1. Start with a NAND gate, a Switch (input), and an LED (output) in the toolbox.
+2. Wire NANDs together to build NOT, AND, OR, and XOR.
+3. Save a finished circuit as a reusable, named "black box" component that drops back into the toolbox.
+4. Use those components as building blocks for larger circuits like an SR latch or a 4-bit ripple adder.
+
+The point is abstraction: once a circuit works, students stop worrying about its internals and start treating it as a part.
+
+A built-in **DIAGRAMS** reference (HELP > DIAGRAMS) shows worked NAND-only constructions of NOT, AND, and OR, plus a one-page summary of De Morgan's Laws — the rule that makes the whole "NAND can build everything" claim work. Students can flip it open mid-build without leaving the workspace.
+
+## Current Status
+
+Working prototype with Pass 1 and Pass 2 complete. The full abstraction loop is functional: build a circuit from NANDs, save it as a named component, drop it back into the toolbox, and build with it. Undo/redo, multi-segment wiring, visual polish (Switch redesign, LED redesign, random colors for saved components), and error recovery are all in place.
+
+**Pass 2 Progress:** Most items done. Remaining items (F11 fullscreen mouse path, trash delete mode, comprehensive menu test) are low priority pending classroom validation.
+
+**Next up: Pass 3 — Persistence.** Disk save/load so work survives across sessions. Also planned for Pass 3: project main menu on startup, options page, truth-table auto-detect, and color picker for components. See `docs/TODO.md` for the full pass-based roadmap.
+
+The roadmap is organized around iterative passes rather than milestones — the project cycles through the codebase, each pass leaving it more usable and polished than the last. There is no deadline; this is an enrichment project for a classroom unit, not a product.
+
+The program is designed to be fully usable with the mouse alone. Keyboard shortcuts exist as a convenience for power users but never replace a clickable equivalent.
+
+## Controls
+
+### Mouse
+
+| Action | Input |
+| --- | --- |
+| Spawn a component from the toolbox | Left-click the template |
+| Move a component or text box | Left-click and drag |
+| Toggle a Switch (IN) | Left-click without dragging |
+| Wire two ports | Left-click-drag from one port, release on the other |
+| Cancel an in-flight wire | Right-click during the drag, or release in empty space |
+| Delete a component, wire, or text box | Right-click it |
+| Edit a text box | Left-click to focus, then type |
+| Stop editing a text box | Click somewhere else, or press `Esc` |
+
+### Keyboard (power user)
+
+| Action | Input |
+| --- | --- |
+| Spawn a NAND at (50, 50) | `N` |
+| Spawn a text box at the cursor | `T` |
+| Toggle fullscreen | `F11` |
+| Undo last action | `Ctrl+Z` |
+| Redo last action | `Ctrl+Y` |
+| Delete selected component(s) | `Delete` or `Backspace` |
+| Access FILE menu | `F` (mnemonic) |
+| Access EDIT menu | `E` (mnemonic) |
+| Access VIEW menu | `V` (mnemonic) |
+| Access HELP menu | `H` (mnemonic) |
+| Close DIAGRAMS scene | `Esc` |
+| Return to main menu / Quit in-game | `Esc` |
+
+## Requirements
+
+- Python 3.10+
+- Pygame
+
+```bash
+pip install pygame
+python main.py
+```
+
+## Project Layout
+
+```
+digital-logic-simulator/
+├── main.py              # GameManager: event loop, lifecycle, rendering
+├── settings.py          # All constants (colors, sizes, paths, input)
+├── core/                # Simulation and logic
+│   ├── elements.py              # Port, Component (default = NAND), Switch, LED, SavedComponent
+│   ├── wires.py                 # Wire + WireManager (drag-to-connect, multi-segment, hit-test delete)
+│   ├── signals.py               # SignalManager: per-frame two-phase signal propagation
+│   ├── commands.py              # History + undo/redo command pattern
+│   ├── workspace_controller.py  # WorkspaceInteractionController: selection, group drag, marquee
+│   └── project_manager.py       # ProjectManager: JSON save/load with embedded sub-circuit definitions
+├── ui/                  # User interface
+│   ├── fonts.py                  # Fonts: shared Font instances cached at boot
+│   ├── bank.py                   # ComponentBank (the toolbox)
+│   ├── top_menu_bar.py           # TopMenuBar: FILE / EDIT / VIEW / HELP menu rendering and interaction
+│   ├── diagram_viewer.py         # DiagramViewerScene: HELP > DIAGRAMS reference (NOT/AND/OR/De Morgan)
+│   ├── save_as_component_handler.py  # Save-as-component workflow + workspace snapshot
+│   ├── text_boxes.py             # TextBox + TextBoxManager (annotation labels)
+│   ├── project_dialogs.py        # Load / Save project dialogs
+│   ├── save_component_dialog.py  # Save-as-component dialog
+│   ├── quit_confirm_dialog.py    # Quit confirmation dialog
+│   └── crt.py                    # CRT scanline / flicker overlay
+├── assets/              # Fonts and graphics
+│   ├── font/                     # Pixeled.ttf and other faces
+│   └── graphics/
+│       ├── diagrams/             # NOT / AND / OR gate diagrams + De Morgan's laws (HELP > DIAGRAMS)
+│       └── effects/              # CRT scanline overlay (tv.png)
+├── projects/            # Saved project files (created at runtime)
+├── docs/
+│   ├── ARCHITECTURE.md  # How the code actually works
+│   ├── TESTING.md       # How to test changes + manual checklist + refactoring rules
+│   ├── TODO.md          # Roadmap (organized by pass)
+│   └── CHANGELOG.md     # Append-only history of every change
+├── .github/
+│   └── copilot-instructions.md   # Required reading for every editor, human or AI
+├── AGENTS.md            # Agent pointer (delegates to copilot-instructions.md)
+├── .editorconfig        # Project-wide formatting baseline
+└── README.md            # This file
+```
+
+## Documentation
+
+Read these in order before contributing. The same order applies whether you are a human contributor or an AI agent:
+
+1. **[README.md](README.md)** — *(this file)* what the project is and how to run it.
+2. **[AGENTS.md](AGENTS.md)** — entry point for AI agents; delegates to the rules file below.
+3. **[.github/copilot-instructions.md](.github/copilot-instructions.md)** — required reading rules for every editor.
+4. **[docs/TODO.md](docs/TODO.md)** — pass-based roadmap and known issues.
+5. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the code is put together and why.
+6. **[docs/TESTING.md](docs/TESTING.md)** — how to test changes, manual checklist, refactoring rules.
+7. **[docs/CHANGELOG.md](docs/CHANGELOG.md)** — append-only history of every code change.
+
+## Contributing
+
+Read the documentation set above before making changes — `.github/copilot-instructions.md` and `docs/TESTING.md` are the canonical source for project rules (PEP-8, constants live in `settings.py`, no magic numbers, docstrings everywhere, `GameManager` stays light, etc.). Skim recent entries in `docs/CHANGELOG.md` so you know the current state of the codebase. Pick the next item from `docs/TODO.md` (top of each section = highest priority within that section).
+
+Every code change must append an entry to `docs/CHANGELOG.md` following the format defined at the top of that file.

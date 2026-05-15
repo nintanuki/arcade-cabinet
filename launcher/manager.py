@@ -106,6 +106,9 @@ class ArcadeLauncher:
             if loaded is not None:
                 self.menu_select_sfx = loaded
                 break
+        self.menu_blocked_select_sfx = self._load_sound_if_available(
+            self.root_dir / LauncherSettings.MENU_BLOCKED_SELECT_SOUND
+        )
 
     def _play_move_sfx(self) -> None:
         """Play the move SFX (used for cursor movement and back navigation)."""
@@ -116,6 +119,11 @@ class ArcadeLauncher:
         """Play the select SFX (used for launching games and entering submenus)."""
         if self.menu_select_sfx is not None:
             self.menu_select_sfx.play()
+
+    def _play_blocked_select_sfx(self) -> None:
+        """Play the blocked-select SFX when a game cannot be launched."""
+        if self.menu_blocked_select_sfx is not None:
+            self.menu_blocked_select_sfx.play()
 
     # ------------------------------------------------------------------
     # Menu tree construction
@@ -136,7 +144,9 @@ class ArcadeLauncher:
                 category_folder = relative_path.parts[2]  # games/sponsor/<category>/<game>
             except IndexError:
                 category_folder = None
-            if category_folder == "original":
+            if category_folder == "educational":
+                category_key = CategorySettings.EDUCATIONAL
+            elif category_folder == "original":
                 category_key = CategorySettings.ORIGINAL
             elif category_folder == "tribute":
                 category_key = CategorySettings.TRIBUTE
@@ -315,6 +325,10 @@ class ArcadeLauncher:
         if node is None:
             return
         if node.kind == "game":
+            if node.under_construction:
+                self._play_blocked_select_sfx()
+                self.show_status_message("UNDER CONSTRUCTION - CHECK BACK LATER")
+                return
             self.launch_selected_game(node)
             return
         # Submenu node. Always play the select SFX so empty leaves still
