@@ -366,6 +366,7 @@ class GameSettings:
         "Flappy Bird": "A FLAPPY BIRD CLONE. THIS IS WHERE I LEARNED HOW TO PARALLAX",
         "Game of the Amazons": "CLASSIC STRATEGY GAME USING CHESS PIECES",
         "Jezz Ball": "THE CLASSIC MICROSOFT GAME FOR WHEN THE INTERNET WAS DOWN",
+        "Mimic Dice": "A DICE GAME INSPIRED BY ZOMBIE DICE BY STEVE JACKSON GAMES",
         "Ninja Frog": "JUST ME MESSING AROUND WITH PLATFORMING MECHANICS",
         "Pazaak": "CARD GAME FROM STAR WARS: KNIGHTS OF THE OLD REPUBLIC, SIMILAR TO BLACKJACK",
         "Pong": "THE FIRST COMMERCIALLY SUCCESSFUL VIDEO GAME",
@@ -398,7 +399,6 @@ class GameSettings:
 
     UNDER_CONSTRUCTION_GAMES = {
         "Adventure",
-        "Mimic Dice",
         "Ninja Frog",
         "Pazaak",
         "Puzzle League",
