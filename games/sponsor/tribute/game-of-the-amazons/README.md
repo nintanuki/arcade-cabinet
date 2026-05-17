@@ -2,7 +2,10 @@
 
 Game of the Amazons is a two-player abstract strategy game played on a 10×10 board. Each turn a player moves one of their four queens like a chess queen, then fires an arrow from the queen's new tile in any queen-direction. Arrows permanently block their landing tile. A player who cannot move on their turn loses.
 
-This build is a Pygame tribute with a human (WHITE) vs AI (BLACK) match.
+This build is a Pygame tribute with a title-screen mode select:
+
+- **ONE PLAYER**: human (WHITE) vs AI (BLACK)
+- **TWO PLAYERS**: hot-seat WHITE vs BLACK (no AI)
 
 ## Status
 
@@ -33,6 +36,8 @@ Or via the cabinet launcher: repo root → `python main.py` → **Mr. Navarro's 
 
 | Action | Keyboard | Controller |
 | --- | --- | --- |
+| Navigate title menu | Arrow keys | D-pad |
+| Confirm title option | `Space` / `Enter` | A / Start |
 | Move cursor | Arrow keys | D-pad |
 | Confirm (select queen / destination / arrow target) | `Space` | A button |
 | Restart after game over | `Enter` | Start |

@@ -25,11 +25,12 @@ WIN_CONDITION_TERRITORY_TIE = "TERRITORY_TIE"
 class TurnManager:
     """Tracks whose turn it is, what phase they are in, and end-game state."""
 
-    def __init__(self, board):
+    def __init__(self, board, cpu_enabled: bool = True):
         """Initialise turn state, AI timer, and the deferred-AI-plan slot.
 
         Args:
             board: The shared Board instance used for legality and AI planning.
+            cpu_enabled: True when BLACK should be played by the AI.
 
         Returns:
             None.
@@ -38,6 +39,7 @@ class TurnManager:
         self.current_player = "WHITE"  # Human starts
         self.phase = PHASE_MOVE
         self.is_animating = False
+        self.cpu_enabled = cpu_enabled
         self.ai_timer = 0
         self.ai_delay = 1000  # 1 second pause before AI moves
 
@@ -74,7 +76,7 @@ class TurnManager:
         self.current_player = "BLACK" if self.current_player == "WHITE" else "WHITE"
         self._pending_ai_arrow_target = None
         self.evaluate_game_over()
-        if self.current_player == "BLACK" and not self.game_over:
+        if self.cpu_enabled and self.current_player == "BLACK" and not self.game_over:
             # Reset the AI thinking timer only after we know the game is still
             # live; avoids an AI move ever firing past game over.
             self.ai_timer = pygame.time.get_ticks()
@@ -212,6 +214,8 @@ class TurnManager:
             to begin its queen slide, else None.
         """
         if self.game_over:
+            return None
+        if not self.cpu_enabled:
             return None
         if self.current_player != "BLACK" or self.is_animating:
             return None

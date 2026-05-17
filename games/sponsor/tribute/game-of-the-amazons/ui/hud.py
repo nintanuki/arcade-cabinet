@@ -27,6 +27,8 @@ class HUD:
         # turn tracking exists.
         self.current_player = "WHITE"
         self.current_phase = "MOVE"
+        self.game_mode = "ONE PLAYER"
+        self.is_two_player = False
 
         # Game-over state pushed by GameManager each frame. None when the
         # game is still in progress.
@@ -94,8 +96,14 @@ class HUD:
         y += 14
 
         # PHASE: <move/shoot>
-        self._draw_label_value(
+        y = self._draw_label_value(
             surface, x, y, "PHASE", self.current_phase
+        )
+        y += 14
+
+        # MODE: <one/two players>
+        self._draw_label_value(
+            surface, x, y, "MODE", self.game_mode
         )
 
     def _draw_game_over_block(self, surface, x, y):
@@ -159,13 +167,20 @@ class HUD:
     def _game_over_banner(self):
         """Return the headline for the game-over block based on the winner.
 
-        The human is always WHITE in the current build, so winner == 'WHITE'
-        is a player victory and 'BLACK' is a player loss. A None winner means
-        a territory tie.
+        In one-player mode the local player is WHITE, so WHITE = YOU WIN and
+        BLACK = YOU LOSE. In two-player mode we show explicit winner color.
+        A None winner means a territory tie.
 
         Returns:
             One of the WIN_BANNER / LOSE_BANNER / DRAW_BANNER constants.
         """
+        if self.is_two_player:
+            if self.winner == "WHITE":
+                return "WHITE WINS"
+            if self.winner == "BLACK":
+                return "BLACK WINS"
+            return DRAW_BANNER
+
         if self.winner == "WHITE":
             return WIN_BANNER
         if self.winner == "BLACK":

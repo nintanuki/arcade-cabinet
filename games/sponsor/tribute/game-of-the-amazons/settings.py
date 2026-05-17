@@ -114,6 +114,23 @@ class ScreenSettings:
     TITLE = "Game of the Amazons"
 
 
+class ModeSettings:
+    """Match modes exposed by the title menu."""
+
+    ONE_PLAYER = "ONE PLAYER"
+    TWO_PLAYERS = "TWO PLAYERS"
+    OPTIONS = (ONE_PLAYER, TWO_PLAYERS)
+
+
+class TitleScreenSettings:
+    """Typography and spacing for the title screen mode-select UI."""
+
+    TITLE_SIZE = 56  # Pixel height of the main "GAME OF THE AMAZONS" title.
+    OPTION_SIZE = 30  # Pixel height of ONE/TWO PLAYER options.
+    OPTION_SPACING = 18  # Vertical gap between option rows in pixels.
+    TITLE_TO_OPTIONS_GAP = 48  # Gap from title baseline block to first option.
+
+
 class FontSettings:
     """Font sizes used by the HUD."""
 

@@ -14,9 +14,11 @@ python main.py
 Or via the cabinet launcher: repo root → `python main.py` → **Mr. Navarro's Games → Tribute Games → Game of the Amazons**. Both entry paths must work.
 
 1. **Boot.** Window opens at the configured resolution, titled "Game of the Amazons". No console errors.
-2. **Initial board.** Four WHITE queens and four BLACK queens are placed at their canonical opening positions.
-3. **HUD.** Side panel shows current player ("WHITE"), current phase ("MOVE"), and is otherwise empty.
-4. **CRT overlay** is visible (scanlines + flicker).
+2. **Title screen.** "GAME OF THE AMAZONS" is centered with ONE PLAYER / TWO PLAYERS options beneath it.
+3. **Title input.** Arrow keys / D-pad change selection; `Space` / `Enter` / A / Start confirm.
+4. **Initial board.** After selecting a mode, four WHITE queens and four BLACK queens are placed at their canonical opening positions.
+5. **HUD.** Side panel shows current player ("WHITE"), current phase ("MOVE"), and mode label.
+6. **CRT overlay** is visible (scanlines + flicker).
 
 ## Cursor
 
@@ -38,22 +40,27 @@ Or via the cabinet launcher: repo root → `python main.py` → **Mr. Navarro's 
 14. **Invalid arrow.** A blocked or off-path target does nothing.
 15. **Animation.** The arrow flies, lands, and the tile becomes permanently marked as blocked. The turn switches to BLACK.
 
-## AI turn
+## One-player mode AI turn
 
-16. The AI's queen slides to its chosen tile and its arrow flies automatically — no further input required.
-17. The phase returns to WHITE / MOVE after the arrow lands.
+18. The AI's queen slides to its chosen tile and its arrow flies automatically — no further input required.
+19. The phase returns to WHITE / MOVE after the arrow lands.
+
+## Two-player mode
+
+20. BLACK is controllable with the same keyboard/controller inputs used by WHITE.
+21. No AI move/arrow animation triggers automatically when BLACK's turn begins.
 
 ## Win detection
 
-18. Manually create a position (with cooperative play) where one player has no legal queen-move at the start of their turn. The HUD shows `GAME OVER` and announces the other player as the winner.
-19. **Restart.** Pressing `Enter` (keyboard) or Start (controller) creates a fresh `GameManager` instance and the board resets to the starting position.
+22. Manually create a position (with cooperative play) where one player has no legal queen-move at the start of their turn. The HUD shows `GAME OVER` and announces the other player as the winner.
+23. **Restart.** Pressing `Enter` (keyboard) or Start (controller) creates a fresh `GameManager` instance and the board resets to the starting position while keeping the selected mode.
 
 ## Global controls
 
-20. `F11` and Back (Select) toggle fullscreen.
-21. `Esc` quits cleanly.
-22. Holding `Start + Back + L1 + R1` on a controller exits cleanly.
-23. Closing the OS window quits cleanly.
+24. `F11` and Back (Select) toggle fullscreen.
+25. `Esc` quits cleanly.
+26. Holding `Start + Back + L1 + R1` on a controller exits cleanly.
+27. Closing the OS window quits cleanly.
 
 ---
 
@@ -72,7 +79,8 @@ When [settings.py](../settings.py) is edited:
 - [ ] Smoke test passed.
 - [ ] Cursor responds to keyboard and controller.
 - [ ] WHITE move + shoot phase passed end-to-end.
-- [ ] AI turn animates and resolves correctly.
+- [ ] One-player AI turn animates and resolves correctly.
+- [ ] Two-player BLACK control works and AI is disabled.
 - [ ] Win detection and restart passed.
 - [ ] Global controls passed.
 - [ ] [docs/CHANGELOG.md](CHANGELOG.md) updated.

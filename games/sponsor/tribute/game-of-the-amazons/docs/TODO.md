@@ -22,8 +22,8 @@ The build is **playable end-to-end** with full move/shoot turn flow, win detecti
 
 ## Phase 4 — Two-player
 
-- [ ] Hot-seat WHITE-vs-BLACK mode (no AI). Bind to a menu choice on the title screen.
-- [ ] Title screen with mode select.
+- [x] Hot-seat WHITE-vs-BLACK mode (no AI). Bind to a menu choice on the title screen.
+- [x] Title screen with mode select.
 
 ---
 

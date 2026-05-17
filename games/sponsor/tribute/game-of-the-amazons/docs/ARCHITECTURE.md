@@ -29,8 +29,9 @@ This document explains **how the code is put together and why**. It is meant for
 Responsibility split:
 
 - **`GameManager`** owns the screen, clock, controllers, the cursor state (`cursor_pos`, `selected_pos`, `shoot_origin`), and the main loop. It dispatches input and orchestrates phase transitions but does not implement game rules itself.
+- **`GameManager`** also owns title-screen mode selection state (`in_title_screen`, `title_option_index`, `game_mode`) and applies the chosen mode before gameplay starts.
 - **`Board`** owns the 10×10 tile grid (`Tile` objects with optional piece + arrow flags) and the geometric path-validation primitive `is_valid_path`.
-- **`TurnManager`** owns the turn state machine: `current_player` (`"WHITE"` / `"BLACK"`), `phase` (`PHASE_MOVE` / `PHASE_SHOOT`), `game_over`, `winner`, the AI's pending arrow target, and territory totals (used in win-condition reporting).
+- **`TurnManager`** owns the turn state machine: `current_player` (`"WHITE"` / `"BLACK"`), `phase` (`PHASE_MOVE` / `PHASE_SHOOT`), `game_over`, `winner`, `cpu_enabled`, the AI's pending arrow target, and territory totals (used in win-condition reporting).
 - **`BoardView`** draws the tiles, queens, arrows, cursor highlight, selection highlight, and any in-flight animations.
 - **`HUD`** draws the side panel (current player, current phase, game-over banner, win condition, territory totals).
 - **`PieceAnimator`** animates a queen sliding from one tile to another at `GridSettings.ANIMATION_SPEED` pixels per frame; while animating, the queen is detached from the board so it isn't drawn twice.
@@ -46,9 +47,10 @@ Responsibility split:
 
 1. Check the controller quit combo (top of frame, for held-state quits).
 2. `_process_events` drains `pygame.event.get()` and dispatches by event type — `KEYDOWN`, `JOYBUTTONDOWN`, `JOYHATMOTION`, `QUIT`.
-3. `_update_game_state` advances active animations; when the queen-slide animation finishes it transitions to `PHASE_SHOOT`; when the arrow animation finishes it stamps the arrow and switches turns; if the AI is on the clock and no animation is active, it runs `TurnManager.update_ai`.
-4. `_render_frame` paints background → board (tiles, queens, arrows, in-flight piece, in-flight arrow, cursor, selection) → HUD → CRT.
-5. `pygame.display.flip()` then `clock.tick(FPS)` cap the framerate at 60.
+3. If still on the title screen, update/render short-circuit to menu drawing and mode selection.
+4. `_update_game_state` advances active animations; when the queen-slide animation finishes it transitions to `PHASE_SHOOT`; when the arrow animation finishes it stamps the arrow and switches turns; if the AI is on the clock (one-player only) and no animation is active, it runs `TurnManager.update_ai`.
+5. `_render_frame` paints either title menu UI or background → board (tiles, queens, arrows, in-flight piece, in-flight arrow, cursor, selection) → HUD, then CRT.
+6. `pygame.display.flip()` then `clock.tick(FPS)` cap the framerate at 60.
 
 ---
 
@@ -61,7 +63,9 @@ A single turn is two phases:
 
 `TurnManager.switch_turn()` flips `current_player` between `"WHITE"` and `"BLACK"` and resets the phase to `PHASE_MOVE`. Before the switch, it checks whether the new player has any legal move and sets `game_over` + `winner` accordingly.
 
-The human (WHITE) drives the cursor and presses confirm on each phase. The AI (BLACK) chooses both the move and the arrow target before any animation starts; the arrow target is parked on `TurnManager` as a "pending" value, and `_finalize_move` consumes it and starts the second animation automatically.
+In one-player mode, the human (WHITE) drives the cursor and presses confirm on each phase, while AI (BLACK) chooses both the move and the arrow target before any animation starts. The arrow target is parked on `TurnManager` as a "pending" value, and `_finalize_move` consumes it and starts the second animation automatically.
+
+In two-player mode, both WHITE and BLACK are human-controlled and no CPU move planning runs.
 
 ---
 
@@ -104,8 +108,10 @@ The cursor is `[col, row]` clamped to `[0, 9]`. There are two independent naviga
 Both write to `self.cursor_pos` directly. Confirm is `Space` (keyboard) or A (controller); both route through `_handle_confirm_action`, which:
 
 - Blocks input while any animation is mid-flight.
-- Refuses input when it isn't WHITE's turn (the human).
+- Refuses input when it is an AI-controlled turn (one-player BLACK).
 - Branches by `turn.phase` to either `_handle_move_phase_space` (pick up queen, then choose destination) or `_handle_shoot_phase_space` (fire arrow at cursor tile).
+
+Before a match starts, keyboard/controller input is routed to title-menu navigation and confirm handlers instead of board movement.
 
 After WHITE's move animation finishes, `_finalize_move` parks the cursor on the queen so the player has an obvious anchor for the SHOOT phase.
 

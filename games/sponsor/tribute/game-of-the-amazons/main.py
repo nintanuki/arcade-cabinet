@@ -20,12 +20,14 @@ from settings import *
 class GameManager:
     """Top-level coordinator: input, animation, board state, and render."""
 
-    def __init__(self, start_fullscreen: bool = False):
+    def __init__(self, start_fullscreen: bool = False, start_mode: str | None = None):
         """Boot pygame, create the board / view stack, and seed cursor state.
 
         Args:
             start_fullscreen: Whether to flip into fullscreen on startup,
                 used by reset_game so a restart preserves the prior mode.
+            start_mode: Optional mode string from ModeSettings. When None,
+                boot into the title screen and wait for selection.
 
         Returns:
             None.
@@ -42,12 +44,22 @@ class GameManager:
 
         # Game state and views.
         self.board = Board()
-        self.turn = TurnManager(self.board)
+        self.turn = TurnManager(
+            self.board,
+            cpu_enabled=(start_mode == ModeSettings.ONE_PLAYER),
+        )
         self.board_view = BoardView(self.board)
         self.hud = HUD()
         self.piece_animation = PieceAnimator()
         self.arrow_animation = ArrowAnimator()
         self.mute_font = pygame.font.Font(None, FontSettings.MUTE_INDICATOR_SIZE)
+        self.title_font = pygame.font.Font(None, TitleScreenSettings.TITLE_SIZE)
+        self.title_option_font = pygame.font.Font(None, TitleScreenSettings.OPTION_SIZE)
+
+        # Title/menu state.
+        self.game_mode = start_mode
+        self.title_option_index = 0
+        self.in_title_screen = start_mode is None
 
         # Cursor State
         self.cursor_pos = [0, 0]  # [col, row]
@@ -88,7 +100,10 @@ class GameManager:
         """
         was_fullscreen = self._is_fullscreen()
 
-        new_game_manager = GameManager(start_fullscreen=was_fullscreen)
+        new_game_manager = GameManager(
+            start_fullscreen=was_fullscreen,
+            start_mode=self.game_mode,
+        )
         new_game_manager.run()
         sys.exit()
 
@@ -118,6 +133,19 @@ class GameManager:
         """
         self.audio.toggle_mute()
 
+    def _set_game_mode(self, mode: str) -> None:
+        """Apply the selected mode and leave the title screen.
+
+        Args:
+            mode: One of ModeSettings.ONE_PLAYER or ModeSettings.TWO_PLAYERS.
+
+        Returns:
+            None.
+        """
+        self.game_mode = mode
+        self.in_title_screen = False
+        self.turn.cpu_enabled = mode == ModeSettings.ONE_PLAYER
+
     def quit_combo_pressed(self) -> bool:
         """Return True if START + SELECT + L1 + R1 are held on any controller.
 
@@ -129,6 +157,41 @@ class GameManager:
             if all(joystick.get_button(button) for button in required_buttons):
                 return True
         return False
+
+    # -------------------------
+    # TITLE SCREEN
+    # -------------------------
+
+    def _move_title_selection(self, direction: int) -> None:
+        """Move the title option cursor up/down with wrap-around.
+
+        Args:
+            direction: -1 for previous option, +1 for next option.
+
+        Returns:
+            None.
+        """
+        option_count = len(ModeSettings.OPTIONS)
+        self.title_option_index = (self.title_option_index + direction) % option_count
+
+    def _confirm_title_selection(self) -> None:
+        """Commit the highlighted title option and start the match.
+
+        Returns:
+            None.
+        """
+        selected_mode = ModeSettings.OPTIONS[self.title_option_index]
+        self._set_game_mode(selected_mode)
+
+    def _is_human_turn(self) -> bool:
+        """Return True when current turn should accept local input.
+
+        Returns:
+            True if current side is player-controlled in the selected mode.
+        """
+        if self.game_mode == ModeSettings.TWO_PLAYERS:
+            return True
+        return self.turn.current_player == "WHITE"
 
     # -------------------------
     # INPUT
@@ -169,8 +232,8 @@ class GameManager:
         # queue a follow-up before the previous move has settled.
         if self.piece_animation.is_animating or self.arrow_animation.is_animating:
             return
-        # Only the human (WHITE) drives selection through the confirm button.
-        if self.turn.current_player != "WHITE":
+        # Input is allowed only for whichever side is human-controlled.
+        if not self._is_human_turn():
             return
 
         if self.turn.phase == PHASE_MOVE:
@@ -212,7 +275,7 @@ class GameManager:
         Returns:
             None.
         """
-        target = tuple(self.cursor_pos)
+        target = (self.cursor_pos[0], self.cursor_pos[1])
         if self.shoot_origin is None:
             return
         if not self.board.is_valid_path(self.shoot_origin, target):
@@ -229,8 +292,23 @@ class GameManager:
         self._handle_confirm_action()
 
     def _handle_joyhatmotion(self, event) -> None:
+        """Route one controller D-pad motion event.
+
+        Args:
+            event: pygame JOYHATMOTION event.
+
+        Returns:
+            None.
+        """
         # event.value is (x, y) -> (-1, 0) is left, (0, 1) is up
         dx, dy = event.value
+
+        if self.in_title_screen:
+            if dy == 1:
+                self._move_title_selection(-1)
+            elif dy == -1:
+                self._move_title_selection(1)
+            return
         
         # Movement logic (Clamped to board 0-9)
         if dx == -1 and self.cursor_pos[0] > 0: self.cursor_pos[0] -= 1
@@ -257,6 +335,11 @@ class GameManager:
         # BACK (SELECT) is the global fullscreen toggle.
         if event.button == InputSettings.JOY_BUTTON_BACK:
             pygame.display.toggle_fullscreen()
+
+        if self.in_title_screen:
+            if event.button in (InputSettings.JOY_BUTTON_A, InputSettings.JOY_BUTTON_START):
+                self._confirm_title_selection()
+            return
 
         # Confirm Button (A / Button 0)
         if event.button == InputSettings.JOY_BUTTON_A:
@@ -285,6 +368,15 @@ class GameManager:
             # ESC always exits the game and returns to the launcher, matching
             # the L1+R1+START+SELECT controller combo.
             self.close_game()
+            return
+
+        if self.in_title_screen:
+            if event.key in (pygame.K_UP, pygame.K_LEFT):
+                self._move_title_selection(-1)
+            elif event.key in (pygame.K_DOWN, pygame.K_RIGHT):
+                self._move_title_selection(1)
+            elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                self._confirm_title_selection()
             return
 
         if self.turn.game_over:
@@ -342,6 +434,8 @@ class GameManager:
             None.
         """
         move_data = self.piece_animation.moving_piece
+        if move_data is None:
+            return
         target = move_data['end_grid']
         self.board.tile_at(*target).piece = move_data['type']
         self.piece_animation.moving_piece = None
@@ -355,7 +449,7 @@ class GameManager:
 
         # The AI committed to its arrow target before the slide began, so
         # kick off the second leg automatically.
-        if self.turn.current_player == "BLACK":
+        if self.turn.cpu_enabled and self.turn.current_player == "BLACK":
             arrow_target = self.turn.consume_pending_arrow_target()
             if arrow_target is not None:
                 self.arrow_animation.start(self.shoot_origin, arrow_target)
@@ -385,6 +479,9 @@ class GameManager:
         Returns:
             None.
         """
+        if self.in_title_screen:
+            return
+
         # Process the queen slide first; an AI turn finishes inside
         # _finalize_move by kicking off the arrow leg.
         if self.piece_animation.update():
@@ -428,6 +525,30 @@ class GameManager:
         self.hud.winner = self.turn.winner
         self.hud.win_condition = self.turn.win_condition
         self.hud.territory_totals = self.turn.territory_totals
+        self.hud.game_mode = self.game_mode or ModeSettings.ONE_PLAYER
+        self.hud.is_two_player = self.game_mode == ModeSettings.TWO_PLAYERS
+
+    def _render_title_screen(self) -> None:
+        """Draw the mode-select title UI before a match starts.
+
+        Returns:
+            None.
+        """
+        title_surface = self.title_font.render(
+            "GAME OF THE AMAZONS", True, ColorSettings.TEXT_TITLE
+        )
+        title_rect = title_surface.get_rect(center=(ScreenSettings.WIDTH // 2, ScreenSettings.HEIGHT // 2))
+        option_y = title_rect.bottom + TitleScreenSettings.TITLE_TO_OPTIONS_GAP
+
+        self.screen.blit(title_surface, title_rect)
+
+        for index, option in enumerate(ModeSettings.OPTIONS):
+            is_selected = index == self.title_option_index
+            option_color = ColorSettings.TEXT_DEFAULT if is_selected else ColorSettings.TEXT_LABEL
+            option_surface = self.title_option_font.render(option, True, option_color)
+            option_rect = option_surface.get_rect(center=(ScreenSettings.WIDTH // 2, option_y))
+            self.screen.blit(option_surface, option_rect)
+            option_y += option_surface.get_height() + TitleScreenSettings.OPTION_SPACING
 
     def _draw_mute_indicator(self) -> None:
         """Draw the mute badge in the top-right corner when audio is muted.
@@ -459,6 +580,12 @@ class GameManager:
             None.
         """
         self.screen.fill(ColorSettings.SCREEN_BACKGROUND)
+
+        if self.in_title_screen:
+            self._render_title_screen()
+            if self._should_draw_crt():
+                self.crt.draw()
+            return
 
         self._push_hud_state()
 
