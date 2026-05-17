@@ -27,7 +27,7 @@
                    (gameplay)   (title)     (game-over)
 ```
 
-`GameManager` owns the screen, the clock, the cached joystick list, the fullscreen flag, a process-wide `Leaderboard` instance, and a `SceneManager` instance. Global input (Esc quit, F11 fullscreen, controller quit-chord, BACK) is handled by `GameManager`. Everything else — gameplay, scenes, UI, audio, persistence — is coordinated through scenes and the `SceneManager`.
+`GameManager` owns the screen, the clock, the cached joystick list, the fullscreen flag, the main-loop `running` flag, a process-wide `Leaderboard` instance, and a `SceneManager` instance. Global input (Esc quit, F11 fullscreen, controller quit-chord, BACK) is handled by `GameManager`. Everything else — gameplay, scenes, UI, audio, persistence — is coordinated through scenes and the `SceneManager`.
 
 ## 2. Frame loop
 
@@ -38,6 +38,7 @@
 3. `_update_world()` — calls `scenes.current.update()` to advance the active scene.
 4. `_render_frame()` — calls `scenes.current.render(screen)` to draw the active scene, then applies CRT overlay (windowed only).
 5. `pygame.display.flip()` and `clock.tick(FPS)`.
+6. On shutdown, `pygame.quit()` runs after the loop exits. When `DebugSettings.WEB_SAFE_EXIT` is false, shutdown still raises `SystemExit`; when true, quit requests only clear the loop flag so web builds can exit cleanly.
 
 ## 3. Scenes (`core/scene.py`, `systems/scene_manager.py`, `ui/scenes/`)
 
@@ -72,10 +73,12 @@ Handles active gameplay and pausing. Owns the player, run `Score`, all sprites, 
   - `DROPPING_IN`: advances one-time auto-pilot motion using the same acceleration/counter-acceleration/drag model as player movement, without reading input and without spawning fish.
   - During drop-in: if title-started, play one-shot `splash` SFX exactly when the player first crosses into the visible screen from the top.
   - On drop-in settle: start/resume gameplay music and switch to `ACTIVE`.
-  - `ACTIVE`: advances sprites and fish manager; records fish sizes from collision results into `Score`; checks for game-over and transitions to `GameOverScene(score=...)` if needed.
+  - `ACTIVE`: runs a countdown from `TimerSettings.STARTING_SECONDS`; subtracts `1 / ScreenSettings.FPS` each frame, adds a time bonus when the player eats a fish, advances sprites and fish manager, records fish sizes from collision results into `Score`, and checks for game-over.
+  - **Time bonus with diminishing returns:** `max(TIMER_MIN_RATIO, fish.size / player.size) × SECONDS_PER_EAT`. The bonus depends only on the *relative* size of the eaten fish, not its absolute pixel width, so eating a peer-sized fish always adds `SECONDS_PER_EAT` seconds regardless of player scale. When the eaten fish is much smaller the ratio approaches `TIMER_MIN_RATIO` (default 0.05), guaranteeing a small but non-zero reward.
+  - `ACTIVE` transitions to `GameOverScene(score=..., outcome=...)` when a larger fish hits the player or when the countdown reaches zero.
   - `ACTIVE` additionally treats `player.rect.width > ScreenSettings.WIDTH` as a win condition (`WIN_ATE_ALL_FISH`) and transitions to `GameOverScene` with a victory outcome.
   - `PAUSED`: no world updates.
-- **Render:** `DROPPING_IN` and `ACTIVE` draw ocean gradient + world sprites. During `ACTIVE`, `Hud.draw(screen)` is called after world sprites so score labels sit on top of gameplay. `PAUSED` draws black background + centered pause text.
+- **Render:** `DROPPING_IN` and `ACTIVE` draw ocean gradient + world sprites. During `ACTIVE`, `Hud.draw(screen, remaining_seconds)` is called after world sprites so score labels sit on top of gameplay. The HUD shows a countdown timer in the top-right. `PAUSED` draws black background + centered pause text.
 
 #### `GameOverScene` (`ui/scenes/game_over_scene.py`)
 
@@ -83,29 +86,45 @@ Displays a two-step end-of-run flow before leaderboard routing.
 
 - **Phase 1 render:** Black background + centered outcome text.
   - Loss path: `YOU WERE EATEN BY A BIGGER FISH`
+  - Starvation path: `YOU STARVED TO DEATH`
   - Win path: `YOU'VE EATEN ALL THE FISH!`
   - Font size: `UiSettings.OUTCOME_MESSAGE_FONT_SIZE`.
-- **Phase 2 render:** Black background + centered `GAME OVER`.
-  - Font size: `UiSettings.OVERLAY_FONT_SIZE`.
-- **Input:** Enter / controller A / controller START advances phase; from phase 2 it routes onward.
-- **Routing:** If `leaderboard.qualifies(score.total)` → `InitialsEntryScene`; else → `LeaderboardScene`.
+  - Loss and starvation use red text.
+- **Phase 2 render:** Black background + delayed stat tally reveal.
+  - Reveals one line every `UiSettings.TALLY_LINE_REVEAL_DELAY_MS`:
+    - `+ NUMBER OF FISH EATEN`
+    - `+ TOTAL WEIGHT EATEN`
+    - `+ MS. FISHY'S FINAL WEIGHT`
+    - `+ SECONDS LEFT ON THE TIMER`
+    - `= TOTAL SCORE!`
+  - Final total line is highlighted in yellow.
+- **Input:** Enter / controller A / controller START advances from phase 1 to phase 2. In phase 2, confirm routes onward only after all tally lines are visible.
+- **Routing:** Always routes to `LeaderboardScene` after tally confirmation.
 - **Data:** Receives both run `Score` and a run-ending `outcome` from `PlayScene`.
 
 ### `Score` (`core/score.py`)
 
 Run-scoped model for points.
 
-- Tracks `fish_eaten` (count) and `size_eaten` (cumulative fish width in px).
-- `add(fish_size)` increments both counters.
-- `total` property returns `size_eaten`, which is the leaderboard-persisted value in Pass 2.
+- Tracks `fish_eaten` (count), `size_eaten` (cumulative fish width in px), `final_weight` (player width at run end), and `time_left_seconds` (hunger timer at run end).
+- `add(fish_size)` increments `fish_eaten` and `size_eaten`.
+- `final_weight` and `time_left_seconds` are set by `PlayScene._end_run` just before transitioning to `GameOverScene`.
+- `total` property computes the compound leaderboard score:
+  `size_eaten × WEIGHT_EATEN_FACTOR + fish_eaten × FISH_EATEN_BONUS + final_weight × FINAL_WEIGHT_FACTOR + time_left_seconds × TIME_LEFT_BONUS`
+  All factors live in `ScoreSettings`.
 
 ### `Hud` (`ui/hud.py`)
 
 Lightweight gameplay overlay widget owned by `PlayScene`.
 
-- Inputs: run `Score`, HUD font, optional leaderboard service.
-- Layout: top-left fish count (`FISH: NN`), top-right run score (`SCORE: NNNNN`), top-center top score (`HI: NNNNN  XYZ` or `HI: -----`).
-- Draw order: rendered after world sprites and before the CRT pass.
+- Inputs: run `Score`, HUD font, player sprite (for live weight display).
+- Layout: top-left stacked column:
+  - `TOTAL FISH EATEN: NN`
+  - `WEIGHT EATEN: NNNNN`
+  - `CURRENT WEIGHT: NNNNN` (reads `player.size` live)
+  - `HUNGER TIMER: MM:SS` — text turns red at or below `UiSettings.HUNGER_WARNING_SECONDS`
+  - Hunger bar below the timer: full-width = green, empty = red (smooth RGB lerp), filled fraction = `remaining / STARTING_SECONDS`.
+- Score is no longer shown in the HUD; it is computed from all stats at run end.
 
 ### `Leaderboard` (`systems/leaderboard.py`)
 
@@ -133,7 +152,7 @@ A `pygame.sprite.Sprite` representing an enemy fish.
 
 - **Appearance:** Solid-color polygon fish (random color from `ColorSettings.FISH_PALETTE`, chosen at spawn) with a small black square eye of size `FishSettings.EYE_SIZE_RATIO * size` and a soft drop shadow. The palette is a curated set of retro hues chosen to contrast against the ocean gradient background.
 - **Spawn:** From off the left or right edge at a random vertical position. Direction is set to match the side it spawned from (left→right, right→left).
-- **Movement:** Constant horizontal speed in `[FishSettings.MIN_SPEED, FishSettings.MAX_SPEED]`. Self-destructs (`kill()`) once it clears the opposite edge by 50 px.
+- **Movement:** Constant horizontal speed in `[FishSettings.MIN_SPEED, FishSettings.MAX_SPEED]`, integrated through a float x-position accumulator and then written to `rect.x` each frame so sub-pixel speeds move smoothly in both directions. Self-destructs (`kill()`) once it clears the opposite edge by 50 px.
 
 ## 4. Fish manager (`systems/fish_manager.py`)
 
@@ -171,7 +190,7 @@ The quit chord is `InputSettings.JOY_BUTTON_QUIT_COMBO` (START + SELECT + L1 + R
 
 ## 6. CRT overlay (`crt.py`)
 
-`CRT` loads `AssetPaths.TV`, scales it to the screen, and on each `draw()` blits a fresh copy with a randomized alpha (flicker) and per-row scanlines. `GameManager._render_frame` calls it only in windowed mode so it doesn't double-up on a real CRT cabinet.
+`CRT` loads `AssetPaths.TV`, scales it to the screen, and on each `draw()` blits a fresh copy with a randomized alpha (flicker) and per-row scanlines. `GameManager` only constructs the CRT pass when `DebugSettings.ENABLE_CRT` is true, and `_render_frame` only calls it in windowed mode so it doesn't double-up on a real CRT cabinet.
 
 ## 7. Settings (`settings.py`)
 
@@ -184,12 +203,14 @@ Single source of truth for all tunables.
 | `InputSettings`  | Controller button/axis indices + quit combo + analog threshold.       |
 | `PlayerSettings` | Player movement speed and initial sprite size.                        |
 | `FishSettings`   | Fish spawn rate, size range, speed range, player growth amount.       |
+| `TimerSettings`  | Countdown starting time, seconds-per-pixel bonus, min ratio, and warning threshold. |
+| `ScoreSettings`  | Weighting factors for the compound end-of-run score formula.         |
 | `UiSettings`     | Overlay/HUD text labels, font sizes, and HUD padding.                 |
 | `GameStateSettings` | Canonical state names (`playing`, `paused`, `game_over`).           |
 | `FontSettings`   | Font file path.                                                       |
 | `AudioSettings`  | Mute toggles + music volume + per-sound volume toggles.              |
 | `AssetPaths`     | `__file__`-relative paths for non-font assets.                        |
-| `DebugSettings`  | Debug-only toggles (including optional large-player start for end-game testing). |
+| `DebugSettings`  | Debug-only toggles (including CRT enable/disable, web-safe loop exit, and optional large-player start for end-game testing). |
 
 **No magic numbers anywhere outside this file.**
 

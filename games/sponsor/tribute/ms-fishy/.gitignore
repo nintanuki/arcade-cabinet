@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# High score leaderboard file
+leaderboard.json
+
+# folder created from pybag
+build/

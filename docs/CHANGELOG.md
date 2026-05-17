@@ -40,6 +40,118 @@ template below, with one `**File:** ... **Why:** ...` block per file touched.
 
 ---
 
+## 2026-05-15T00:02:00-04:00 — Use wall bump sound for blocked launcher selections
+
+**Editor:** GitHub Copilot (GPT-5.4 mini)
+
+**File:** settings.py
+**Lines (at time of edit):** 17-18 (modified)
+**Before:**
+    MENU_SELECT_SOUND_CANDIDATES = (
+        Path("assets") / "sound" / "sfx_menu_select3.wav",
+    )
+**After:**
+    MENU_SELECT_SOUND_CANDIDATES = (
+        Path("assets") / "sound" / "sfx_menu_select3.wav",
+    )
+    MENU_BLOCKED_SELECT_SOUND = Path("assets") / "sound" / "wall_bump_sound_effect.ogg"
+**Why:** Added a dedicated launcher sound asset for blocked selections so under-construction games can play the wall bump effect.
+
+**File:** launcher/manager.py
+**Lines (at time of edit):** 91-110, 314-322 (modified)
+**Before:**
+    self.menu_select_sfx = loaded
+    break
+...
+    if node.kind == "game":
+        if node.under_construction:
+            self.show_status_message("UNDER CONSTRUCTION - CHECK BACK LATER")
+            return
+        self.launch_selected_game(node)
+        return
+**After:**
+    self.menu_select_sfx = loaded
+    break
+    self.menu_blocked_select_sfx = self._load_sound_if_available(
+        self.root_dir / LauncherSettings.MENU_BLOCKED_SELECT_SOUND
+    )
+...
+    if node.kind == "game":
+        if node.under_construction:
+            self._play_blocked_select_sfx()
+            self.show_status_message("UNDER CONSTRUCTION - CHECK BACK LATER")
+            return
+        self.launch_selected_game(node)
+        return
+**Why:** Under-construction games now give the wall bump audio cue before the status message and do not launch.
+
+
+## 2026-05-15T00:00:00-04:00 — Add Educational Games category with Digital Logic Simulator and Typing Hero
+## 2026-05-15T00:01:00-04:00 — Add Mimic Dice to tribute menu; block under-construction game launches
+
+**Editor:** GitHub Copilot (Claude Sonnet 4.6)
+
+**File:** settings.py
+**Lines (at time of edit):** GameSettings.OPTIONS tribute block, UNDER_CONSTRUCTION_GAMES set
+**Before:**
+    ("Jezz Ball", ...),
+    ("Pazaak", ...),
+    UNDER_CONSTRUCTION_GAMES = {"Adventure", "Ninja Frog", "Pazaak", "Puzzle League"}
+**After:**
+    ("Jezz Ball", ...),
+    ("Mimic Dice", Path("games") / "sponsor" / "tribute" / "mimic-dice" / "main.py"),
+    ("Pazaak", ...),
+    UNDER_CONSTRUCTION_GAMES = {"Adventure", "Mimic Dice", "Ninja Frog", "Pazaak", "Puzzle League"}
+**Why:** Added Mimic Dice to the tribute game list and marked it under construction.
+
+**File:** launcher/manager.py
+**Lines (at time of edit):** enter_selected_node (modified)
+**Before:**
+    if node.kind == "game":
+        self.launch_selected_game(node)
+        return
+**After:**
+    if node.kind == "game":
+        if node.under_construction:
+            self.show_status_message("UNDER CONSTRUCTION - CHECK BACK LATER")
+            return
+        self.launch_selected_game(node)
+        return
+**Why:** Under-construction games previously launched normally despite the badge. Now selecting one shows a status message instead of launching the subprocess.
+
+## 2026-05-15T00:00:00-04:00 — Add Educational Games category with Digital Logic Simulator and Typing Hero
+
+**Editor:** GitHub Copilot (Claude Sonnet 4.6)
+
+**File:** settings.py
+**Lines (at time of edit):** 204–287 (CategorySettings, MenuTreeSettings, GameSettings.OPTIONS, GameSettings.GAME_DESCRIPTIONS)
+**Before:**
+    STUDENT = "student"
+    ORIGINAL = "original"
+    ...
+    ROOT children: [ORIGINAL, TRIBUTE, TUTORIAL]
+    OPTIONS = [("Adventure", ...), ...]
+**After:**
+    STUDENT = "student"
+    EDUCATIONAL = "educational"
+    ORIGINAL = "original"
+    ...
+    ROOT children: [EDUCATIONAL, ORIGINAL, TRIBUTE, TUTORIAL]
+    OPTIONS = [("Digital Logic Simulator", ...), ("Typing Hero", ...), ("Adventure", ...), ...]
+**Why:** Added the EDUCATIONAL category constant, label, description, and attribution to CategorySettings; prepended it as the first child of the MR_NAVARRO group in MenuTreeSettings.ROOT; added both educational game entries to GameSettings.OPTIONS and their taglines to GAME_DESCRIPTIONS.
+
+**File:** launcher/manager.py
+**Lines (at time of edit):** 138–148 (category inference in _build_games)
+**Before:**
+    if category_folder == "original":
+        category_key = CategorySettings.ORIGINAL
+**After:**
+    if category_folder == "educational":
+        category_key = CategorySettings.EDUCATIONAL
+    elif category_folder == "original":
+        category_key = CategorySettings.ORIGINAL
+**Why:** The folder-to-category inference now recognises the `educational` sponsor subfolder so Digital Logic Simulator and Typing Hero are bucketed into the new EDUCATIONAL category at runtime.
+
 ## 2026-05-09T16:25:00-04:00 — Launch games via runpy.run_path to bypass embeddable-Python _pth restrictions
 
 **Editor:** GitHub Copilot (Claude Opus 4.7)

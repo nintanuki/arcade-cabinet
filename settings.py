@@ -21,6 +21,8 @@ class LauncherSettings:
     MENU_SELECT_SOUND_CANDIDATES = (
         Path("assets") / "sound" / "sfx_menu_select3.wav",
     )
+    # Sound played when the user tries to select a game that cannot launch.
+    MENU_BLOCKED_SELECT_SOUND = Path("assets") / "sound" / "wall_bump_sound_effect.ogg"
     JIL_LOGO_PATH = Path("assets") / "graphics" / "jil_logo.webp"
     JIL_LOGO_POS = (50, 110)
     JIL_LOGO_SIZE = (59, 69)
@@ -201,12 +203,14 @@ class CategorySettings:
     """
 
     STUDENT = "student"
+    EDUCATIONAL = "educational"
     ORIGINAL = "original"
     TRIBUTE = "tribute"
     TUTORIAL = "tutorial"
 
     LABELS = {
         STUDENT: "Student Games",
+        EDUCATIONAL: "Educational Games",
         ORIGINAL: "Original Games",
         TRIBUTE: "Tribute Games",
         TUTORIAL: "Tutorial Games",
@@ -216,6 +220,10 @@ class CategorySettings:
         STUDENT: (
             "Games created by John I. Leonard students. Build something "
             "with pygame in Coding Club and your game can show up here too."
+        ),
+        EDUCATIONAL: (
+            "Educational tools and games created with Pygame "
+            "to support learning in the classroom."
         ),
         ORIGINAL: "Mr. Navarro's original games created in Pygame.",
         TRIBUTE: "Classic games re-created in Pygame.",
@@ -229,6 +237,7 @@ class CategorySettings:
     # category is highlighted. Student games carry their own attribution
     # from their game.json manifest, so STUDENT is intentionally absent.
     ATTRIBUTIONS = {
+        EDUCATIONAL: "EDUCATIONAL TOOL BY MR. NAVARRO",
         ORIGINAL: "ORIGINAL GAME BY MR. NAVARRO",
         TRIBUTE: "TRIBUTE GAME BY MR. NAVARRO",
         TUTORIAL: "MADE FOLLOWING CLEAR CODE TUTORIALS",
@@ -276,6 +285,7 @@ class MenuTreeSettings:
             "kind": KIND_GROUP,
             "key": GroupSettings.MR_NAVARRO,
             "children": [
+                {"kind": KIND_CATEGORY, "key": CategorySettings.EDUCATIONAL},
                 {"kind": KIND_CATEGORY, "key": CategorySettings.ORIGINAL},
                 {"kind": KIND_CATEGORY, "key": CategorySettings.TRIBUTE},
                 {"kind": KIND_CATEGORY, "key": CategorySettings.TUTORIAL},
@@ -291,6 +301,9 @@ class GameSettings:
     # games live in a sibling folder that is .gitignored and discovered at
     # runtime (see StudentGameSettings and main.discover_student_games).
     OPTIONS = [
+        ("Digital Logic Simulator", Path("games") / "sponsor" / "educational" / "digital-logic-simulator" / "main.py"),
+        ("Typing Hero", Path("games") / "sponsor" / "educational" / "typing-hero" / "main.py"),
+
         ("Adventure", Path("games") / "sponsor" / "original" / "adventure" / "main.py"),
         ("Air Hockey", Path("games") / "sponsor" / "original" / "air-hockey" / "main.py"),
         ("Dungeon Digger", Path("games") / "sponsor" / "original" / "dungeon-digger" / "main.py"),
@@ -300,6 +313,7 @@ class GameSettings:
         ("MS. FISHY", Path("games") / "sponsor" / "tribute" / "ms-fishy" / "main.py"),
         ("Game of the Amazons", Path("games") / "sponsor" / "tribute" / "game-of-the-amazons" / "main.py"),
         ("Jezz Ball", Path("games") / "sponsor" / "tribute" / "jezz-ball" / "main.py"),
+        ("Mimic Dice", Path("games") / "sponsor" / "tribute" / "mimic-dice" / "main.py"),
         ("Pazaak", Path("games") / "sponsor" / "tribute" / "pazaak" / "main.py"),
         ("Puzzle League", Path("games") / "sponsor" / "tribute" / "puzzle-league" / "main.py"),
 
@@ -316,11 +330,13 @@ class GameSettings:
         "Adventure": Path("assets") / "previews" / "adventure.png",
         "Air Hockey": Path("assets") / "previews" / "air_hockey.png",
         "Breakout": Path("assets") / "previews" / "breakout.png",
+        "Digital Logic Simulator": Path("assets") / "previews" / "digital_logic_simulator.png",
         "Dungeon Digger": Path("assets") / "previews" / "dungeon_digger.png",
         "MS. FISHY": Path("assets") / "previews" / "fishy.png",
         "Flappy Bird": Path("assets") / "previews" / "flappy_bird.png",
         "Game of the Amazons": Path("assets") / "previews" / "game_of_the_amazons.png",
         "Jezz Ball": Path("assets") / "previews" / "jezz_ball.png",
+        "Mimic Dice": Path("assets") / "previews" / "mimic_dice.png",
         "Ninja Frog": Path("assets") / "previews" / "ninja_frog.png",
         "Pazaak": Path("assets") / "previews" / "pazaak.png",
         "Pong": Path("assets") / "previews" / "pong.png",
@@ -330,6 +346,7 @@ class GameSettings:
         "Space Invaders": Path("assets") / "previews" / "space_invaders.png",
         "Star Hero": Path("assets") / "previews" / "star_hero.png",
         "Tetris": Path("assets") / "previews" / "tetris.png",
+        "Typing Hero": Path("assets") / "previews" / "typing_hero.png",
     }
 
     # Category is now inferred from the sponsor subfolder (original, tribute, tutorial).
@@ -339,6 +356,8 @@ class GameSettings:
     # already filled by the category description, so this is the place
     # for game-specific copy. A missing entry simply hides the line.
     GAME_DESCRIPTIONS = {
+        "Digital Logic Simulator": "BUILD AND SIMULATE DIGITAL LOGIC CIRCUITS. LEARN THE POWER OF ABSTRACTION",
+        "Typing Hero": "IMPROVE YOUR TYPING SPEED AND ACCURACY IN THIS SCIFI SHMUP",
         "Adventure": "ZELDA CLONE WITH TEXT BASED FLAVOR",
         "Air Hockey": "IT'S AIR HOCKEY, YOU KNOW WHAT AIR HOCKEY IS",
         "Breakout": "THE CLASSIC BLOCK-BREAKING ARCADE GAME",
@@ -363,7 +382,9 @@ class GameSettings:
     # renders the matching InputSchemeSettings.LABELS string in red.
     GAME_INPUT_SCHEMES = {
         "Air Hockey": InputSchemeSettings.LIMITED_CONTROLLER,
+        "Digital Logic Simulator": InputSchemeSettings.MOUSE_AND_KEYBOARD,
         "Jezz Ball": InputSchemeSettings.LIMITED_CONTROLLER,
+        "Typing Hero": InputSchemeSettings.KEYBOARD_ONLY,
     }
 
     # Optional free-form red note shown under the input-scheme line. Use
@@ -377,6 +398,7 @@ class GameSettings:
 
     UNDER_CONSTRUCTION_GAMES = {
         "Adventure",
+        "Mimic Dice",
         "Ninja Frog",
         "Pazaak",
         "Puzzle League",

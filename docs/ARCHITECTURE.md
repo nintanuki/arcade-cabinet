@@ -78,7 +78,7 @@ The menu is a tree of `MenuNode` objects (see [launcher/models.py](../launcher/m
 
 `menu_stack: list[MenuFrame]` is the navigation stack. `current_frame()` is the top, `current_node()` is the highlighted item inside it.
 
-- `enter_selected_node` either launches the game or pushes a new `MenuFrame(items=node.children)`.
+- `enter_selected_node` either launches the game, plays the blocked-select wall bump and shows a status message for under-construction games, or pushes a new `MenuFrame(items=node.children)`.
 - `back_to_previous` pops one level. At the root, it returns `False` so `handle_keyboard` knows `Esc` should now quit.
 - `_set_selected_index` wraps the index with modulo and plays the move SFX **only when the index actually changes**.
 
@@ -126,9 +126,9 @@ The launcher is **defensive** about student manifests: a missing or malformed `g
 
 ## 6. Audio
 
-Two SFX clips, both optional. `_load_sound_if_available` handles a missing file or absent mixer by returning `None`; `_play_move_sfx` / `_play_select_sfx` then silently no-op. This means the launcher never crashes on a missing audio file. The select SFX has a list of fallback candidates (`MENU_SELECT_SOUND_CANDIDATES`) so swapping the file for a new one is just a settings tweak.
+Two SFX clips, both optional. `_load_sound_if_available` handles a missing file or absent mixer by returning `None`; `_play_move_sfx` / `_play_select_sfx` / `_play_blocked_select_sfx` then silently no-op. This means the launcher never crashes on a missing audio file. The select SFX has a list of fallback candidates (`MENU_SELECT_SOUND_CANDIDATES`) so swapping the file for a new one is just a settings tweak. The wall-bump clip is loaded separately from `MENU_BLOCKED_SELECT_SOUND` and only plays when the player tries to launch an under-construction game.
 
-The move SFX fires only on actual cursor movement (the index check inside `_set_selected_index` prevents repeated notes when navigation is held). The select SFX fires on every confirm, including on empty submenus, so players get audio feedback even when a category has no games yet.
+The move SFX fires only on actual cursor movement (the index check inside `_set_selected_index` prevents repeated notes when navigation is held). The select SFX fires on every confirm, including on empty submenus, so players get audio feedback even when a category has no games yet. Blocked game launches play the wall-bump sound instead of starting the subprocess.
 
 ---
 

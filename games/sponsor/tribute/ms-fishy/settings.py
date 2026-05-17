@@ -12,6 +12,11 @@ class ColorSettings:
     LIGHT_BLUE = (0, 255, 255)
     FOUNTAIN_BLUE = (102, 168, 176)
     DARK_TURQUOISE = (5, 195, 221) # AQUA BLUE
+    SUMMER_SKY = (60, 180, 210)
+    SAPPHIRE = (10, 30, 70)
+    TRINIDAD = (195, 75, 45) # doesnt look good against the blue background
+    CANARY = (255, 255, 175)
+
 
     # Retro fish palette — hand-picked to contrast against the aqua-to-navy background gradient.
     # Units: RGB 0-255.
@@ -24,8 +29,10 @@ class ColorSettings:
     FISH_PALETTE = [RETRO_CORAL, RETRO_MINT, RETRO_LAVENDER, RETRO_PEACH, RETRO_LIME, RETRO_SKY]
 
     # Ocean background gradient endpoints — blended top-to-bottom each frame.
-    BG_COLOR_TOP = (60, 180, 210)      # sunlit aqua at the water surface
-    BG_COLOR_BOTTOM = (10, 30, 70)     # deep navy at the ocean floor
+    BG_COLOR_TOP = SUMMER_SKY # sunlit aqua at the water surface
+    BG_COLOR_BOTTOM = SAPPHIRE     # deep navy at the ocean floor
+
+    IN_GAME_HUD_TEXT = WHITE
 
     BG_COLOR = DARK_TURQUOISE
 
@@ -47,8 +54,10 @@ class UiSettings:
 
     GAME_OVER_TEXT = "GAME OVER"
     EATEN_BY_BIGGER_FISH_TEXT = "YOU WERE EATEN BY A BIGGER FISH"
+    STARVED_TO_DEATH_TEXT = "YOU STARVED TO DEATH"
     ATE_ALL_FISH_TEXT = "YOU'VE EATEN ALL THE FISH!"
     EATEN_BY_BIGGER_FISH_COLOR = ColorSettings.RED
+    STARVED_TO_DEATH_COLOR = ColorSettings.RED
     ATE_ALL_FISH_COLOR = ColorSettings.GREEN
     PAUSE_TEXT = "PAUSED"
     TITLE_TEXT = "MS. FISHY"
@@ -60,7 +69,7 @@ class UiSettings:
     OVERLAY_FONT_SIZE = 52    # Primary overlay font size in points.
     OUTCOME_MESSAGE_FONT_SIZE = 36  # Shared font size for pre-GAME OVER lose/win messages.
     HUD_FONT_SIZE = 24        # HUD font size in points for fish count and score labels.
-    HUD_FONT_SIZE_SMALL = 16  # Compact HUD font size in points for in-game display.
+    HUD_FONT_SIZE_SMALL = 13  # Compact HUD font size in points for in-game display.
     HUD_PADDING = 16          # Pixel inset from screen edges for HUD labels.
 
     # Initials entry scene layout.
@@ -72,6 +81,21 @@ class UiSettings:
     INITIALS_TITLE_SCORE_GAP = 28   # Horizontal pixel gap between title label and score value.
 
     LEADERBOARD_ENTRIES_START_Y = 150  # First leaderboard row Y anchor.
+
+    # Game-over tally reveal cadence.
+    TALLY_LINE_REVEAL_DELAY_MS = 700  # Delay between each tally row reveal in milliseconds.
+    TALLY_LINE_START_Y_RATIO = 0.30   # Top anchor for the first tally row.
+    TALLY_LINE_ROW_GAP = 60           # Vertical spacing in pixels between tally rows.
+    TALLY_TOTAL_FONT_SIZE = 36        # Font size for the final TOTAL SCORE tally row.
+    TALLY_TOTAL_TOP_GAP = 24          # Extra vertical gap before the final TOTAL SCORE row.
+
+    # HUD layout.
+    HUD_LINE_SPACING = 26            # Vertical gap in pixels between consecutive detail HUD rows.
+    HUD_BAR_WIDTH = 150              # Total width of the hunger bar in pixels.
+    HUD_BAR_HEIGHT = 8               # Height of the hunger bar in pixels.
+    HUNGER_WARNING_SECONDS = 5       # Timer text (and future audio cue) turns red at or below this value.
+    HUD_COMPACT_LABEL = "HUNGER"     # Label shown beside the bar in compact (minimal) mode.
+    HUD_COMPACT_BAR_GAP = 8         # Horizontal gap in pixels between the compact label and bar.
 
 
 class GameStateSettings:
@@ -188,6 +212,47 @@ class FishSettings:
     # Pixel offset for the drop shadow rendered behind every fish; adds perceived depth.
     SHADOW_OFFSET = 2
 
+
+class TimerSettings:
+    """Settings for the active-run countdown timer."""
+
+    # Starting countdown time for each run, in seconds.
+    STARTING_SECONDS = 30
+
+    # Seconds added to the timer when the player eats a fish exactly its own
+    # size (size ratio = 1.0).  Smaller fish yield proportionally less time
+    # via the diminishing-returns ratio, so the bonus is always relative —
+    # a huge player eating a huge peer gets the same seconds as a tiny player
+    # eating a tiny peer.
+    SECONDS_PER_EAT = 6
+
+    # Minimum ratio applied to the time bonus when eating very small fish
+    # relative to the player's current size.  Prevents a huge player from
+    # getting zero time from any fish: a value of 0.05 guarantees at least
+    # 5% of SECONDS_PER_EAT regardless of the size gap.
+    TIMER_MIN_RATIO = 0.05
+
+
+class ScoreSettings:
+    """Weighting factors for the end-of-run compound score formula.
+
+    Formula:
+        total = (size_eaten  * WEIGHT_EATEN_FACTOR)
+              + (fish_eaten  * FISH_EATEN_BONUS)
+              + (final_weight * FINAL_WEIGHT_FACTOR)
+              + (time_left   * TIME_LEFT_BONUS)
+    """
+
+    # Points awarded per pixel of total weight eaten across the run.
+    WEIGHT_EATEN_FACTOR = 1
+    # Flat bonus awarded per fish eaten, regardless of size.
+    FISH_EATEN_BONUS = 10
+    # Points awarded per pixel of the player's final body width at run end.
+    FINAL_WEIGHT_FACTOR = 3
+    # Points awarded per whole second remaining on the hunger timer at run end.
+    TIME_LEFT_BONUS = 5
+
+
 class FontSettings:
     """Font files, sizes, and text-color mappings for UI rendering."""
 
@@ -256,11 +321,21 @@ class AudioSettings:
     # Background music pool; one is chosen at random each time music starts,
     # avoiding back-to-back repeats of the same track.
     MUSIC_TRACKS = [
-        os.path.join(AssetPaths.MUSIC_DIR, '8bit-aquarium.mp3'),
+        os.path.join(AssetPaths.MUSIC_DIR, '8bit-aquarium.ogg'),
     ]
 
 class DebugSettings:
     """Settings related to debugging features."""
+
+    # When False, the CRT overlay is skipped entirely. This is useful for
+    # pybag/browser runs and quick testing where the overlay texture or effect
+    # gets in the way.
+    ENABLE_CRT = True
+
+    # When True, closing the game exits the main loop cleanly instead of
+    # calling sys.exit(). This avoids browser-console "clean crash" noise in
+    # pybag/web builds while keeping desktop behavior opt-in.
+    WEB_SAFE_EXIT = True
 
     # When True, gameplay starts with a larger player body width to speed up
     # end-game testing.
