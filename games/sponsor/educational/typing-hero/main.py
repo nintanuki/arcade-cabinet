@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 import math
 import random
 import sys
 from typing import Literal
 
 import pygame
+
+# True when running as a web page (pygbag); the browser has no process to
+# exit and no fullscreen toggle of its own, and draws at its own frame rate.
+WEB = sys.platform == "emscripten"
+if WEB:
+    import web_shims  # Added by scripts/web_build.py: set_timer and saves for the browser.
 
 from core.animations import Background, Explosion
 from core.sprites import Alien, KillLaser, PowerUp, RainbowLaser
@@ -18,6 +25,7 @@ from settings import (
     HeartSettings,
     LaserSettings,
     PowerupSettings,
+    ScoreSettings,
     ScreenSettings,
     ShieldSettings,
     TypingSettings,
@@ -40,9 +48,10 @@ class GameManager:
     def __init__(self) -> None:
         """Initialize pygame, runtime services, and per-session state."""
         pygame.init()
+        # The web page scales the canvas itself, so it gets a plain window.
         self.screen = pygame.display.set_mode(
             ScreenSettings.RESOLUTION,
-            pygame.SCALED,
+            0 if WEB else pygame.SCALED,
         )
         pygame.display.set_caption(ScreenSettings.TITLE)
         self.clock = pygame.time.Clock()
@@ -67,6 +76,8 @@ class GameManager:
         self.game_over_screen = GameOverScreen()
         self.intro_screen = IntroScreen()
         self.pause_screen = PauseScreen()
+        if WEB:
+            web_shims.keep_files("typing-hero", ScoreSettings.SAVE_PATH)
         self.scores = ScoreManager()
 
         self.hearts = HeartSettings.MAX
@@ -86,6 +97,9 @@ class GameManager:
 
     def close_game(self) -> None:
         """Close pygame and exit the process cleanly."""
+        if WEB:
+            web_shims.leave_game()
+            return
         pygame.quit()
         sys.exit()
 
@@ -453,7 +467,8 @@ class GameManager:
             return
 
         if event.key == pygame.K_F11:
-            pygame.display.toggle_fullscreen()
+            if not WEB:
+                pygame.display.toggle_fullscreen()
             return
 
         if self.state == 'intro':
@@ -729,13 +744,29 @@ class GameManager:
             self.crt.draw_damage_flash(show_red)
         pygame.display.flip()
 
-    def run(self) -> None:
-        """Run the main game loop until the user quits."""
+    async def run(self) -> None:
+        """Run the main game loop until the user quits.
+
+        The loop hands control back once a frame (``asyncio.sleep(0)``) so the
+        same code runs as a web page, where the browser owns the frame clock.
+        """
+        step_time = 0.0  # Web only: world updates owed since the last frame.
         while self.running:
             delta_time = self.clock.get_time() / 1000.0
             self._handle_events()
             self._update(delta_time)
+            # The world moves a fixed amount per update, tuned for FPS updates a
+            # second. A browser draws about 60 frames a second, so there the world
+            # takes as many updates as the time passed calls for.
+            if WEB:
+                step_time = min(step_time + delta_time * ScreenSettings.FPS, 4)
+                steps = max(1, int(step_time))  # _update already did one.
+                step_time -= steps
+                for _ in range(steps - 1):
+                    if self.state == 'playing':
+                        self._update_playing()
             self._draw()
+            await asyncio.sleep(0)
             self.clock.tick(ScreenSettings.FPS)
 
         self.close_game()
@@ -743,5 +774,5 @@ class GameManager:
 # Main execution
 if __name__ == '__main__':
     game_manager = GameManager()
-    game_manager.run()
+    asyncio.run(game_manager.run())
 

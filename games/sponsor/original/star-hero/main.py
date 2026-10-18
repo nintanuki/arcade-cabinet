@@ -1,12 +1,21 @@
+import asyncio
 import os
 import pygame
 import sys
 import time
 import random
 
+# True when running as a web page (pygbag); the browser has no process to
+# exit and no fullscreen toggle of its own, and draws at its own frame rate.
+WEB = sys.platform == "emscripten"
+if WEB:
+    import web_shims  # Added by scripts/web_build.py: set_timer and saves for the browser.
+
 # Resolve relative asset paths from this game's folder so standalone runs
 # (python main.py) and launcher runs behave the same regardless of cwd.
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+if WEB:
+    web_shims.keep_files("star-hero", "high_score.txt")
 
 from settings import *
 from core.animations import Background, Explosion
@@ -36,7 +45,9 @@ class GameManager:
         self.refresh_joysticks()
 
         # -------- Display --------
-        self.screen = pygame.display.set_mode((ScreenSettings.RESOLUTION), pygame.SCALED)
+        # The web page scales the canvas itself, so it gets a plain window.
+        flags = 0 if WEB else pygame.SCALED
+        self.screen = pygame.display.set_mode((ScreenSettings.RESOLUTION), flags)
         pygame.display.set_caption('Star Hero')
         self.clock = pygame.time.Clock()
         self._show_loading_screen()
@@ -96,6 +107,9 @@ class GameManager:
     def close_game(self):
         """Save scores, then close the game process cleanly."""
         self.scores.save_scores()
+        if WEB:
+            web_shims.leave_game()
+            return
         pygame.quit()
         sys.exit()
 
@@ -243,7 +257,7 @@ class GameManager:
     def _handle_keydown(self, event: pygame.event.Event) -> None:
         """Route a single keyboard press."""
         # Global keys (always honored regardless of run state).
-        if event.key == pygame.K_F11:
+        if event.key == pygame.K_F11 and not WEB:
             pygame.display.toggle_fullscreen()
         if event.key == pygame.K_ESCAPE:
             # ESC always exits the game and returns to the launcher,
@@ -287,7 +301,7 @@ class GameManager:
             self.close_game()
 
         # BACK is the global fullscreen toggle.
-        if event.button == ControllerSettings.BACK_BUTTON:
+        if event.button == ControllerSettings.BACK_BUTTON and not WEB:
             pygame.display.toggle_fullscreen()
 
         # Active gameplay buttons.
@@ -447,9 +461,14 @@ class GameManager:
 
         self.crt.draw()
 
-    def run(self) -> None:
-        """Main game loop: pump events, advance world, render, repeat."""
+    async def run(self) -> None:
+        """Main game loop: pump events, advance world, render, repeat.
+
+        The loop hands control back once a frame (``asyncio.sleep(0)``) so the
+        same code runs as a web page, where the browser owns the frame clock.
+        """
         last_time = time.time()  # Track time for delta_time so animations are frame-rate independent.
+        step_time = 0.0  # Web only: world time owed since the last frame.
         while True:
             delta_time = time.time() - last_time
             last_time = time.time()
@@ -457,16 +476,33 @@ class GameManager:
             if self.quit_combo_pressed():
                 self.close_game()
 
+            if self.session.paused:
+                self.session.pause_frame()
+                await asyncio.sleep(0)
+                self.clock.tick(ScreenSettings.FPS)
+                last_time = time.time()
+                continue
+
             self._process_events(delta_time)
             world_speed_multiplier = self._world_speed_multiplier()
             self._update_music()
-            self._update_world(delta_time, world_speed_multiplier)
+            # The world moves a fixed amount per update, tuned for FPS updates a
+            # second. A browser draws about 60 frames a second, so there the world
+            # takes as many updates as the time passed calls for.
+            steps = 1
+            if WEB:
+                step_time = min(step_time + delta_time * ScreenSettings.FPS, 4)
+                steps = int(step_time)
+                step_time -= steps
+            for _ in range(steps):
+                self._update_world(delta_time, world_speed_multiplier)
             self._render_frame(delta_time, world_speed_multiplier)
             pygame.display.flip()
+            await asyncio.sleep(0)
             self.clock.tick(ScreenSettings.FPS)
 
 
 # Main execution
 if __name__ == '__main__':
     game_manager = GameManager()
-    game_manager.run()
+    asyncio.run(game_manager.run())

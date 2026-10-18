@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import random
 import pygame
@@ -348,43 +349,42 @@ class SessionStateManager:
         pygame.time.set_timer(game.spawner.player_death_timer, 0)
 
     def pause(self) -> None:
-        """Toggle pause, then drain events on a tight inner loop while paused."""
-        game = self.game
+        """Toggle pause; the main loop calls ``pause_frame`` while paused."""
         self.paused = not self.paused
-        while self.paused:
-            if game.quit_combo_pressed():
+
+    def pause_frame(self) -> None:
+        """Drain events and draw the pause screen for one frame."""
+        game = self.game
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 game.close_game()
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+            if game.handle_joystick_hotplug(event):
+                continue
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_F11 and sys.platform != "emscripten":
+                    pygame.display.toggle_fullscreen()
+                if event.key == pygame.K_ESCAPE:
+                    # ESC always exits the game and returns to the launcher,
+                    # matching the L1+R1+START+SELECT controller combo.
                     game.close_game()
+                if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                    self.unpause_game()
+                if event.key == pygame.K_m:
+                    game.toggle_debug_mute()
 
-                if game.handle_joystick_hotplug(event):
-                    continue
+            if event.type == pygame.JOYBUTTONDOWN:
+                if game.quit_combo_pressed():
+                    game.close_game()
+                if event.button == ControllerSettings.START_BUTTON:
+                    self.unpause_game()
+                if event.button == ControllerSettings.BACK_BUTTON and sys.platform != "emscripten":
+                    pygame.display.toggle_fullscreen()
 
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_F11:
-                        pygame.display.toggle_fullscreen()
-                    if event.key == pygame.K_ESCAPE:
-                        # ESC always exits the game and returns to the launcher,
-                        # matching the L1+R1+START+SELECT controller combo.
-                        game.close_game()
-                    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
-                        self.unpause_game()
-                    if event.key == pygame.K_m:
-                        game.toggle_debug_mute()
-
-                if event.type == pygame.JOYBUTTONDOWN:
-                    if game.quit_combo_pressed():
-                        game.close_game()
-                    if event.button == ControllerSettings.START_BUTTON:
-                        self.unpause_game()
-                    if event.button == ControllerSettings.BACK_BUTTON:
-                        pygame.display.toggle_fullscreen()
-
-            game.screen.fill((0, 0, 0))
-            game.style.update('pause', game.scores.save_data, game.scores.score)
-            pygame.display.update()
+        game.screen.fill((0, 0, 0))
+        game.style.update('pause', game.scores.save_data, game.scores.score)
+        pygame.display.update()
 
     def unpause_game(self) -> None:
         """Resume music channels and play the unpause SFX."""

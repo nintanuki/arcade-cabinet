@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import pygame
 import sys
 import traceback as _traceback
 from copy import deepcopy
+
+# True when running as a web page (pygbag); the browser has no process to
+# exit and no fullscreen toggle of its own.
+WEB = sys.platform == "emscripten"
+if WEB:
+    import web_shims  # Added by scripts/web_build.py: saves for the browser.
 
 from core.elements import Component, LED, SavedComponent, Switch
 from core.project_manager import ProjectManager
@@ -30,6 +37,14 @@ from core.commands import (
 from settings import *
 
 _PROJECTS_DIR = os.path.join(os.path.dirname(__file__), "projects")
+if WEB:
+    web_shims.keep_files("digital-logic-simulator", _PROJECTS_DIR)
+
+
+def _toggle_fullscreen() -> None:
+    """Toggle fullscreen on the desktop; the web page has no window to toggle."""
+    if not WEB:
+        pygame.display.toggle_fullscreen()
 
 
 class GameManager:
@@ -157,7 +172,7 @@ class GameManager:
                     ),
                 ),
                 "actions": {
-                    "toggle_fullscreen": pygame.display.toggle_fullscreen,
+                    "toggle_fullscreen": _toggle_fullscreen,
                     "toggle_crt": self._toggle_crt,
                 },
             },
@@ -181,7 +196,7 @@ class GameManager:
                 "redo": self.history.redo,
             },
             "view": {
-                "toggle_fullscreen": pygame.display.toggle_fullscreen,
+                "toggle_fullscreen": _toggle_fullscreen,
                 "toggle_crt": self._toggle_crt,
             },
             "help": {
@@ -202,7 +217,7 @@ class GameManager:
                 "redo": None,
             },
             "view": {
-                "toggle_fullscreen": pygame.display.toggle_fullscreen,
+                "toggle_fullscreen": _toggle_fullscreen,
                 "toggle_crt": self._toggle_crt,
             },
             "help": {
@@ -270,6 +285,9 @@ class GameManager:
 
     def close_game(self) -> None:
         """Quit pygame and terminate the process."""
+        if WEB:
+            web_shims.leave_game()
+            return
         pygame.quit()
         sys.exit()
 
@@ -551,7 +569,7 @@ class GameManager:
 
         # Global keys are available even when no tool is active.
         if event.key == pygame.K_F11:
-            pygame.display.toggle_fullscreen()
+            _toggle_fullscreen()
         if event.key == pygame.K_F10:
             self._toggle_crt()
         if event.key == pygame.K_ESCAPE:
@@ -714,8 +732,12 @@ class GameManager:
         # Error banner draws after the CRT overlay so it's always legible.
         self._draw_error_banner()
 
-    def run(self) -> None:
-        """Run the main loop and keep the app responsive after recoverable errors."""
+    async def run(self) -> None:
+        """Run the main loop and keep the app responsive after recoverable errors.
+
+        The loop hands control back once a frame (``asyncio.sleep(0)``) so the
+        same code runs as a web page, where the browser owns the frame clock.
+        """
         while True:
             try:
                 self._process_events()
@@ -737,9 +759,10 @@ class GameManager:
                 except Exception:
                     pass
             pygame.display.flip()
+            await asyncio.sleep(0)
             self.clock.tick(ScreenSettings.FPS)
 
 # Main execution
 if __name__ == '__main__':
     game_manager = GameManager()
-    game_manager.run()
+    asyncio.run(game_manager.run())

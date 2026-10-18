@@ -1,10 +1,19 @@
+import asyncio
 import os
 import pygame
 import sys
 
+# True when running as a web page (pygbag); the browser has no process to
+# exit and no fullscreen toggle of its own.
+WEB = sys.platform == "emscripten"
+if WEB:
+    import web_shims  # Added by scripts/web_build.py: saves for the browser.
+
 # Resolve relative asset paths from this game's folder so standalone runs
 # (python main.py) and launcher runs behave the same regardless of cwd.
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+if WEB:
+    web_shims.keep_files("dungeon-digger", "saves", os.path.join("systems", "leaderboard.txt"))
 
 from settings import *
 from systems.audio_manager import AudioManager
@@ -29,7 +38,9 @@ class GameManager:
             start_fullscreen: Whether to launch directly in fullscreen mode.
         """
         pygame.init()
-        self.screen = pygame.display.set_mode((ScreenSettings.RESOLUTION), pygame.SCALED)
+        # The web page scales the canvas itself, so it gets a plain window.
+        flags = 0 if WEB else pygame.SCALED
+        self.screen = pygame.display.set_mode((ScreenSettings.RESOLUTION), flags)
         pygame.display.set_caption(ScreenSettings.TITLE)
         if start_fullscreen:
             pygame.display.toggle_fullscreen()
@@ -114,6 +125,7 @@ class GameManager:
 
         # -------- Post-processing --------
         self.full_screen = False
+        self.replacement = None  # Set by reset_game: the fresh GameManager to run next.
         self.crt = CRT(self.screen)
 
         # -------- Rendering facade --------
@@ -167,12 +179,14 @@ class GameManager:
         current_surface = pygame.display.get_surface()
         was_fullscreen = bool(current_surface and (current_surface.get_flags() & pygame.FULLSCREEN))
 
-        new_game_manager = GameManager(start_fullscreen=was_fullscreen)
-        new_game_manager.run()
-        sys.exit()
+        # The main loop starts the new instance once this frame's events are done.
+        self.replacement = GameManager(start_fullscreen=was_fullscreen)
 
     def close_game(self) -> None:
         """Close the game process cleanly."""
+        if WEB:
+            web_shims.leave_game()
+            return
         pygame.quit()
         sys.exit()
 
@@ -805,7 +819,7 @@ class GameManager:
         """Route one keyboard press to the appropriate UI/gameplay handler."""
         # F11 fullscreen toggle is global and intentionally falls through so
         # other handlers still see the press.
-        if event.key == pygame.K_F11:
+        if event.key == pygame.K_F11 and not WEB:
             pygame.display.toggle_fullscreen()
             self.full_screen = not self.full_screen
 
@@ -875,7 +889,7 @@ class GameManager:
                 # BACK in quit_confirm acts as NO (dismiss)
                 self.quit_confirm_index = 0  # Move to NO
                 self.handle_start_press()      # Confirm NO
-            else:
+            elif not WEB:
                 pygame.display.toggle_fullscreen()
                 self.full_screen = not self.full_screen
 
@@ -1034,18 +1048,27 @@ class GameManager:
         if not self.full_screen:
             self.crt.draw()
 
-    def run(self):
-        """Run the main game loop until the player quits."""
+    async def run(self):
+        """Run the main game loop until the player quits.
+
+        The loop hands control back once a frame (``asyncio.sleep(0)``) so the
+        same code runs as a web page, where the browser owns the frame clock.
+        """
         while True:
             if self.quit_combo_pressed():
                 self.close_game()
             self._tick_between_level_flow()
             self._process_events()
+            if self.replacement is not None:
+                # reset_game asked for a fresh start: hand the loop over.
+                await self.replacement.run()
+                return
             self._update_world()
             self._render_frame()
             pygame.display.flip()
+            await asyncio.sleep(0)
             self.clock.tick(ScreenSettings.FPS)
 
 if __name__ == "__main__":
     game_manager = GameManager()
-    game_manager.run()
+    asyncio.run(game_manager.run())
